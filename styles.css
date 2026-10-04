@@ -361,45 +361,30 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
   box-shadow: 0 20px 60px -30px rgba(18, 74, 120, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
-.hero { width: min(760px, 100%); border-radius: 40px; padding: 30px 40px 32px; text-align: center; }
+.hero { display: flex; flex-direction: column; align-items: center; gap: 0; text-align: center; margin-bottom: 18px; }
 
-/* Liquid glass: clear (not frosted) body, refracting rim, bright edge light, moving specular. */
+/* Clock panel: a compact, clear pane of glass — soft fill, hairline rim, faint edge refraction. */
+.clock-glass { border-radius: 22px; padding: 6px 46px 10px; margin-bottom: 18px; }
 .liquid-glass {
   position: relative; isolation: isolate;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.10));
-  -webkit-backdrop-filter: blur(4px) saturate(1.2) brightness(1.05);
-  backdrop-filter: blur(4px) saturate(1.2) brightness(1.05);
-  box-shadow:
-    0 30px 70px -30px rgba(10, 66, 120, 0.55),
-    0 3px 10px rgba(10, 66, 120, 0.10),
-    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.45),
-    inset 3px 0 6px -3px rgba(255, 255, 255, 0.6),
-    inset -3px 0 6px -3px rgba(255, 255, 255, 0.35),
-    inset 0 -18px 30px -18px rgba(255, 255, 255, 0.35),
-    inset 0 22px 36px -22px rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  backdrop-filter: blur(6px) saturate(1.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.42);
+  box-shadow: 0 10px 30px -18px rgba(10, 66, 120, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .liquid-glass::before {
-  /* Specular highlight; follows the pointer via --mx / --my. */
+  /* A soft highlight that drifts toward the pointer. */
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
-  background:
-    radial-gradient(60% 90% at var(--mx, 22%) var(--my, -10%), rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.10) 45%, transparent 70%),
-    radial-gradient(40% 60% at calc(100% - var(--mx, 22%)) calc(110% - var(--my, -10%) * 0.2), rgba(255, 255, 255, 0.22), transparent 70%);
-  mix-blend-mode: soft-light;
-  transition: background-position 0.3s;
-}
-.liquid-glass::after {
-  /* Rim light: a gradient hairline brightest on the top-left and bottom-right edges. */
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0; padding: 1.5px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.25) 30%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0.35) 80%, rgba(255, 255, 255, 0.85));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  background: radial-gradient(70% 120% at var(--mx, 30%) var(--my, -30%), rgba(255, 255, 255, 0.22), transparent 65%);
 }
 .lg-content { position: relative; z-index: 1; }
-.liquid-glass .clock-time { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 30px rgba(10, 66, 120, 0.12); }
+.clock-time {
+  font-size: clamp(72px, 9vw, 120px); font-weight: 400; letter-spacing: -0.02em; line-height: 1.12;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
 .weather { cursor: pointer; transition: background 0.15s; }
-.weather:hover { background: rgba(255, 255, 255, 0.7); }
+.weather:hover { background: rgba(255, 255, 255, 0.35); }
 .wx-emoji { font-size: 17px; line-height: 1; }
 .wx-pop { width: 300px; }
 .wx-menu { display: flex; flex-direction: column; gap: 8px; }
@@ -408,13 +393,12 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .wx-result { text-align: left; padding: 7px 10px; border-radius: 8px; font-size: 13px; }
 .wx-result:hover { background: var(--well); }
 .wx-note:empty { display: none; }
-.clock-time {
-  font-size: clamp(76px, 12vw, 148px); font-weight: 200; letter-spacing: -0.055em; line-height: 0.95;
-  font-variant-numeric: tabular-nums; color: var(--ink);
+.clock-time::after { content: attr(data-ampm); font-size: 0.2em; font-weight: 400; letter-spacing: 0; margin-left: 0.25em; vertical-align: 0.5em; color: var(--ink-2); }
+.clock-date { font-size: 19px; font-weight: 500; color: #26323e; letter-spacing: -0.005em; }
+.weather {
+  display: inline-flex; gap: 7px; align-items: center; margin-top: 6px; padding: 3px 12px; border-radius: 999px;
+  font-size: 16px; color: #38475a; min-height: 28px;
 }
-.clock-time::after { content: attr(data-ampm); font-size: 0.16em; font-weight: 400; letter-spacing: 0; margin-left: 0.25em; vertical-align: 0.5em; color: var(--ink-2); }
-.hero-sub { margin-top: 14px; display: flex; justify-content: center; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 15px; color: var(--ink-2); }
-.weather { display: inline-flex; gap: 8px; align-items: center; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.45); min-height: 30px; }
 .weather:empty { background: transparent; }
 .home-cols { width: min(920px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .home-col { border-radius: 24px; padding: 8px 10px 12px; }

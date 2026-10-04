@@ -1,7 +1,7 @@
 // Sedi service worker: caches the app shell so Sedi opens instantly and works fully offline.
 // Bump VERSION whenever app files change so browsers pick up the new build.
 
-const VERSION = 'sedi-v1.1.0';
+const VERSION = 'sedi-v1.2.0';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './brain/master_library.json',
@@ -12,7 +12,8 @@ const SHELL = [
 const RUNTIME = 'sedi-runtime'; // Sovereign Brain runtime files from the CDN
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' bypasses the browser's HTTP cache so a new version never precaches stale files.
+  event.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
@@ -28,16 +29,19 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // App shell: cache first, refresh in the background.
+  // App shell: network first (always the newest version when online), cached copy when offline.
   if (url.origin === self.location.origin) {
     event.respondWith((async () => {
       const cache = await caches.open(VERSION);
-      const cached = await cache.match(req, { ignoreSearch: true }) || (req.mode === 'navigate' ? await cache.match('./index.html') : null);
-      const network = fetch(req).then(res => {
+      try {
+        const res = await fetch(req, { cache: 'no-cache' });
         if (res.ok && res.type === 'basic') cache.put(req, res.clone());
         return res;
-      }).catch(() => null);
-      return cached || (await network) || new Response('Offline', { status: 503 });
+      } catch {
+        return (await cache.match(req, { ignoreSearch: true }))
+          || (req.mode === 'navigate' ? await cache.match('./index.html') : null)
+          || new Response('Offline', { status: 503 });
+      }
     })());
     return;
   }

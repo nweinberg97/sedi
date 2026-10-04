@@ -56,10 +56,10 @@ function buildMap(w, h, radius, edge) {
   return c.toDataURL('image/png');
 }
 
-export function mountLiquidGlass(el, { strength = 64, edge = 42 } = {}) {
+export function mountLiquidGlass(el, { strength = 64, edge = 42, refract = true } = {}) {
   if (!el) return () => {};
   const id = `sedi-lg-${++counter}`;
-  const chromium = isChromium();
+  const chromium = refract && isChromium();
   let filter = null;
 
   if (chromium) {
@@ -84,7 +84,7 @@ export function mountLiquidGlass(el, { strength = 64, edge = 42 } = {}) {
       const img = filter.querySelector('feImage');
       // Chromium positions backdrop-filter primitives from the content box, so shift the map back by the padding.
       const cs = getComputedStyle(el);
-      img.setAttribute('x', -parseFloat(cs.paddingLeft) || 0); img.setAttribute('y', -parseFloat(cs.paddingTop) || 0);
+      img.setAttribute('x', -(parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth)) || 0); img.setAttribute('y', -(parseFloat(cs.paddingTop) + parseFloat(cs.borderTopWidth)) || 0);
       img.setAttribute('width', w); img.setAttribute('height', hgt);
       const url = buildMap(w, hgt, Math.min(radius, hgt / 2), Math.min(edge, hgt / 3));
       img.setAttribute('href', url);

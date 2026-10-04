@@ -17,7 +17,7 @@ export function mount(el) {
   nextCol = h('div', { class: 'home-stack' });
   recentCol = h('div', { class: 'home-stack' });
   root.replaceChildren(h('div', { class: 'home' },
-    h('section', { class: 'hero liquid-glass' }, h('div', { class: 'lg-content' }, clockTime, h('div', { class: 'hero-sub' }, clockDate, weatherEl))),
+    h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
     h('div', { class: 'home-cols' },
       h('section', { class: 'home-col glass' },
         h('button', { class: 'home-col-head', onclick: openNextUpList }, h('h2', {}, 'Next up'), h('span', { class: 'see-all' }, 'See all')),
@@ -30,7 +30,7 @@ export function mount(el) {
   renderWeather();
   loadWeather(false);
   weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
-  glassCleanup = mountLiquidGlass(root.querySelector('.hero'));
+  glassCleanup = mountLiquidGlass(root.querySelector('.clock-glass'), { refract: false });
   render();
 }
 export function unmount() { clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
@@ -123,14 +123,14 @@ function openActivityList() {
 
 // ---------- Weather (Open-Meteo, cached 30 min) ----------
 const WMO = [
-  [[0], '☀️', 'Clear'], [[1], '🌤️', 'Mostly clear'], [[2], '⛅', 'Partly cloudy'], [[3], '☁️', 'Cloudy'],
+  [[0], '☀️', 'Sunny'], [[1], '🌤️', 'Mostly sunny'], [[2], '⛅', 'Partly cloudy'], [[3], '☁️', 'Cloudy'],
   [[45, 48], '🌫️', 'Fog'], [[51, 53, 55, 56, 57], '🌦️', 'Drizzle'], [[61, 63, 65, 66, 67, 80, 81, 82], '🌧️', 'Rain'],
   [[71, 73, 75, 77, 85, 86], '🌨️', 'Snow'], [[95, 96, 99], '⛈️', 'Storm'],
 ];
 const describe = (code, isDay) => {
   const hit = WMO.find(([codes]) => codes.includes(code)) || [[], '🌡️', 'Weather'];
   let emoji = hit[1];
-  if (!isDay && code <= 1) emoji = '🌙';
+  if (!isDay && code <= 1) return { emoji: '🌙', label: code === 0 ? 'Clear' : 'Mostly clear' };
   return { emoji, label: hit[2] };
 };
 
@@ -139,7 +139,7 @@ function renderWeather() {
   const place = store.pref('coords')?.name;
   if (w?.temp != null) {
     const { emoji, label } = describe(w.code, w.isDay);
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${label}, ${Math.round(w.temp)}°C`));
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${Math.round(w.temp)}°C ${label}`));
     weatherEl.title = `${place ? `${place}. ` : ''}${navigator.onLine ? `Updated ${relTime(w.at)}` : `Offline, last updated ${relTime(w.at)}`}. Click to change location.`;
   } else if (store.pref('weatherState') === 'loading') {
     weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌤️'), h('span', { class: 'muted' }, 'Getting weather…'));
@@ -168,24 +168,39 @@ async function loadWeather(force) {
   if (!navigator.onLine) return renderWeather();
   let coords = store.pref('coords');
   if (!coords) {
-    // First visit: try the browser's location quietly; if it's blocked, ask for a city instead.
+    store.setPref('weatherState', 'loading'); renderWeather();
+    // Use precise location only if it's already allowed; otherwise start from the device's time-zone city.
     let state = 'prompt';
     try { state = (await navigator.permissions?.query({ name: 'geolocation' }))?.state || 'prompt'; } catch {}
-    if (state === 'denied' || store.pref('locationTried')) return renderWeather();
-    store.setPref('locationTried', true);
-    store.setPref('weatherState', 'loading'); renderWeather();
-    coords = await locate();
-    if (!coords) { store.setPref('weatherState', null); return renderWeather(); }
+    if (state === 'granted') coords = await locate();
+    if (!coords) coords = await cityFromTimeZone();
+    if (!coords) { store.setPref('weatherState', 'error'); return renderWeather(); }
     store.setPref('coords', coords);
   }
   await fetchWeather(coords);
+}
+
+/** "America/Vancouver" → Vancouver's coordinates, without asking for location permission. */
+async function cityFromTimeZone() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  const city = tz.split('/').pop()?.replace(/_/g, ' ');
+  if (!city || /^(UTC|GMT|Etc)/i.test(city)) return null;
+  const hit = (await geocode(city)).find(r => !r.timezone || r.timezone === tz) || (await geocode(city))[0];
+  return hit ? { lat: +hit.latitude.toFixed(2), lon: +hit.longitude.toFixed(2), name: hit.name } : null;
+}
+async function geocode(q) {
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`, { cache: 'no-store' });
+    if (!r.ok) return [];
+    return (await r.json()).results || [];
+  } catch { return []; }
 }
 
 async function fetchWeather(coords) {
   if (!cachedWeatherFresh()) { store.setPref('weatherState', 'loading'); renderWeather(); }
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,weather_code,is_day&timezone=auto`;
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const j = await res.json();
     store.setPref('weather', { at: new Date().toISOString(), temp: j.current.temperature_2m, code: j.current.weather_code, isDay: !!j.current.is_day });
@@ -211,13 +226,11 @@ function openWeatherMenu(anchor) {
     const q = input.value.trim();
     if (q.length < 2) { list.replaceChildren(); return; }
     try {
-      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`);
-      const j = await r.json();
-      const results = j.results || [];
+      const results = await geocode(q);
       list.replaceChildren(...(results.length ? results.map(x => {
         const name = [x.name, x.admin1, x.country_code].filter(Boolean).join(', ');
         return h('button', { class: 'wx-result', type: 'button', onclick: () => pick({ lat: +x.latitude.toFixed(2), lon: +x.longitude.toFixed(2), name: x.name }) }, name);
-      }) : [h('p', { class: 'muted small' }, 'No matching city.')]));
+      }) : [h('p', { class: 'muted small' }, navigator.onLine ? 'No matching city.' : 'Search needs a connection.')]));
     } catch { list.replaceChildren(h('p', { class: 'muted small' }, 'Search needs a connection.')); }
   }, 250);
   input.addEventListener('input', search);
