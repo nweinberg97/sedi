@@ -1,22 +1,23 @@
 // Sedi — Home: the morning-sky dashboard with clock, weather, Next Up and Recent Activity.
 
 import * as store from './store.js';
-import { h, icon, fmtLongDate, pad, popover, modal, relTime, todayKey, fmtMinutes } from './util.js';
+import { h, icon, fmtLongDate, pad, popover, closePopovers, modal, relTime, todayKey, fmtMinutes, debounce } from './util.js';
+import { mountLiquidGlass } from './glass.js';
 import { typeIcon, peekBody, byOrder, TOOL_NAMES } from './cards.js';
 import { navigate } from './shell.js';
 import { occurrencesOn, SLOT_LABELS } from './timely.js';
 
-let root, clockTime, clockDate, weatherEl, nextCol, recentCol, timer;
+let root, clockTime, clockDate, weatherEl, nextCol, recentCol, timer, weatherTimer, glassCleanup;
 
 export function mount(el) {
   root = el;
   clockTime = h('div', { class: 'clock-time', 'aria-live': 'off' });
   clockDate = h('div', { class: 'clock-date' });
-  weatherEl = h('button', { class: 'weather', onclick: () => loadWeather(true) });
+  weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', onclick: e => openWeatherMenu(e.currentTarget) });
   nextCol = h('div', { class: 'home-stack' });
   recentCol = h('div', { class: 'home-stack' });
   root.replaceChildren(h('div', { class: 'home' },
-    h('section', { class: 'hero glass' }, clockTime, h('div', { class: 'hero-sub' }, clockDate, weatherEl)),
+    h('section', { class: 'hero liquid-glass' }, h('div', { class: 'lg-content' }, clockTime, h('div', { class: 'hero-sub' }, clockDate, weatherEl))),
     h('div', { class: 'home-cols' },
       h('section', { class: 'home-col glass' },
         h('button', { class: 'home-col-head', onclick: openNextUpList }, h('h2', {}, 'Next up'), h('span', { class: 'see-all' }, 'See all')),
@@ -28,9 +29,11 @@ export function mount(el) {
   timer = setInterval(tickClock, 1000);
   renderWeather();
   loadWeather(false);
+  weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
+  glassCleanup = mountLiquidGlass(root.querySelector('.hero'));
   render();
 }
-export function unmount() { clearInterval(timer); }
+export function unmount() { clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
 
 function tickClock() {
   const d = new Date();
@@ -133,38 +136,104 @@ const describe = (code, isDay) => {
 
 function renderWeather() {
   const w = store.pref('weather');
+  const place = store.pref('coords')?.name;
   if (w?.temp != null) {
     const { emoji, label } = describe(w.code, w.isDay);
-    weatherEl.replaceChildren(h('span', {}, emoji), h('span', {}, `${label}, ${Math.round(w.temp)}°C`));
-    weatherEl.title = navigator.onLine ? `Updated ${relTime(w.at)}` : `Offline · last updated ${relTime(w.at)}`;
-  } else if (store.pref('weatherDenied')) {
-    weatherEl.replaceChildren(h('span', {}, 'Show weather'));
-    weatherEl.title = 'Uses your location once to fetch the forecast from Open-Meteo';
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${label}, ${Math.round(w.temp)}°C`));
+    weatherEl.title = `${place ? `${place}. ` : ''}${navigator.onLine ? `Updated ${relTime(w.at)}` : `Offline, last updated ${relTime(w.at)}`}. Click to change location.`;
+  } else if (store.pref('weatherState') === 'loading') {
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌤️'), h('span', { class: 'muted' }, 'Getting weather…'));
+  } else if (store.pref('weatherState') === 'error') {
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌡️'), h('span', {}, 'Weather unavailable'));
+    weatherEl.title = 'Click to try again or set your city';
   } else {
-    weatherEl.replaceChildren(h('span', { class: 'muted' }, ' '));
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '📍'), h('span', {}, 'Set your city for weather'));
+    weatherEl.title = 'Choose a city, or use your location';
   }
 }
 
-async function loadWeather(userAsked) {
+/** Ask the browser for a location once; resolves null if blocked, unavailable or slow. */
+function locate() {
+  return new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition(
+      p => res({ lat: +p.coords.latitude.toFixed(2), lon: +p.coords.longitude.toFixed(2), name: null }),
+      () => res(null), { timeout: 8000, maximumAge: 3600e3 });
+  });
+}
+
+async function loadWeather(force) {
   const cached = store.pref('weather');
-  if (!userAsked && cached && Date.now() - new Date(cached.at).getTime() < 30 * 60e3) return;
+  if (!force && cached?.temp != null && Date.now() - new Date(cached.at).getTime() < 30 * 60e3) return renderWeather();
   if (!navigator.onLine) return renderWeather();
-  if (!userAsked && store.pref('weatherDenied')) return renderWeather();
   let coords = store.pref('coords');
-  if (!coords || userAsked) {
-    coords = await new Promise(res => {
-      if (!navigator.geolocation) return res(null);
-      navigator.geolocation.getCurrentPosition(p => res({ lat: +p.coords.latitude.toFixed(2), lon: +p.coords.longitude.toFixed(2) }), () => res(null), { timeout: 10000, maximumAge: 3600e3 });
-    });
-    if (!coords) { store.setPref('weatherDenied', true); return renderWeather(); }
-    store.setPref('weatherDenied', false);
+  if (!coords) {
+    // First visit: try the browser's location quietly; if it's blocked, ask for a city instead.
+    let state = 'prompt';
+    try { state = (await navigator.permissions?.query({ name: 'geolocation' }))?.state || 'prompt'; } catch {}
+    if (state === 'denied' || store.pref('locationTried')) return renderWeather();
+    store.setPref('locationTried', true);
+    store.setPref('weatherState', 'loading'); renderWeather();
+    coords = await locate();
+    if (!coords) { store.setPref('weatherState', null); return renderWeather(); }
     store.setPref('coords', coords);
   }
+  await fetchWeather(coords);
+}
+
+async function fetchWeather(coords) {
+  if (!cachedWeatherFresh()) { store.setPref('weatherState', 'loading'); renderWeather(); }
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,weather_code,is_day&timezone=auto`;
     const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const j = await res.json();
     store.setPref('weather', { at: new Date().toISOString(), temp: j.current.temperature_2m, code: j.current.weather_code, isDay: !!j.current.is_day });
-  } catch { /* keep last known */ }
+    store.setPref('weatherState', null);
+  } catch {
+    store.setPref('weatherState', store.pref('weather')?.temp != null ? null : 'error');
+  }
   renderWeather();
+}
+const cachedWeatherFresh = () => store.pref('weather')?.temp != null;
+
+/** Popover: search a city (Open-Meteo geocoding) or use the device location. */
+function openWeatherMenu(anchor) {
+  const input = h('input', { class: 'field-input sm', placeholder: 'Search a city', 'aria-label': 'City' });
+  const list = h('div', { class: 'wx-results' });
+  const note = h('p', { class: 'muted small wx-note' });
+  const pick = async c => {
+    store.setPref('coords', c);
+    closePopovers();
+    await fetchWeather(c);
+  };
+  const search = debounce(async () => {
+    const q = input.value.trim();
+    if (q.length < 2) { list.replaceChildren(); return; }
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`);
+      const j = await r.json();
+      const results = j.results || [];
+      list.replaceChildren(...(results.length ? results.map(x => {
+        const name = [x.name, x.admin1, x.country_code].filter(Boolean).join(', ');
+        return h('button', { class: 'wx-result', type: 'button', onclick: () => pick({ lat: +x.latitude.toFixed(2), lon: +x.longitude.toFixed(2), name: x.name }) }, name);
+      }) : [h('p', { class: 'muted small' }, 'No matching city.')]));
+    } catch { list.replaceChildren(h('p', { class: 'muted small' }, 'Search needs a connection.')); }
+  }, 250);
+  input.addEventListener('input', search);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') list.querySelector('.wx-result')?.click(); });
+  const useLoc = h('button', {
+    class: 'chip', type: 'button', onclick: async () => {
+      note.textContent = 'Asking your browser for your location…';
+      const c = await locate();
+      if (c) pick(c);
+      else note.textContent = 'Location is blocked. On a Mac, allow it in System Settings → Privacy & Security → Location Services for your browser, or search a city above.';
+    },
+  }, icon('send'), 'Use my location');
+  const current = store.pref('coords');
+  popover(anchor, h('div', { class: 'wx-menu' },
+    h('strong', {}, 'Weather location'),
+    current?.name ? h('p', { class: 'muted small' }, `Showing ${current.name}`) : null,
+    input, list, useLoc, note), { className: 'wx-pop' });
+  setTimeout(() => input.focus(), 30);
 }

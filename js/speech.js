@@ -49,14 +49,15 @@ function pickVoice() {
 }
 if (canSpeak) speechSynthesis.onvoiceschanged = () => { voice = null; pickVoice(); };
 
-export function speak(text) {
-  if (!canSpeak || !text) return;
+export function speak(text, { onEnd } = {}) {
+  if (!canSpeak || !text) { onEnd?.(); return; }
   speechSynthesis.cancel();
   const clean = text.replace(/[*_#`>]/g, '').replace(/\n+/g, '. ').slice(0, 600);
   const u = new SpeechSynthesisUtterance(clean);
   const v = pickVoice();
   if (v) u.voice = v;
   u.rate = 1.03;
+  if (onEnd) { u.onend = () => onEnd(); u.onerror = () => onEnd(); }
   speechSynthesis.speak(u);
 }
 export const stopSpeaking = () => canSpeak && speechSynthesis.cancel();

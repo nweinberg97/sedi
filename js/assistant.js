@@ -12,6 +12,7 @@ import { occurrencesOn } from './timely.js';
 import { listen, speak, stopSpeaking, canListen } from './speech.js';
 import * as brain from './brain.js';
 import { tick } from './sound.js';
+import { parseCommands, looksLikeCommand } from './commands.js';
 
 let token, tray, output, input, modeBar, micBtn, statusEl;
 let mode = 'chat';
@@ -54,7 +55,7 @@ function setMode(m) {
   store.setPref('assistantMode', m);
   modeBar.replaceChildren(...[['chat', 'Chat'], ['voice', 'Voice'], ['command', 'Command']].map(([v, l]) =>
     h('button', { class: v === m ? 'on' : '', type: 'button', role: 'tab', 'aria-selected': String(v === m), onclick: () => setMode(v) }, l)));
-  input.placeholder = { chat: 'Ask about your tasks, notes or goals', voice: 'Tap the mic and talk', command: 'e.g. create task call the dentist in Taskly' }[m];
+  input.placeholder = { chat: 'Ask about your tasks, notes or goals', voice: 'Tap the mic and talk', command: 'e.g. add call the dentist to my to do list' }[m];
   tray.dataset.mode = m;
   if (!output.childElementCount) greet();
 }
@@ -62,7 +63,7 @@ function greet() {
   output.replaceChildren(h('p', { class: 'as-hint' }, {
     chat: 'Ask “what’s next?”, “summary”, or search for anything you’ve saved.',
     voice: 'Tap the mic, speak, and I’ll answer out loud.',
-    command: 'Say or type a change: create, move, complete or delete a card. You’ll confirm before anything happens.',
+    command: 'Say or type a change, like “remind me to call mom tomorrow at 3pm” or “move call the dentist to review”. You’ll confirm before anything happens. Commands also work from Chat and Voice.',
   }[mode]));
 }
 
@@ -128,15 +129,28 @@ const itemList = cards => h('div', { class: 'as-items' }, cards.map(c => h('butt
 }, typeIcon(c.type), h('span', {}, c.title), h('small', {}, TOOL_NAMES[c.tool]))));
 
 // ---------- Submit ----------
-async function submit(text) {
+async function submit(text, { fromVoice = false } = {}) {
   text = (text || '').trim();
-  if (!text) return;
+  if (!text) { if (pending) confirmPending(); return; }
   input.value = '';
   if (output.querySelector('.as-hint')) output.replaceChildren();
   say(text, 'me');
-  if (mode === 'command') return proposeCommand(text);
+  // A pending confirmation takes yes/no answers first.
+  if (pending) {
+    if (YES.test(text)) return confirmPending();
+    if (NO.test(text)) return cancelPending();
+    cancelPending(true);
+  }
+  const ctx = commandContext();
+  const cmds = parseCommands(text, ctx);
+  const isCommand = cmds.length && (mode === 'command' || (looksLikeCommand(text) && cmds.some(c => c.kind !== 'create' || c.explicit)));
+  if (isCommand) return proposeCommands(text, cmds, fromVoice || mode === 'voice');
+  if (mode === 'command') {
+    say(h('p', {}, 'I can create, move, reschedule, complete, rename or delete cards. Try “add call the dentist to my to do list” or “remind me to pay rent Friday at 9am”.'));
+    return;
+  }
   const reply = await answer(text);
-  if (mode === 'voice' && reply) speak(reply);
+  if ((mode === 'voice' || fromVoice) && reply) speak(reply);
 }
 
 function toggleMic() {
@@ -154,7 +168,7 @@ function toggleMic() {
     onEnd: () => {
       session = null; micBtn.classList.remove('on'); tray.classList.remove('listening');
       live.remove();
-      if (finalText) submit(finalText);
+      if (finalText) submit(finalText, { fromVoice: true });
     },
   });
 }
@@ -221,104 +235,126 @@ async function answer(q) {
 }
 
 // ---------- Command ----------
-const TOOL_WORDS = { taskly: 'taskly', 'task list': 'taskly', tasks: 'taskly', boardly: 'boardly', board: 'boardly', timely: 'timely', calendar: 'timely', schedule: 'timely', brainly: 'brainly', notes: 'brainly', universal: 'universal', 'universal board': 'universal' };
-const DEFAULT_TOOL = { task: 'taskly', note: 'brainly', goal: 'boardly', event: 'timely', reminder: 'timely', link: 'brainly', card: 'universal' };
-const COL_WORDS = Object.fromEntries(COLUMNS.map(c => [c.name.toLowerCase(), c.id]).concat([['todo', 'todo'], ['done', 'completed'], ['complete', 'completed']]));
+const YES = /^(?:y|yes|yeah|yep|yup|sure|ok|okay|confirm|confirmed|do it|go ahead|go|correct|right|please do|sounds good)\b/i;
+const NO = /^(?:n|no|nope|nah|cancel|stop|never ?mind|don'?t|wait)\b/i;
+let pending = null;
 
-function findCard(phrase) {
-  const p = phrase.toLowerCase().replace(/^(the|my|a)\s+/, '').replace(/\s+(card|task|note|goal|event)$/, '').trim();
-  const words = p.split(/\s+/);
-  let best = null, bestScore = 0;
-  for (const c of store.allCards()) {
-    const t = c.title.toLowerCase();
-    let s = t === p ? 10 : t.includes(p) ? 6 : 0;
-    s += words.filter(w => w.length > 1 && t.includes(w)).length / words.length * 4;
-    if (s > bestScore) { bestScore = s; best = c; }
-  }
-  return bestScore >= 3 ? best : null;
+function commandContext() {
+  return {
+    cards: store.allCards().filter(c => !c.meta?.archivedAt),
+    tabs: store.get('boardlyTabs', []),
+    now: new Date(),
+  };
 }
 
-export function parseCommand(raw) {
-  const t = raw.trim().replace(/[.!?]+$/, '');
-  const low = t.toLowerCase();
-  let m;
-  if ((m = /^(?:open|go to|show(?: me)?|switch to)\s+(?:the\s+)?(taskly|boardly|timely|brainly|home)\b/.exec(low))) {
-    return { kind: 'open', route: m[1], label: `Open ${m[1][0].toUpperCase() + m[1].slice(1)}` };
+const whenLabel = w => {
+  if (!w) return '';
+  const parts = [];
+  if (w.date) {
+    const d = new Date(`${w.date}T00:00`);
+    const t = todayKey();
+    const tm = new Date(); tm.setDate(tm.getDate() + 1);
+    parts.push(w.date === t ? 'today' : w.date === `${tm.getFullYear()}-${String(tm.getMonth() + 1).padStart(2, '0')}-${String(tm.getDate()).padStart(2, '0')}` ? 'tomorrow'
+      : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }));
   }
-  if ((m = /^remind me (?:to\s+)?(.+)$/i.exec(t))) {
-    return { kind: 'create', type: 'event', reminder: true, title: cap(m[1]), tool: 'timely', label: `Create reminder “${cap(m[1])}” in Timely` };
-  }
-  if ((m = /^(?:create|add|make|new)\s+(?:a\s+|an\s+)?(?:new\s+)?(card|task|note|goal|event|reminder)?\s*(?:called|titled|named|for|to)?\s*(.+)$/i.exec(t))) {
-    let rest = m[2];
-    const type0 = (m[1] || 'card').toLowerCase();
-    let tool = DEFAULT_TOOL[type0];
-    let column = null;
-    const toolRe = /\s+(?:in|to|on|into)\s+(?:the\s+)?(taskly|boardly|timely|brainly|universal board|universal|calendar|schedule|notes|board)(?:\s+(?:in|under)\s+(to do|todo|in progress|review|completed|backlog))?$/i;
-    const tm = toolRe.exec(rest);
-    if (tm) { tool = TOOL_WORDS[tm[1].toLowerCase()]; column = tm[2] ? COL_WORDS[tm[2].toLowerCase()] : null; rest = rest.slice(0, tm.index); }
-    const title = cap(rest.replace(/^["“']|["”']$/g, '').trim());
-    if (!title) return null;
-    const type = type0 === 'reminder' ? 'event' : type0 === 'card' ? ({ taskly: 'task', boardly: 'note', timely: 'event', brainly: 'note', universal: 'note' })[tool] : type0;
-    return { kind: 'create', type, reminder: type0 === 'reminder', title, tool, column, label: `Create ${type0 === 'reminder' ? 'reminder' : type} “${title}” in ${TOOL_NAMES[tool]}` };
-  }
-  if ((m = /^move\s+(.+?)\s+(?:from\s+\w+(?:\s+board)?\s+)?(?:to|into)\s+(?:the\s+)?(taskly|boardly|timely|brainly|universal board|universal|to do|todo|in progress|review|completed|backlog|done)$/i.exec(t))) {
-    const card = findCard(m[1]);
-    if (!card) return { kind: 'error', label: `I couldn’t find a card matching “${m[1]}”.` };
-    const dest = m[2].toLowerCase();
-    if (COL_WORDS[dest]) return { kind: 'move', card, tool: 'taskly', column: COL_WORDS[dest], label: `Move “${card.title}” to ${COLUMNS.find(c => c.id === COL_WORDS[dest]).name} in Taskly` };
-    const tool = TOOL_WORDS[dest];
-    return { kind: 'move', card, tool, label: `Move “${card.title}” from ${TOOL_NAMES[card.tool]} to ${TOOL_NAMES[tool]}` };
-  }
-  if ((m = /^(?:complete|finish|check off|mark)\s+(.+?)(?:\s+(?:as\s+)?(?:done|complete|completed|finished))?$/i.exec(t))) {
-    const card = findCard(m[1]);
-    if (!card) return { kind: 'error', label: `I couldn’t find a card matching “${m[1]}”.` };
-    return { kind: 'complete', card, label: `Mark “${card.title}” as done` };
-  }
-  if ((m = /^(?:delete|remove|trash|throw away)\s+(.+)$/i.exec(t))) {
-    const card = findCard(m[1]);
-    if (!card) return { kind: 'error', label: `I couldn’t find a card matching “${m[1]}”.` };
-    return { kind: 'delete', card, label: `Delete “${card.title}” from ${TOOL_NAMES[card.tool]}` };
-  }
-  return null;
+  if (w.start != null) parts.push(`at ${fmtMinutes(w.start)}`);
+  else if (w.slot) parts.push(`(${w.slot})`);
+  return parts.join(' ');
+};
+function where(c) {
+  if (c.tool === 'taskly') return `Taskly${c.column ? `, ${COLUMNS.find(x => x.id === c.column)?.name}` : ''}`;
+  if (c.tool === 'boardly') return `Boardly${c.tabName ? `, ${c.tabName}` : ''}`;
+  if (c.tool === 'timely') return `Timely${c.when ? ` ${whenLabel(c.when)}` : c.reminder ? ' reminders' : ''}`;
+  return TOOL_NAMES[c.tool] || c.tool;
 }
-const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+export function describe(c) {
+  switch (c.kind) {
+    case 'open': return `Open ${c.route[0].toUpperCase() + c.route.slice(1)}`;
+    case 'create': return `Create ${c.reminder ? 'reminder' : c.type} “${c.title}” in ${where(c)}`;
+    case 'move': return c.tool === c.card.tool && c.tool === 'timely' ? `Reschedule “${c.card.title}” to ${whenLabel(c.when)}` : `Move “${c.card.title}” to ${where(c)}`;
+    case 'complete': return `Mark “${c.card.title}” as done`;
+    case 'delete': return `Delete “${c.card.title}” from ${TOOL_NAMES[c.card.tool]}`;
+    case 'rename': return `Rename “${c.card.title}” to “${c.title}”`;
+    case 'error': return c.message;
+    default: return '';
+  }
+}
 
-function proposeCommand(text) {
-  const cmd = parseCommand(text);
-  if (!cmd) {
-    say(h('p', {}, 'I can create, move, complete, delete or open. Try “create task book flights in Taskly” or “move book flights to Boardly”.'));
+function proposeCommands(text, cmds, voice) {
+  const errors = cmds.filter(c => c.kind === 'error');
+  const opens = cmds.filter(c => c.kind === 'open');
+  const actions = cmds.filter(c => !['error', 'open'].includes(c.kind));
+  errors.forEach(e => say(h('p', {}, e.message)));
+  if (!actions.length) {
+    if (opens.length) { navigate(opens.at(-1).route); say(h('p', {}, `${describe(opens.at(-1))}.`)); store.appendCommandLog({ text, action: describe(opens.at(-1)), result: 'done' }); }
+    else if (errors.length && voice) speak(errors[0].message);
     return;
   }
-  if (cmd.kind === 'error') { say(h('p', {}, cmd.label)); return; }
-  if (cmd.kind === 'open') { navigate(cmd.route); say(h('p', {}, `${cmd.label}.`)); return; }
+  const labels = actions.map(describe);
   const box = say(h('div', { class: 'as-confirm' },
-    h('p', {}, cmd.label + '?'),
+    actions.length === 1 ? h('p', {}, `${labels[0]}?`) : h('div', {}, h('p', {}, `Do these ${actions.length} things?`), h('ul', { class: 'as-plan' }, labels.map(l => h('li', {}, l)))),
     h('div', { class: 'as-confirm-actions' },
-      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { box.replaceChildren(h('p', { class: 'muted' }, 'Cancelled.')); store.appendCommandLog({ text, action: cmd.label, result: 'cancelled' }); } }, 'Cancel'),
-      h('button', {
-        class: 'btn primary sm', type: 'button', onclick: () => {
-          const result = execute(cmd);
-          store.appendCommandLog({ text, action: cmd.label, result });
-          tick();
-          box.replaceChildren(h('p', {}, h('strong', {}, 'Done. '), cmd.label + '.'));
-          if (mode === 'voice') speak(`Done. ${cmd.label}`);
-        },
-      }, 'Confirm'))));
+      h('span', { class: 'as-confirm-hint' }, voice ? 'Say yes or no' : 'Enter to confirm'),
+      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => cancelPending() }, 'Cancel'),
+      h('button', { class: 'btn primary sm', type: 'button', onclick: () => confirmPending() }, actions.length > 1 ? 'Do all' : 'Confirm'))));
+  pending = { text, actions, labels, opens, box, voice };
+  input.placeholder = 'Press Enter to confirm, or type “no”';
+  if (voice) {
+    speak(`${labels.join('. ')}. Should I go ahead?`, { onEnd: () => { if (pending && !session && !tray.hidden) toggleMic(); } });
+  }
 }
 
-function placement(tool, type, column) {
+function confirmPending() {
+  if (!pending) return;
+  const { text, actions, labels, opens, box, voice } = pending;
+  pending = null;
+  setMode(mode);
+  const done = [];
+  actions.forEach((cmd, i) => {
+    try {
+      const result = execute(cmd);
+      store.appendCommandLog({ text, action: labels[i], result });
+      done.push(labels[i]);
+    } catch (err) {
+      store.appendCommandLog({ text, action: labels[i], result: `failed: ${err.message}` });
+    }
+  });
+  tick();
+  box.replaceChildren(h('div', {}, h('p', {}, h('strong', {}, 'Done. '), done.length === 1 ? `${done[0]}.` : `${done.length} changes made.`),
+    actions.length > 1 ? h('ul', { class: 'as-plan done' }, done.map(l => h('li', {}, l))) : null));
+  if (opens.length) navigate(opens.at(-1).route);
+  if (voice) speak(done.length === 1 ? `Done. ${done[0]}.` : `Done. ${done.length} changes made.`);
+}
+
+function cancelPending(silent = false) {
+  if (!pending) return;
+  const { text, labels, box } = pending;
+  pending = null;
+  setMode(mode);
+  store.appendCommandLog({ text, action: labels.join('; '), result: 'cancelled' });
+  box.replaceChildren(h('p', { class: 'muted' }, silent ? 'Skipped.' : 'Cancelled.'));
+}
+
+function placement(tool, type, cmd = {}) {
   switch (tool) {
     case 'taskly': {
-      const col = column || 'todo';
+      const col = cmd.column || 'todo';
       return { columnId: col, order: store.cardsWhere(c => c.tool === 'taskly' && c.meta?.columnId === col).length };
     }
     case 'boardly': {
       const tabs = store.get('boardlyTabs', []);
-      const tab = tabs.find(x => x.id === store.pref('boardlyTab')) || tabs[0];
+      const tab = tabs.find(x => x.id === cmd.tabId) || tabs.find(x => x.id === store.pref('boardlyTab')) || tabs[0];
       const n = store.cardsWhere(c => c.tool === 'boardly' && c.meta?.tabId === tab?.id).length;
       return { tabId: tab?.id, x: 24 + (n % 4) * 228, y: 24 + Math.floor(n / 4) * 84, ...(type === 'goal' ? { smart: {} } : {}) };
     }
-    case 'timely': return { date: todayKey() };
+    case 'timely': {
+      const w = cmd.when || {};
+      const meta = { date: w.date || (cmd.reminder ? null : todayKey()) };
+      if (w.start != null) { meta.start = w.start; meta.dur = 60; }
+      if (w.slot) meta.slot = w.slot;
+      if (cmd.reminder) meta.kind = 'reminder';
+      return meta;
+    }
     case 'brainly': {
       const n = store.cardsWhere(c => c.tool === 'brainly' && !c.meta?.folderId && c.type !== 'link').length;
       return { x: 24 + (n % 4) * 216, y: 24 + Math.floor(n / 4) * 120, emoji: '📝' };
@@ -329,25 +365,33 @@ function placement(tool, type, column) {
 
 function execute(cmd) {
   if (cmd.kind === 'create') {
-    const meta = placement(cmd.tool, cmd.type, cmd.column);
-    if (cmd.reminder) { meta.kind = 'reminder'; meta.date = null; }
-    const type = cmd.tool === 'boardly' && !['goal', 'task', 'note'].includes(cmd.type) ? 'note' : cmd.tool === 'timely' ? 'event' : cmd.tool === 'taskly' ? 'task' : cmd.type;
-    const card = store.createCard({ type, tool: cmd.tool, title: cmd.title, meta });
+    const card = store.createCard({ type: cmd.type, tool: cmd.tool, title: cmd.title, meta: placement(cmd.tool, cmd.type, cmd) });
     return `created ${card.id}`;
   }
+  const c = store.getCard(cmd.card.id);
+  if (!c) throw new Error('card no longer exists');
   if (cmd.kind === 'move') {
-    const type = { taskly: 'task', timely: 'event', brainly: 'note', boardly: ['goal', 'task', 'note'].includes(cmd.card.type) ? cmd.card.type : 'note', universal: cmd.card.type }[cmd.tool];
-    if (cmd.tool === cmd.card.tool && cmd.tool === 'taskly') store.updateCard(cmd.card.id, { meta: placement('taskly', type, cmd.column) }, { log: true, logLabel: 'Moved' });
-    else routeCard(cmd.card.id, { tool: cmd.tool, type, meta: placement(cmd.tool, type, cmd.column) });
-    return `moved ${cmd.card.id}`;
+    if (cmd.tool === 'timely' && c.tool === 'timely' && !c.meta?.board) {
+      const w = cmd.when || {};
+      const meta = { ...c.meta, archivedAt: null };
+      if (w.date) meta.date = w.date;
+      if (w.start != null) { meta.start = w.start; meta.dur = meta.dur || 60; meta.slot = null; }
+      else if (w.slot) { meta.slot = w.slot; meta.start = null; }
+      store.updateCard(c.id, { meta }, { replaceMeta: true, log: true, logLabel: 'Rescheduled' });
+    } else {
+      const type = { taskly: 'task', timely: 'event', brainly: 'note', boardly: ['goal', 'task', 'note'].includes(c.type) ? c.type : 'note', universal: c.type }[cmd.tool];
+      if (cmd.tool === c.tool && cmd.tool !== 'timely') store.updateCard(c.id, { meta: placement(cmd.tool, type, cmd) }, { log: true, logLabel: 'Moved' });
+      else routeCard(c.id, { tool: cmd.tool, type, meta: placement(cmd.tool, type, cmd) });
+    }
+    return `moved ${c.id}`;
   }
   if (cmd.kind === 'complete') {
-    const c = cmd.card;
-    if (c.tool === 'taskly') store.updateCard(c.id, { meta: placement('taskly', 'task', 'completed') }, { log: true, logLabel: 'Completed' });
+    if (c.tool === 'taskly') store.updateCard(c.id, { meta: placement('taskly', 'task', { column: 'completed' }) }, { log: true, logLabel: 'Completed' });
     else store.updateCard(c.id, { meta: { done: true } }, { log: true, logLabel: 'Completed' });
     return `completed ${c.id}`;
   }
-  if (cmd.kind === 'delete') { trashCard(cmd.card.id); return `deleted ${cmd.card.id}`; }
+  if (cmd.kind === 'rename') { store.updateCard(c.id, { title: cmd.title }, { log: true, logLabel: 'Renamed' }); return `renamed ${c.id}`; }
+  if (cmd.kind === 'delete') { trashCard(c.id); return `deleted ${c.id}`; }
   return 'noop';
 }
 
