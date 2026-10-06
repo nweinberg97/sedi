@@ -1,5 +1,7 @@
 # Sedi
 
+> 🚧 **Status: actively in development.** It works well overall, but visual polish and some features are still being refined — not yet a finished product.
+
 A local-first workspace that runs entirely in your browser: tasks (Taskly), life goals (Boardly), time (Timely) and notes (Brainly), connected by one card system. No accounts, no server. Your data lives on your device.
 
 ## Run it
