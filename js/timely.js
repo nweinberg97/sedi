@@ -77,7 +77,7 @@ const setAnchor = k => { store.setPref('timelyAnchor', k); render(); };
 
 export function mount(el) {
   root = el;
-  body = h('div', { class: 'timely-body' });
+  body = h('div', { class: 'timely-body', 'data-navoro-sensitive': '' });
   root.replaceChildren(h('div', { class: 'view timely' }, h('div', { class: 'view-head timely-head' }), body));
   render();
 }

@@ -22,9 +22,16 @@ export function navigate(route) {
 
 // ---------- Header ----------
 export function buildHeader() {
+  // Help opens Navoro's in-app guide. Hidden until js/navoro.js reports Navoro is available.
+  const help = h('button', {
+    class: 'icon-btn help-btn', 'aria-label': 'Help', title: 'Help', 'aria-expanded': 'false', 'aria-haspopup': 'dialog',
+    onclick: () => import('./navoro.js').then(m => m.toggleHelp()),
+  }, icon('help'));
   const header = h('header', { class: 'topbar' },
     h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home', 'data-navoro-id': 'nav.home-logo' }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
-    h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', 'data-navoro-id': 'menu.open', onclick: toggleDrawer }, icon('menu')));
+    h('div', { class: 'topbar-actions' },
+      help,
+      h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', 'data-navoro-id': 'menu.open', onclick: toggleDrawer }, icon('menu'))));
   return header;
 }
 
@@ -142,7 +149,7 @@ export function buildUniversal() {
     quick.value = '';
   });
   uniCount = h('span', { class: 'uni-count' });
-  uniList = h('div', { class: 'uni-list', dataset: { drop: 'universal', accept: 'card' }, 'data-list': '' });
+  uniList = h('div', { class: 'uni-list', dataset: { drop: 'universal', accept: 'card' }, 'data-list': '', 'data-navoro-sensitive': '' });
   uniPanel = h('section', { class: 'universal-panel', 'aria-label': 'Universal Board' },
     h('div', { class: 'uni-head' }, h('h2', {}, 'Universal Board'), uniCount),
     quick, uniList,

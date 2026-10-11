@@ -78,6 +78,11 @@ Prerequisites: A .json file exported from Sedi.
 2. Type a question or a command into **Message the assistant**, for example "create task call the dentist in Taskly".
 3. Click **Send**. Commands show a change for you to confirm; every command is logged.
 
+## How to get help in Sedi
+
+1. Click **Help** in the top right, next to the menu.
+2. Ask how to do something, or pick a suggestion. Sedi points at each control as you go.
+
 ## How to delete a card
 
 1. Drag the card onto the **Trash** bin in the bottom right.

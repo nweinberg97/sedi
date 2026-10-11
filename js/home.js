@@ -14,8 +14,9 @@ export function mount(el) {
   clockTime = h('div', { class: 'clock-time', 'aria-live': 'off' });
   clockDate = h('div', { class: 'clock-date' });
   weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', 'data-navoro-id': 'home.weather', onclick: e => openWeatherMenu(e.currentTarget) });
-  nextCol = h('div', { class: 'home-stack' });
-  recentCol = h('div', { class: 'home-stack' });
+  // Card lists hold the user's own content: Navoro in-app help never reads inside them.
+  nextCol = h('div', { class: 'home-stack', 'data-navoro-sensitive': '' });
+  recentCol = h('div', { class: 'home-stack', 'data-navoro-sensitive': '' });
   root.replaceChildren(h('div', { class: 'home' },
     h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
     h('div', { class: 'home-cols' },

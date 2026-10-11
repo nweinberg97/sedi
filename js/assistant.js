@@ -25,7 +25,7 @@ export function buildAssistant() {
   input = h('input', { class: 'as-input', placeholder: '', 'aria-label': 'Message the assistant', 'data-navoro-id': 'assistant.input' });
   micBtn = h('button', { class: 'icon-btn as-mic', type: 'button', 'aria-label': 'Speak', disabled: !canListen, title: canListen ? 'Speak' : 'Voice isn’t supported in this browser', onclick: toggleMic }, icon('mic'));
   statusEl = h('span', { class: 'as-status' });
-  tray = h('section', { class: 'assistant-tray', 'aria-label': 'Assistant', hidden: true },
+  tray = h('section', { class: 'assistant-tray', 'aria-label': 'Assistant', hidden: true, 'data-navoro-sensitive': '' },
     h('div', { class: 'as-head' }, modeBar, statusEl,
       h('button', { class: 'icon-btn xs', 'aria-label': 'Command history', title: 'Command history', onclick: openLog }, icon('archive')),
       h('button', { class: 'icon-btn xs', 'aria-label': 'Close assistant', onclick: () => toggle(false) }, icon('x'))),

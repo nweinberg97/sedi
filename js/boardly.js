@@ -25,7 +25,7 @@ const tabCards = tabId => store.cardsWhere(c => c.tool === 'boardly' && c.meta?.
 export function mount(el) {
   root = el;
   tabBar = h('div', { class: 'tabs boardly-tabs', role: 'tablist' });
-  canvas = h('div', { class: 'board-canvas', dataset: { drop: 'boardly-canvas', accept: 'card' }, 'data-canvas': '' });
+  canvas = h('div', { class: 'board-canvas', dataset: { drop: 'boardly-canvas', accept: 'card' }, 'data-canvas': '', 'data-navoro-sensitive': '' });
   const toolbar = h('div', { class: 'canvas-tools' },
     h('button', { class: 'chip', onclick: () => addCard('goal') }, icon('target'), 'Goal'),
     h('button', { class: 'chip', onclick: () => addCard('task') }, icon('checklist'), 'Task'),

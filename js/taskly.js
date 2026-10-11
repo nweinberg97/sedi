@@ -53,7 +53,7 @@ export function render() {
   // First pass builds columns so we can measure the real space before placing cards.
   if (!board.children.length) {
     for (const col of COLUMNS) {
-      const body = h('div', { class: 'col-body' });
+      const body = h('div', { class: 'col-body', 'data-navoro-sensitive': '' });
       const count = h('span', { class: 'col-count' });
       const add = h('button', { class: 'icon-btn sm', 'aria-label': `Add to ${col.name}`, 'data-navoro-id': `taskly.add-${col.id}`, onclick: () => startAdd(col.id) }, icon('plus'));
       board.append(h('section', {

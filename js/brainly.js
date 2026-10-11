@@ -22,12 +22,12 @@ const links = lfid => store.cardsWhere(c => c.tool === 'brainly' && c.type === '
 export function mount(el) {
   root = el;
   searchInput = h('input', { class: 'search-input', type: 'search', placeholder: 'Search everything in Sedi', 'aria-label': 'Search everything', 'data-navoro-id': 'brainly.search' });
-  results = h('div', { class: 'search-results', hidden: true });
+  results = h('div', { class: 'search-results', hidden: true, 'data-navoro-sensitive': '' });
   searchInput.addEventListener('input', debounce(runSearch, 40));
   searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') { searchInput.value = ''; runSearch(); } });
   searchInput.addEventListener('focus', runSearch);
   document.addEventListener('pointerdown', e => { if (!e.target.closest('.search')) results.hidden = true; });
-  canvas = h('div', { class: 'brain-canvas', dataset: { drop: 'brainly-canvas', accept: 'card bfolder' }, 'data-canvas': '' });
+  canvas = h('div', { class: 'brain-canvas', dataset: { drop: 'brainly-canvas', accept: 'card bfolder' }, 'data-canvas': '', 'data-navoro-sensitive': '' });
   dash = h('aside', { class: 'links-dash', 'aria-label': 'My links' });
   root.replaceChildren(h('div', { class: 'view brainly' },
     h('div', { class: 'view-head brainly-head' },
@@ -97,7 +97,7 @@ function renderDash() {
       h('button', { class: 'icon-btn sm', 'aria-label': 'Add a text file', title: 'Add a text file', 'data-navoro-id': 'brainly.add-file', onclick: () => fileIn.click() }, icon('file')),
       h('button', { class: 'icon-btn sm', 'aria-label': 'New link folder', title: 'New link folder', 'data-navoro-id': 'brainly.new-folder', onclick: addLinkFolder }, icon('folder'))),
     input, fileIn,
-    h('div', { class: 'dash-scroll' }, loose, linkFolders().map(linkFolderEl)));
+    h('div', { class: 'dash-scroll', 'data-navoro-sensitive': '' }, loose, linkFolders().map(linkFolderEl)));
 }
 
 function linkEl(c) {
