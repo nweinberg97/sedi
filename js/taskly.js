@@ -55,9 +55,9 @@ export function render() {
     for (const col of COLUMNS) {
       const body = h('div', { class: 'col-body' });
       const count = h('span', { class: 'col-count' });
-      const add = h('button', { class: 'icon-btn sm', 'aria-label': `Add to ${col.name}`, onclick: () => startAdd(col.id) }, icon('plus'));
+      const add = h('button', { class: 'icon-btn sm', 'aria-label': `Add to ${col.name}`, 'data-navoro-id': `taskly.add-${col.id}`, onclick: () => startAdd(col.id) }, icon('plus'));
       board.append(h('section', {
-        class: `taskly-col col-${col.id}`, dataset: { drop: 'taskly-col', accept: 'card', col: col.id }, 'data-list': '',
+        class: `taskly-col col-${col.id}`, dataset: { drop: 'taskly-col', accept: 'card', col: col.id }, 'data-list': '', 'data-navoro-id': `taskly.col-${col.id}`, 'aria-label': col.name,
       }, h('header', { class: 'col-head' }, h('h2', {}, col.name), count, add), body));
     }
   }
@@ -86,7 +86,7 @@ function edit(id) {
   openEditor(id, {
     title: 'Edit task',
     extra: card => {
-      select = h('select', { class: 'field-input', 'aria-label': 'Column' }, COLUMNS.map(col => h('option', { value: col.id, selected: card.meta?.columnId === col.id }, col.name)));
+      select = h('select', { class: 'field-input', 'aria-label': 'Column', 'data-navoro-id': 'task.column' }, COLUMNS.map(col => h('option', { value: col.id, selected: card.meta?.columnId === col.id }, col.name)));
       return h('div', {}, h('label', { class: 'field-label' }, 'Column'), select);
     },
     collect: (refs, card) => {
@@ -104,11 +104,11 @@ function startAdd(colId) {
   if (colCards(colId).length >= capacity(body)) {
     section.classList.add('shake');
     setTimeout(() => section.classList.remove('shake'), 400);
-    toast('This column is full. Finish, move or delete a card first.');
+    toast('This column is full. Finish, move or delete a card first.', { code: 'TASKLY_COLUMN_FULL' });
     return;
   }
   if (body.querySelector('.task-input')) return body.querySelector('.task-input').focus();
-  const input = h('input', { class: 'task-input', placeholder: 'New task', 'aria-label': 'New task title' });
+  const input = h('input', { class: 'task-input', placeholder: 'New task', 'aria-label': 'New task title', 'data-navoro-id': 'taskly.new-task' });
   body.append(input);
   input.focus();
   const commit = () => {

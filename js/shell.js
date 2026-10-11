@@ -23,8 +23,8 @@ export function navigate(route) {
 // ---------- Header ----------
 export function buildHeader() {
   const header = h('header', { class: 'topbar' },
-    h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home' }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
-    h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', onclick: toggleDrawer }, icon('menu')));
+    h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home', 'data-navoro-id': 'nav.home-logo' }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
+    h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', 'data-navoro-id': 'menu.open', onclick: toggleDrawer }, icon('menu')));
   return header;
 }
 
@@ -35,19 +35,19 @@ function toggleDrawer(force) {
   $('.menu-btn').setAttribute('aria-expanded', String(open));
 }
 export function buildDrawer() {
-  const item = (ic, label, sub, onclick, cls = '') =>
-    h('button', { class: `drawer-item ${cls}`, onclick: () => { toggleDrawer(false); onclick?.(); } },
+  const item = (ic, label, sub, onclick, cls = '', navoroId = null) =>
+    h('button', { class: `drawer-item ${cls}`, 'aria-label': label, 'data-navoro-id': navoroId, onclick: () => { toggleDrawer(false); onclick?.(); } },
       icon(ic), h('span', { class: 'drawer-text' }, h('span', {}, label), sub ? h('small', {}, sub) : null));
   const fileInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: e => importFile(e.target.files[0], e.target) });
   drawer = h('aside', { class: 'drawer', 'aria-label': 'Menu' },
     h('div', { class: 'drawer-list' },
       item('sync', 'Sync devices', 'Coming later', null, 'disabled'),
-      item('download', 'Download data', 'Save everything as a .json file', exportData),
-      item('upload', 'Import data', 'Load a Sedi .json file', () => fileInput.click()),
-      item('brain', 'Sovereign Brain', 'Private, on-device coach', openBrainPanel),
-      item('bell', 'Apple Reminders', 'Set up the Shortcuts bridge', openRemindersSetup),
+      item('download', 'Download data', 'Save everything as a .json file', exportData, '', 'menu.download'),
+      item('upload', 'Import data', 'Load a Sedi .json file', () => fileInput.click(), '', 'menu.import'),
+      item('brain', 'Sovereign Brain', 'Private, on-device coach', openBrainPanel, '', 'menu.brain'),
+      item('bell', 'Apple Reminders', 'Set up the Shortcuts bridge', openRemindersSetup, '', 'menu.reminders'),
       h('div', { class: 'drawer-sep' }),
-      item('trash', 'Clear storage', 'Erase everything on this device', clearStorage, 'danger')),
+      item('trash', 'Clear storage', 'Erase everything on this device', clearStorage, 'danger', 'menu.clear')),
     fileInput);
   document.addEventListener('pointerdown', e => {
     if (drawer.classList.contains('open') && !drawer.contains(e.target) && !e.target.closest('.menu-btn')) toggleDrawer(false);
@@ -66,7 +66,7 @@ async function importFile(file, input) {
   if (!file) return;
   let data;
   try { data = JSON.parse(await file.text()); } catch { toast('That file isn’t valid JSON.'); return; }
-  if (data?.app !== 'sedi') { toast('That file isn’t a Sedi export.'); return; }
+  if (data?.app !== 'sedi') { toast('That file isn’t a Sedi export.', { code: 'IMPORT_NOT_SEDI' }); return; }
   modal({
     title: 'Import data',
     body: h('p', { class: 'muted' }, `${data.cards.length} cards from ${new Date(data.exportedAt).toLocaleString()}. Merge keeps your current cards and adds or updates from the file. Replace swaps everything for the file’s contents.`),
@@ -105,12 +105,12 @@ export function buildNavigator() {
   for (const r of NAV_ORDER) {
     const pill = h('a', {
       class: `nav-pill ${r === 'home' ? 'home-pill' : ''}`, href: `#/${r}`,
-      dataset: { route: r, springRoute: r }, 'aria-label': LABELS[r],
+      dataset: { route: r, springRoute: r }, 'aria-label': LABELS[r], 'data-navoro-id': `nav.${r}`,
       onclick: () => setTimeout(() => toggleNav(false), 120),
     }, r === 'home' ? icon('home') : LABELS[r]);
     panel.append(pill);
   }
-  const trigger = h('button', { class: 'navigator-trigger', 'aria-label': 'Switch tool', 'aria-expanded': 'false', onclick: () => toggleNav() },
+  const trigger = h('button', { class: 'navigator-trigger', 'aria-label': 'Switch tool', 'aria-expanded': 'false', 'data-navoro-id': 'nav.switch', onclick: () => toggleNav() },
     h('span', { class: 'tri' }));
   const wrap = h('div', { class: 'navigator' }, panel, trigger);
   function toggleNav(force) {
@@ -132,11 +132,11 @@ export function markActiveRoute(route) {
 const UNI_ITEM_H = 46;
 let uniPanel, uniList, uniCount;
 export function buildUniversal() {
-  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', 'aria-expanded': 'false', onclick: () => toggleUniversal() }, icon('universe'));
-  const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
+  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', 'aria-expanded': 'false', 'data-navoro-id': 'universal.open', onclick: () => toggleUniversal() }, icon('universe'));
+  const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board', 'data-navoro-id': 'universal.capture' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
-    if (uniFull()) { toast('The board is full. Route or clear a card first.'); return; }
+    if (uniFull()) { toast('The board is full. Route or clear a card first.', { code: 'UNIVERSAL_FULL' }); return; }
     const list = universalCards();
     store.createCard({ type: 'note', title: quick.value.trim(), tool: 'universal', meta: { order: list.length } });
     quick.value = '';
@@ -199,7 +199,7 @@ export function renderUniversal() {
 
 // ---------- Trash ----------
 export function buildTrash() {
-  const bin = h('div', { class: 'trash', dataset: { drop: 'trash', accept: 'card bfolder' }, 'aria-label': 'Trash: drag cards here to delete' }, icon('trash'));
+  const bin = h('div', { class: 'trash', dataset: { drop: 'trash', accept: 'card bfolder' }, 'aria-label': 'Trash', title: 'Drag cards here to delete', 'data-navoro-id': 'trash' }, icon('trash'));
   registerDrop('trash', ({ kind, id }) => {
     if (kind === 'card') trashCard(id);
     else if (kind === 'bfolder') import('./brainly.js').then(m => m.trashFolder(id));

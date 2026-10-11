@@ -13,17 +13,17 @@ export function mount(el) {
   root = el;
   clockTime = h('div', { class: 'clock-time', 'aria-live': 'off' });
   clockDate = h('div', { class: 'clock-date' });
-  weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', onclick: e => openWeatherMenu(e.currentTarget) });
+  weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', 'data-navoro-id': 'home.weather', onclick: e => openWeatherMenu(e.currentTarget) });
   nextCol = h('div', { class: 'home-stack' });
   recentCol = h('div', { class: 'home-stack' });
   root.replaceChildren(h('div', { class: 'home' },
     h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
     h('div', { class: 'home-cols' },
       h('section', { class: 'home-col glass' },
-        h('button', { class: 'home-col-head', onclick: openNextUpList }, h('h2', {}, 'Next up'), h('span', { class: 'see-all' }, 'See all')),
+        h('button', { class: 'home-col-head', 'aria-label': 'Next up', 'data-navoro-id': 'home.next-up', onclick: openNextUpList }, h('h2', {}, 'Next up'), h('span', { class: 'see-all' }, 'See all')),
         nextCol),
       h('section', { class: 'home-col glass' },
-        h('button', { class: 'home-col-head', onclick: openActivityList }, h('h2', {}, 'Recent activity'), h('span', { class: 'see-all' }, 'See all')),
+        h('button', { class: 'home-col-head', 'aria-label': 'Recent activity', 'data-navoro-id': 'home.activity', onclick: openActivityList }, h('h2', {}, 'Recent activity'), h('span', { class: 'see-all' }, 'See all')),
         recentCol))));
   tickClock();
   timer = setInterval(tickClock, 1000);

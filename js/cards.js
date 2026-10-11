@@ -79,8 +79,8 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
   const card = store.getCard(id);
   if (!card) return;
   const refs = {};
-  refs.title = h('input', { class: 'field-input title-input', value: card.title, placeholder: 'Title', 'aria-label': 'Title' });
-  refs.desc = h('textarea', { class: 'field-input', rows: 6, placeholder: 'Add details…', 'aria-label': 'Description' });
+  refs.title = h('input', { class: 'field-input title-input', value: card.title, placeholder: 'Title', 'aria-label': 'Title', 'data-navoro-id': 'card.title' });
+  refs.desc = h('textarea', { class: 'field-input', rows: 6, placeholder: 'Add details…', 'aria-label': 'Description', 'data-navoro-id': 'card.description' });
   refs.desc.value = /<\/?[a-z][\s\S]*>/i.test(card.description || '') ? stripHtml(card.description) : (card.description || '');
   if (readOnlyDescription) refs.desc.readOnly = true;
   const body = h('div', { class: 'editor' },

@@ -19,10 +19,10 @@ let mode = 'chat';
 let session = null;
 
 export function buildAssistant() {
-  token = h('button', { class: 'assistant-token', 'aria-label': 'Open assistant (⌘K)', 'aria-expanded': 'false' }, icon('atom'));
+  token = h('button', { class: 'assistant-token', 'aria-label': 'Open assistant (⌘K)', 'aria-expanded': 'false', 'data-navoro-id': 'assistant.open' }, icon('atom'));
   modeBar = h('div', { class: 'segmented small', role: 'tablist' });
   output = h('div', { class: 'as-output', 'aria-live': 'polite' });
-  input = h('input', { class: 'as-input', placeholder: '', 'aria-label': 'Message the assistant' });
+  input = h('input', { class: 'as-input', placeholder: '', 'aria-label': 'Message the assistant', 'data-navoro-id': 'assistant.input' });
   micBtn = h('button', { class: 'icon-btn as-mic', type: 'button', 'aria-label': 'Speak', disabled: !canListen, title: canListen ? 'Speak' : 'Voice isn’t supported in this browser', onclick: toggleMic }, icon('mic'));
   statusEl = h('span', { class: 'as-status' });
   tray = h('section', { class: 'assistant-tray', 'aria-label': 'Assistant', hidden: true },
@@ -31,7 +31,7 @@ export function buildAssistant() {
       h('button', { class: 'icon-btn xs', 'aria-label': 'Close assistant', onclick: () => toggle(false) }, icon('x'))),
     output,
     h('form', { class: 'as-form', onsubmit: e => { e.preventDefault(); submit(input.value); } },
-      input, micBtn, h('button', { class: 'icon-btn as-send', 'aria-label': 'Send', type: 'submit' }, icon('send'))));
+      input, micBtn, h('button', { class: 'icon-btn as-send', 'aria-label': 'Send', type: 'submit', 'data-navoro-id': 'assistant.send' }, icon('send'))));
   input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') toggle(false); });
   setMode(store.pref('assistantMode', 'chat'));
   makeDraggable();

@@ -86,7 +86,7 @@ export function render() {
   if (!root?.isConnected) return;
   const head = root.querySelector('.timely-head');
   const seg = (items, value, onPick, cls = '') => h('div', { class: `segmented ${cls}`, role: 'tablist' },
-    items.map(([v, label]) => h('button', { class: v === value ? 'on' : '', role: 'tab', 'aria-selected': String(v === value), onclick: () => onPick(v) }, label)));
+    items.map(([v, label]) => h('button', { class: v === value ? 'on' : '', role: 'tab', 'aria-selected': String(v === value), 'data-navoro-id': `timely.${v}`, onclick: () => onPick(v) }, label)));
   head.replaceChildren(
     h('h1', { class: 'view-title' }, 'Timely'),
     seg([['schedule', 'Scheduling'], ['plan', 'Planning']], mode(), v => { store.setPref('timelyMode', v); render(); }, 'mode-toggle'),
@@ -102,10 +102,10 @@ function navControl(label, step, extra) {
     : view() === 'week' ? dateKey(startOfWeek(parseKey(a))) <= dateKey(startOfWeek(new Date()))
       : parseKey(a).getMonth() === new Date().getMonth() && parseKey(a).getFullYear() === new Date().getFullYear();
   return h('div', { class: 'time-nav' },
-    h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Previous', disabled: atToday, onclick: () => setAnchor(step(-1)) }, icon('chevL')),
+    h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Previous', disabled: atToday, 'data-navoro-id': 'timely.previous', onclick: () => setAnchor(step(-1)) }, icon('chevL')),
     h('span', { class: 'time-label' }, label),
-    h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Next', onclick: () => setAnchor(step(1)) }, icon('chevR')),
-    h('button', { class: 'chip ghost', disabled: atToday, onclick: () => setAnchor(todayKey()) }, 'Today'),
+    h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Next', 'data-navoro-id': 'timely.next', onclick: () => setAnchor(step(1)) }, icon('chevR')),
+    h('button', { class: 'chip ghost', disabled: atToday, 'data-navoro-id': 'timely.today', onclick: () => setAnchor(todayKey()) }, 'Today'),
     h('span', { class: 'time-nav-extra' }, extra || null, archiveButton()));
 }
 function archiveButton() {
@@ -312,7 +312,7 @@ function openDayOverlay(k) {
     if (!occ.length) list.append(h('p', { class: 'muted' }, 'Nothing planned.'));
   };
   fill();
-  const input = h('input', { class: 'field-input', placeholder: 'Add something for this day', 'aria-label': 'New item' });
+  const input = h('input', { class: 'field-input', placeholder: 'Add something for this day', 'aria-label': 'New item', 'data-navoro-id': 'timely.new-item' });
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && input.value.trim()) {
       store.createCard({ type: 'event', tool: 'timely', title: input.value.trim(), meta: { date: k } });
@@ -334,9 +334,9 @@ function renderReminders() {
   const due = c => (c.meta.date ? parseKey(c.meta.date).getTime() + (c.meta.start ?? 23 * 60 + 59) * 60e3 : Infinity);
   rem.sort((a, b) => due(a) - due(b) || byOrder(a, b));
   const urgent = c => due(c) - nowMs < 24 * 3600e3;
-  const input = h('input', { class: 'field-input', placeholder: 'Remind me to…', 'aria-label': 'New reminder', 'data-keep': 'rem-input' });
-  const dateIn = h('input', { class: 'field-input sm', type: 'date', min: todayKey(), 'aria-label': 'Due date', 'data-keep': 'rem-date' });
-  const timeIn = h('input', { class: 'field-input sm', type: 'time', 'aria-label': 'Due time', 'data-keep': 'rem-time' });
+  const input = h('input', { class: 'field-input', placeholder: 'Remind me to…', 'aria-label': 'New reminder', 'data-keep': 'rem-input', 'data-navoro-id': 'timely.new-reminder' });
+  const dateIn = h('input', { class: 'field-input sm', type: 'date', min: todayKey(), 'aria-label': 'Due date', 'data-keep': 'rem-date', 'data-navoro-id': 'timely.due-date' });
+  const timeIn = h('input', { class: 'field-input sm', type: 'time', 'aria-label': 'Due time', 'data-keep': 'rem-time', 'data-navoro-id': 'timely.due-time' });
   const add = () => {
     if (!input.value.trim()) return;
     const [hh, mm] = (timeIn.value || '').split(':').map(Number);

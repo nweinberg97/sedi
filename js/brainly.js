@@ -21,7 +21,7 @@ const links = lfid => store.cardsWhere(c => c.tool === 'brainly' && c.type === '
 
 export function mount(el) {
   root = el;
-  searchInput = h('input', { class: 'search-input', type: 'search', placeholder: 'Search everything in Sedi', 'aria-label': 'Search everything' });
+  searchInput = h('input', { class: 'search-input', type: 'search', placeholder: 'Search everything in Sedi', 'aria-label': 'Search everything', 'data-navoro-id': 'brainly.search' });
   results = h('div', { class: 'search-results', hidden: true });
   searchInput.addEventListener('input', debounce(runSearch, 40));
   searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') { searchInput.value = ''; runSearch(); } });
@@ -80,7 +80,7 @@ function runSearch() {
 
 // ---------- My Links ----------
 function renderDash() {
-  const input = h('input', { class: 'field-input sm', placeholder: 'Paste a link', 'aria-label': 'Paste a link', 'data-keep': 'link-input' });
+  const input = h('input', { class: 'field-input sm', placeholder: 'Paste a link', 'aria-label': 'Paste a link', 'data-keep': 'link-input', 'data-navoro-id': 'brainly.paste-link' });
   input.addEventListener('keydown', e => {
     e.stopPropagation();
     if (e.key === 'Enter' && input.value.trim()) { addLink(input.value.trim()); input.value = ''; }
@@ -94,8 +94,8 @@ function renderDash() {
   if (!links(null).length) loose.append(h('p', { class: 'empty-hint' }, 'Paste a link or drop a text file.'));
   dash.replaceChildren(
     h('div', { class: 'dash-head' }, h('h2', {}, 'My links'),
-      h('button', { class: 'icon-btn sm', 'aria-label': 'Add a text file', title: 'Add a text file', onclick: () => fileIn.click() }, icon('file')),
-      h('button', { class: 'icon-btn sm', 'aria-label': 'New link folder', title: 'New link folder', onclick: addLinkFolder }, icon('folder'))),
+      h('button', { class: 'icon-btn sm', 'aria-label': 'Add a text file', title: 'Add a text file', 'data-navoro-id': 'brainly.add-file', onclick: () => fileIn.click() }, icon('file')),
+      h('button', { class: 'icon-btn sm', 'aria-label': 'New link folder', title: 'New link folder', 'data-navoro-id': 'brainly.new-folder', onclick: addLinkFolder }, icon('folder'))),
     input, fileIn,
     h('div', { class: 'dash-scroll' }, loose, linkFolders().map(linkFolderEl)));
 }
@@ -327,9 +327,9 @@ function sanitize(html) {
 export function openNote(id, isNew = false) {
   const c = store.getCard(id);
   if (!c) return;
-  const title = h('input', { class: 'field-input title-input', value: isNew ? '' : c.title, placeholder: 'Title', 'aria-label': 'Note title' });
+  const title = h('input', { class: 'field-input title-input', value: isNew ? '' : c.title, placeholder: 'Title', 'aria-label': 'Note title', 'data-navoro-id': 'note.title' });
   const emojiBtn = h('button', { class: 'note-emoji lg', 'aria-label': 'Change emoji', onclick: e => pickEmoji(e.currentTarget, id) }, c.meta?.emoji || smartEmoji(c.title));
-  const editor = h('div', { class: 'rich-editor', contenteditable: 'true', 'aria-label': 'Note body', role: 'textbox', 'aria-multiline': 'true' });
+  const editor = h('div', { class: 'rich-editor', contenteditable: 'true', 'aria-label': 'Note body', role: 'textbox', 'aria-multiline': 'true', 'data-navoro-id': 'note.body' });
   editor.innerHTML = /<\/?[a-z][\s\S]*>/i.test(c.description || '') ? sanitize(c.description) : (c.description || '').split('\n').map(l => `<div>${escapeHtml(l) || '<br>'}</div>`).join('');
   const cmd = (name, val) => { editor.focus(); document.execCommand(name, false, val); };
   const interim = h('span', { class: 'interim' });

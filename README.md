@@ -22,6 +22,16 @@ A local-first workspace that runs entirely in your browser: tasks (Taskly), life
 - **Sovereign Brain (menu → Sovereign Brain).** An opt-in coach that runs a small language model in your browser (WebGPU, or CPU fallback) and answers from a built-in library of habit, focus and communication frameworks (`brain/master_library.json`). One-time download (about 500 MB Light, 1.2 GB Full), then fully offline. Nothing you type leaves your device.
 - **Your data.** Menu → Download data saves everything as `.json`; Import data merges or replaces from a file; Clear storage erases this device after two confirmations.
 
+## In-app help (Navoro)
+
+Sedi ships with [Navoro](https://github.com/nweinberg97/Navoro) installed: a small launcher (bottom right) that answers "how do I…?" from `docs/help-center.md` and points at the actual control, step by step. It is read-only — it never changes anything in Sedi for you.
+
+- **Locally:** run Navoro (`node start.mjs` from its download, or `npm run dev` from its repo) alongside `python3 -m http.server 8000`. Sedi is pre-registered in Navoro's demo workspace, so the launcher appears on `http://localhost:8000` with no setup. Sign in to the Navoro dashboard at `http://localhost:4400` (demo@navoro.dev / navoro-demo-2026) to edit the guidance, review what people ask, or import `http://localhost:8000/docs/help-center.md` as a documentation URL.
+- **On the published site:** off until you host Navoro somewhere. Set `productionOrigin` in `js/navoro.js`, add `https://<your-username>.github.io` as a production origin in the Navoro dashboard, and publish a configuration.
+- **Turn it off:** add `?navoro=off` to the URL, or remove the `js/navoro.js` script tag from `index.html`.
+
+The controls Navoro can point at carry `data-navoro-id` attributes; the bold labels in `docs/help-center.md` match their accessible names. Navoro never reads what you type — note bodies and the assistant box are additionally marked never-collect — and it is served from its own origin, so Sedi stays fully offline-capable without it.
+
 ## Privacy notes
 
 - Card data is stored in IndexedDB; small UI settings in localStorage.
@@ -45,6 +55,8 @@ js/timely.js        day/week/month/reminders, archive, .ics, planning boards
 js/brainly.js       search, links, notes, folders, dictation
 js/assistant.js     chat / voice / command
 js/brain.js         Sovereign Brain (retrieval + on-device model)
+js/navoro.js        installs the Navoro in-app help SDK (optional)
+docs/help-center.md Sedi's help center, the knowledge Navoro learns from
 sw.js               offline cache
 ```
 

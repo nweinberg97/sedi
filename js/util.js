@@ -171,9 +171,10 @@ export function download(filename, content, type = 'application/json') {
 }
 
 // ---------- Toasts ----------
-export function toast(message, { action, onAction, duration = 3200 } = {}) {
+export function toast(message, { action, onAction, duration = 3200, code = null } = {}) {
   const host = $('#toasts');
-  const el = h('div', { class: 'toast', role: 'status' }, h('span', {}, message));
+  // `code` marks the toast as a recognisable error state (data-navoro-error) for in-app guidance.
+  const el = h('div', { class: 'toast', role: 'status', 'data-navoro-error': code }, h('span', {}, message));
   if (action) {
     el.append(h('button', { class: 'toast-action', onclick: () => { onAction?.(); dismiss(); } }, action));
   }
