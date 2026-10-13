@@ -11,7 +11,7 @@ import { summaryFor, ensureSummary, noteText } from './summaries.js';
 import { findCard } from './commands.js';
 import { nextUpItems } from './home.js';
 import { COLUMNS } from './taskly.js';
-import { occurrencesOn } from './timely.js';
+import { occurrencesOn, weekPlanKey, monthPlanKey } from './timely.js';
 import { listen, speak, stopSpeaking, canListen } from './speech.js';
 import * as brain from './brain.js';
 import { tick } from './sound.js';
@@ -20,6 +20,7 @@ import { parseCommands, looksLikeCommand } from './commands.js';
 let token, tray, output, input, modeBar, micBtn, statusEl;
 let mode = 'chat';
 let session = null;
+let convo = false; // Voice mode: keep the conversation going (listen → answer out loud → listen again)
 
 export function buildAssistant() {
   token = h('button', { class: 'assistant-token', 'aria-label': 'Open assistant (⌘K)', 'aria-expanded': 'false' }, icon('atom'));
@@ -77,7 +78,7 @@ function toggle(force) {
   tray.hidden = !open;
   token.setAttribute('aria-expanded', String(open));
   if (open) { paintStatus(); positionTray(); setTimeout(() => input.focus(), 30); }
-  else { session?.stop(); stopSpeaking(); }
+  else { convo = false; session?.stop(); stopSpeaking(); tray.classList.remove('speaking'); }
 }
 
 function positionTray() {
@@ -161,39 +162,86 @@ async function submit(text, { fromVoice = false } = {}) {
     say(h('p', {}, 'I can create, move, reschedule, complete, rename or delete cards. Try “add call the dentist to my to do list” or “remind me to pay rent Friday at 9am”.'));
     return;
   }
+  if ((mode === 'voice' || fromVoice) && /^(?:stop|bye|goodbye|good bye|that'?s all|that'?s it|nothing|no thanks|thanks|thank you|we'?re done|end)\b/i.test(text)) {
+    convo = false;
+    say(h('p', {}, 'Okay. Tap the mic whenever you want to talk again.'));
+    speak('Okay. Talk soon.');
+    return;
+  }
   const reply = await answer(text);
-  if ((mode === 'voice' || fromVoice) && reply) speak(reply);
+  if ((mode === 'voice' || fromVoice) && reply) talkBack(reply);
+}
+/** Answer out loud; in Voice mode, start listening again when the answer finishes. */
+function talkBack(text) {
+  tray.classList.add('speaking');
+  speak(text, { onEnd: () => {
+    tray.classList.remove('speaking');
+    if (convo && mode === 'voice' && !tray.hidden && !session && !pending) startListening();
+  } });
 }
 
 function toggleMic() {
-  if (session) { session.stop(); return; }
+  if (session) { convo = false; session.stop(); return; }
+  // Tapping the mic while I'm talking interrupts me and listens right away.
+  convo = mode === 'voice';
+  startListening();
+}
+function startListening() {
   stopSpeaking();
+  tray.classList.remove('speaking');
   micBtn.classList.add('on');
   tray.classList.add('listening');
-  const live = say(h('span', { class: 'as-interim' }, 'Listening…'), 'me');
-  let finalText = '';
+  if (output.querySelector('.as-hint')) output.replaceChildren();
+  const live = say(h('span', { class: 'as-interim' }, convo ? 'Listening… (say “stop” to end)' : 'Listening…'), 'me');
+  let finalText = '', errored = false;
   session = listen({
     continuous: false,
     onInterim: t => { live.firstChild.textContent = t || 'Listening…'; },
-    onFinal: t => { finalText += (finalText ? ' ' : '') + t; live.firstChild.textContent = finalText; },
-    onError: msg => toast(msg),
+    onFinal: t => { if (!t) return; finalText += (finalText ? ' ' : '') + t; live.firstChild.textContent = finalText; },
+    onError: msg => { errored = true; if (!/Didn’t catch/.test(msg) || !convo) toast(msg); },
     onEnd: () => {
       session = null; micBtn.classList.remove('on'); tray.classList.remove('listening');
       live.remove();
-      if (finalText) submit(finalText, { fromVoice: true });
+      if (finalText) return submit(finalText, { fromVoice: true });
+      if (convo) { convo = false; say(h('p', { class: 'muted' }, errored ? 'I didn’t hear anything, so I stopped listening. Tap the mic to talk again.' : 'Paused. Tap the mic to keep talking.')); }
     },
   });
 }
 
 // ---------- Chat ----------
+const SEARCH_STOP = new Set(('the and for what how are any about with my me show find search look looking did have has had is was were where which who when does do can you please sedi '
+  + 'anything something everything all write wrote written saved save related regarding info information there that this those these from into stuff thing things '
+  + 'notes note cards card tasks task items item links link goals goal reminders reminder events event list lists got get').split(' '));
+const stem = w => w.replace(/(?:ies)$/, 'y').replace(/(?:ing|ed|es|s)$/, '');
+/** Rank your cards for a question. Words like "notes" or "tasks" narrow the search to that kind instead of matching titles. */
 function search(q, n = 5) {
-  const terms = q.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !/^(the|and|for|what|how|are|any|about|with|my|me|show|find|did|have|is)$/.test(w));
+  const lower = q.toLowerCase();
+  const kind = /\bnotes?\b/.test(lower) ? 'note' : /\blinks?\b|\bpdfs?\b/.test(lower) ? 'link' : /\bgoals?\b/.test(lower) ? 'goal' : /\breminders?\b/.test(lower) ? 'reminder' : /\b(?:tasks?|to ?dos?)\b/.test(lower) ? 'task' : /\b(?:events?|meetings?|calendar|appointments?)\b/.test(lower) ? 'event' : null;
+  const terms = [...new Set((lower.match(/[a-z0-9']+/g) || []).filter(w => w.length > 2 && !SEARCH_STOP.has(w)).map(stem).filter(w => w.length > 1))];
   if (!terms.length) return [];
-  return store.allCards().map(c => {
-    const t = `${c.title} ${flatten(c)}`.toLowerCase();
-    const s = terms.reduce((acc, w) => acc + (c.title.toLowerCase().includes(w) ? 3 : t.includes(w) ? 1 : 0), 0);
+  const bf = store.get('brainFolders', []);
+  const chain = f => { const names = []; let x = f, guard = 0; while (x && guard++ < 8) { names.push(x.name); x = bf.find(y => y.id === x.parentId); } return names.join(' '); };
+  const folders = Object.fromEntries([...bf.map(f => [f.id, chain(f)]), ...store.get('linkFolders', []).map(f => [f.id, f.name])]);
+  const tabs = Object.fromEntries(store.get('boardlyTabs', []).map(t => [t.id, t.name]));
+  const plan = store.get('planContainers', { projects: [], goals: [] });
+  const cts = Object.fromEntries([...(plan.projects || []), ...(plan.goals || [])].map(x => [x.id, x.name]));
+  const fits = c => !kind || (kind === 'note' ? c.tool === 'brainly' && c.type !== 'link' : kind === 'link' ? c.type === 'link'
+    : kind === 'goal' ? c.type === 'goal' : kind === 'reminder' ? c.meta?.kind === 'reminder' : kind === 'task' ? c.type === 'task' : c.tool === 'timely' && c.type === 'event');
+  const wordsOf = s => (s.toLowerCase().match(/[a-z0-9']+/g) || []).map(stem);
+  return store.allCards().filter(c => !c.meta?.archivedAt).map(c => {
+    const title = wordsOf(c.title), body = wordsOf(flatten(c)), place = wordsOf([folders[c.meta?.folderId], folders[c.meta?.linkFolderId], tabs[c.meta?.tabId], cts[c.meta?.containerId]].filter(Boolean).join(' '));
+    const has = (list, t) => list.some(w => w === t || (t.length > 3 && w.startsWith(t)));
+    let s = 0, matched = 0;
+    for (const t of terms) {
+      const hit = has(title, t) ? 3 : has(place, t) ? 2 : has(body, t) ? 1 : 0;
+      s += hit; if (hit) matched++;
+    }
+    if (!matched) return { c, s: 0 };
+    s += matched === terms.length ? 2 : 0;           // all words found
+    if (c.title.toLowerCase().includes(terms.join(' '))) s += 2;
+    if (kind) s = fits(c) ? s + 3 : s * 0.3;         // "notes about…" → notes first
     return { c, s };
-  }).filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.c);
+  }).filter(x => x.s >= 1).sort((a, b) => b.s - a.s || b.c.updatedAt.localeCompare(a.c.updatedAt)).slice(0, n).map(x => x.c);
 }
 
 function summary() {
@@ -214,14 +262,27 @@ async function answer(q) {
   const lower = q.toLowerCase();
   let text;
   // SD-B5: "summarize <note>" gives that card's summary.
-  const sm = /^(?:summari[sz]e|sum up|tl;?dr)\s+(?:my\s+|the\s+)?(.+)$/i.exec(q.trim());
+  // "summarize my notes" / "summarize" on its own: a digest of your latest notes.
+  if (/^(?:please\s+)?(?:summari[sz]e|sum up|tl;?dr|recap)(?:\s+(?:all\s+)?(?:of\s+)?(?:my\s+|the\s+)?(?:recent\s+|latest\s+)?(?:notes?|brainly))?[.!?]*$/i.test(q.trim())) {
+    const notes = store.cardsWhere(c => c.tool === 'brainly' && c.type !== 'link').sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
+    if (!notes.length) { say(h('p', {}, 'You don’t have any notes yet. Add one in Brainly.')); return 'You don’t have any notes yet.'; }
+    const bubble = say(h('div', { class: 'as-digest' }, h('p', {}, h('strong', {}, `Your ${notes.length} latest notes`)),
+      ...notes.map(c => h('button', { class: 'as-digest-row', type: 'button', onclick: () => { toggle(false); revealCard(c.id); } }, h('b', {}, c.title), h('span', {}, summaryFor(c).text))),
+      engineTag(notes.some(c => summaryFor(c).ai) ? 'AI summaries' : 'Quick summaries · turn on an AI engine for fuller ones')));
+    notes.forEach(c => ensureSummary(c).then(r => { if (r?.ai) { const row = [...bubble.querySelectorAll('.as-digest-row')].find(x => x.querySelector('b').textContent === c.title); row?.lastChild && (row.lastChild.textContent = r.text); } }));
+    return notes.map(c => `${c.title}: ${summaryFor(c).text}`).join(' ');
+  }
+  const sm = /^(?:summari[sz]e|sum up|tl;?dr|recap)\s+(?:my\s+|the\s+)?(.+?)(?:\s+(?:note|notes|card|page))?[.!?]*$/i.exec(q.trim());
   if (sm) {
-    const card = findCard(sm[1], store.allCards());
+    const all = store.allCards();
+    const card = findCard(sm[1], all.filter(c => c.tool === 'brainly' && c.type !== 'link')) || findCard(sm[1], all) || search(sm[1], 1)[0];
     if (card) {
       const bubble = say(h('div', {}, h('p', {}, h('strong', {}, card.title)), h('p', {}, summaryFor(card).text), engineTag(summaryFor(card).ai ? `AI summary · ${summaryFor(card).engine}` : 'Quick summary'), itemList([card])));
       ensureSummary(card).then(s => { if (s?.ai) bubble.firstChild.replaceChildren(h('p', {}, h('strong', {}, card.title)), h('p', {}, s.text), engineTag(`AI summary · ${s.engine}`), itemList([card])); });
       return summaryFor(card).text;
     }
+    say(h('p', {}, `I couldn’t find a note matching “${sm[1]}”. Try part of its title.`));
+    return `I couldn’t find a note matching ${sm[1]}.`;
   }
   if (/\b(next|today|agenda|schedule|plan for|on my plate)\b/.test(lower)) {
     const items = nextUpItems(5);
@@ -263,7 +324,7 @@ async function answer(q) {
   }
   if (hits.length) {
     text = `I found ${hits.length} match${hits.length === 1 ? '' : 'es'}: ${hits.map(c => c.title).join(', ')}.`;
-    say(h('div', {}, h('p', {}, `Found ${hits.length} in your Sedi:`), itemList(hits), engineTag('Search in your Sedi'), askClaude(q, hits)));
+    say(h('div', {}, h('p', {}, `Found ${hits.length} in your Sedi:`), itemList(hits), engineTag('Searched your Sedi'), askClaude(q, hits)));
     return text;
   }
   text = brain.isEnabled() ? 'I couldn’t find anything for that.' : 'Nothing in your Sedi matches that. Turn on the Sovereign Brain (menu) for an on-device AI, or ask Claude with your own plan.';
@@ -280,6 +341,7 @@ function commandContext() {
   return {
     cards: store.allCards().filter(c => !c.meta?.archivedAt),
     tabs: store.get('boardlyTabs', []),
+    plan: store.get('planContainers', { projects: [], goals: [] }),
     now: new Date(),
   };
 }
@@ -301,7 +363,9 @@ const whenLabel = w => {
 function where(c) {
   if (c.tool === 'taskly') return `Taskly${c.column ? `, ${COLUMNS.find(x => x.id === c.column)?.name}` : ''}`;
   if (c.tool === 'boardly') return `Boardly${c.tabName ? `, ${c.tabName}` : ''}`;
-  if (c.tool === 'timely') return `Timely${c.when ? ` ${whenLabel(c.when)}` : c.reminder ? ' reminders' : ''}`;
+  if (c.tool === 'timely' && c.plan) return c.plan === 'weekplan' ? 'this week’s plan' : 'this month’s plan';
+  if (c.tool === 'timely' && c.board) return `Timely ${c.board === 'goals' ? 'goal' : 'project'} “${c.containerName}”`;
+  if (c.tool === 'timely') return `Timely${c.when ? ` ${whenLabel(c.when)}` : c.reminder ? ' reminders' : ''}${c.dur ? `, ${c.dur >= 60 ? `${+(c.dur / 60).toFixed(1)} hr` : `${c.dur} min`}` : ''}`;
   return TOOL_NAMES[c.tool] || c.tool;
 }
 export function describe(c) {
@@ -324,7 +388,7 @@ function proposeCommands(text, cmds, voice) {
   errors.forEach(e => say(h('p', {}, e.message)));
   if (!actions.length) {
     if (opens.length) { navigate(opens.at(-1).route); say(h('p', {}, `${describe(opens.at(-1))}.`)); store.appendCommandLog({ text, action: describe(opens.at(-1)), result: 'done' }); }
-    else if (errors.length && voice) speak(errors[0].message);
+    else if (errors.length && voice) talkBack(errors[0].message);
     return;
   }
   const labels = actions.map(describe);
@@ -337,7 +401,7 @@ function proposeCommands(text, cmds, voice) {
   pending = { text, actions, labels, opens, box, voice };
   input.placeholder = 'Press Enter to confirm, or type “no”';
   if (voice) {
-    speak(`${labels.join('. ')}. Should I go ahead?`, { onEnd: () => { if (pending && !session && !tray.hidden) toggleMic(); } });
+    speak(`${labels.join('. ')}. Should I go ahead?`, { onEnd: () => { if (pending && !session && !tray.hidden) { convo = convo || mode === 'voice'; startListening(); } } });
   }
 }
 
@@ -357,10 +421,12 @@ function confirmPending() {
     }
   });
   tick();
+  const past = l => l.replace(/^(Create|Move|Mark|Delete|Rename|Reschedule|Open)\b/, w => ({ Create: 'Created', Move: 'Moved', Mark: 'Marked', Delete: 'Deleted', Rename: 'Renamed', Reschedule: 'Rescheduled', Open: 'Opened' }[w]));
+  done.splice(0, done.length, ...done.map(past));
   box.replaceChildren(h('div', {}, h('p', {}, h('strong', {}, 'Done. '), done.length === 1 ? `${done[0]}.` : `${done.length} changes made.`),
     actions.length > 1 ? h('ul', { class: 'as-plan done' }, done.map(l => h('li', {}, l))) : null));
   if (opens.length) navigate(opens.at(-1).route);
-  if (voice) speak(done.length === 1 ? `Done. ${done[0]}.` : `Done. ${done.length} changes made.`);
+  if (voice) talkBack(done.length === 1 ? `Done. ${done[0]}.` : `Done. ${done.length} changes made.`);
 }
 
 function cancelPending(silent = false) {
@@ -385,9 +451,19 @@ function placement(tool, type, cmd = {}) {
       return { tabId: tab?.id, x: 24 + (n % 4) * 228, y: 24 + Math.floor(n / 4) * 84, ...(type === 'goal' ? { smart: {} } : {}) };
     }
     case 'timely': {
+      if (cmd.plan) {
+        const planKey = cmd.plan === 'weekplan' ? weekPlanKey(new Date()) : monthPlanKey(new Date());
+        return { board: cmd.plan, planKey, done: false, order: store.cardsWhere(c => c.tool === 'timely' && c.meta?.board === cmd.plan && c.meta?.planKey === planKey).length };
+      }
+      if (cmd.board) {
+        const order = store.cardsWhere(c => c.tool === 'timely' && c.meta?.containerId === cmd.containerId).length;
+        return { board: cmd.board, containerId: cmd.containerId, order, ...(cmd.board === 'goals' ? { stepKind: 'action', done: false } : {}) };
+      }
       const w = cmd.when || {};
-      const meta = { date: w.date || (cmd.reminder ? null : todayKey()) };
-      if (w.start != null) { meta.start = w.start; meta.dur = 60; }
+      const meta = { date: w.date || (cmd.reminder ? null : todayKey()), itemType: 'task' };
+      if (cmd.reminder) delete meta.itemType;
+      if (w.start != null) { meta.start = w.start; meta.dur = cmd.dur || 60; }
+      else if (cmd.dur) meta.dur = cmd.dur;
       if (w.slot) meta.slot = w.slot;
       if (cmd.reminder) meta.kind = 'reminder';
       return meta;
@@ -408,6 +484,15 @@ function execute(cmd) {
   const c = store.getCard(cmd.card.id);
   if (!c) throw new Error('card no longer exists');
   if (cmd.kind === 'move') {
+    if (cmd.tool === 'timely' && (cmd.plan || cmd.board)) {
+      const keep = { ...c.meta };
+      ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt', 'containerId', 'board', 'planKey', 'columnId', 'completedAt', 'reviewUntil', 'tabId', 'x', 'y', 'folderId'].forEach(k => delete keep[k]);
+      const meta = { ...keep, ...placement('timely', 'task', cmd) };
+      const type = cmd.board === 'goals' ? 'goal' : 'task';
+      if (c.tool === 'timely') store.updateCard(c.id, { type, meta }, { replaceMeta: true, log: true, logLabel: 'Moved' });
+      else routeCard(c.id, { tool: 'timely', type, meta });
+      return `moved ${c.id}`;
+    }
     if (cmd.tool === 'timely' && c.tool === 'timely' && !c.meta?.board) {
       const w = cmd.when || {};
       const meta = { ...c.meta, archivedAt: null };

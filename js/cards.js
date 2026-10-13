@@ -107,7 +107,7 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [] } =
   if (hasNotes(card)) el.title = el.title || 'Has notes';
   el.append(deleteButton(card.id), infoButton(onInfo));
   if (!compact) {
-    // Hover tools, top right next to delete: dictate plus any tool-specific quick actions.
+    // Hover tools slide in at the bottom right, beside Details: tool-specific quick actions plus dictate.
     el.append(h('div', { class: 'card-tools' }, ...actions, dictateButton(card.id)));
   }
   return el;
@@ -148,6 +148,34 @@ export function dictateInto(id, anchor) {
   });
 }
 
+/** Wrap a text input with a small mic that shows on hover/focus: speak and the words land in the field.
+ *  The mic never steals focus, so inputs that save on blur keep working. */
+export function withMic(input, { label = 'Dictate' } = {}) {
+  let session = null, base = '';
+  const btn = h('button', {
+    class: 'field-mic-inline', type: 'button', 'aria-label': label, title: canListen ? `${label} (speak, then Enter)` : 'Voice input isn’t supported in this browser', disabled: !canListen,
+  }, icon('mic'));
+  btn.addEventListener('pointerdown', e => e.preventDefault()); // keep focus in the field
+  btn.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (session) { session.stop(); return; }
+    input.focus();
+    base = input.value ? `${input.value.trimEnd()} ` : '';
+    wrap.classList.add('listening');
+    session = listen({
+      continuous: false,
+      onInterim: t => { if (t) input.value = base + t; },
+      onFinal: t => { if (t) input.value = base + t.charAt(0).toUpperCase() + t.slice(1); input.dispatchEvent(new Event('input', { bubbles: true })); },
+      onError: msg => toast(msg),
+      onEnd: () => { session = null; wrap.classList.remove('listening'); input.focus(); },
+    });
+  });
+  const wrap = h('span', { class: 'mic-field' });
+  queueMicrotask(() => { if (input.parentNode && input.parentNode !== wrap) { input.replaceWith(wrap); wrap.append(input, btn); } });
+  if (!input.parentNode) wrap.append(input, btn);
+  return wrap;
+}
+
 // ---------- Duplicate any card ----------
 export function duplicateCard(id) {
   const c = store.getCard(id);
@@ -172,7 +200,7 @@ export function moveDestinations() {
   return [
     ['Taskly', COLS.map(([v, l]) => [`taskly:${v}`, l])],
     ['Boardly', tabs.map(t => [`boardly:${t.id}`, t.name])],
-    ['Timely', [['timely:today', 'Today (any time)'], ['timely:reminders', 'Reminders'],
+    ['Timely', [['timely:today', 'Today (any time)'], ['timely:reminders', 'Reminders'], ['timely:weekplan', 'This week’s plan'], ['timely:monthplan', 'This month’s plan'],
       ...(plan.projects || []).map(c => [`timely:plan:projects:${c.id}`, `Projects › ${c.name}`]),
       ...(plan.goals || []).map(c => [`timely:plan:goals:${c.id}`, `Goals › ${c.name}`])]],
     ['Brainly', [['brainly:canvas', 'Canvas'], ...folders.map(f => [`brainly:folder:${f.id}`, `Folder › ${fpath(f)}`]),
@@ -185,7 +213,7 @@ export function currentDestination(card) {
   const m = card.meta || {};
   if (card.tool === 'taskly') return `taskly:${m.columnId || 'todo'}`;
   if (card.tool === 'boardly') return `boardly:${m.tabId}`;
-  if (card.tool === 'timely') return m.board ? `timely:plan:${m.board}:${m.containerId}` : m.kind === 'reminder' ? 'timely:reminders' : 'timely:today';
+  if (card.tool === 'timely') return m.board === 'weekplan' || m.board === 'monthplan' ? `timely:${m.board}` : m.board ? `timely:plan:${m.board}:${m.containerId}` : m.kind === 'reminder' ? 'timely:reminders' : 'timely:today';
   if (card.tool === 'brainly') return card.type === 'link' ? `brainly:links:${m.linkFolderId || ''}` : m.folderId ? `brainly:folder:${m.folderId}` : 'brainly:canvas';
   return 'universal';
 }
@@ -204,6 +232,12 @@ export function moveCardTo(id, key) {
   } else if (tool === 'timely') {
     if (a === 'today') dest = { tool, type: 'event', meta: { date: todayStr(), start: null, slot: null } };
     else if (a === 'reminders') dest = { tool, type: 'event', meta: { kind: 'reminder', done: false, date: null, start: null } };
+    else if (a === 'weekplan' || a === 'monthplan') {
+      const now = new Date();
+      const wk = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+      const planKey = a === 'weekplan' ? `${wk.getFullYear()}-${String(wk.getMonth() + 1).padStart(2, '0')}-${String(wk.getDate()).padStart(2, '0')}` : todayStr().slice(0, 7);
+      dest = { tool, type: 'task', meta: { board: a, planKey, done: false, order: count(x => x.tool === 'timely' && x.meta?.board === a && x.meta?.planKey === planKey) } };
+    }
     else dest = { tool, type: b === 'goals' ? 'goal' : 'task', meta: { board: b, containerId: c, order: count(x => x.tool === 'timely' && x.meta?.containerId === c) } };
   } else if (tool === 'brainly') {
     const emoji = card.meta?.emoji;
@@ -219,7 +253,7 @@ export function moveCardTo(id, key) {
     const meta = { ...card.meta, ...dest.meta };
     const drop = {
       taskly: a !== 'review' ? ['reviewUntil'] : [],
-      timely: a === 'today' ? ['kind', 'board', 'containerId', 'archivedAt', 'done'] : a === 'reminders' ? ['board', 'containerId', 'archivedAt'] : ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt'],
+      timely: a === 'today' ? ['kind', 'board', 'containerId', 'archivedAt', 'done', 'planKey'] : a === 'reminders' ? ['board', 'containerId', 'archivedAt', 'planKey'] : a === 'weekplan' || a === 'monthplan' ? ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt', 'containerId', 'doneDates'] : ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt', 'planKey'],
       brainly: a === 'canvas' ? ['folderId', 'linkFolderId'] : a === 'folder' ? ['x', 'y', 'linkFolderId'] : ['folderId', 'x', 'y'],
       boardly: [], universal: [],
     }[tool] || [];
@@ -229,10 +263,37 @@ export function moveCardTo(id, key) {
   toast(`Moved to ${destinationLabel(key)}`);
   return true;
 }
+const MOVE_ICONS = { Taskly: 'checklist', Boardly: 'board', Timely: 'calendar', Brainly: 'brain', 'Universal Board': 'galaxy' };
+/** "Move to…" as a slideable panel: pick a tool, then swipe through its places. Exposes .value like a select. */
 export function moveSelect(card) {
   const cur = currentDestination(card);
-  return h('select', { class: 'field-input move-select', 'aria-label': 'Move to' },
-    moveDestinations().map(([g, list]) => h('optgroup', { label: g }, list.map(([v, l]) => h('option', { value: v, selected: v === cur }, l)))));
+  const groups = moveDestinations().filter(([, list]) => list.length);
+  let value = cur;
+  let group = (groups.find(([, list]) => list.some(([v]) => v === cur)) || groups[0])[0];
+  const tabs = h('div', { class: 'mp-tabs', role: 'tablist', 'aria-label': 'Move to tool' });
+  const track = h('div', { class: 'mp-track', role: 'listbox', 'aria-label': 'Move to' });
+  const prev = h('button', { class: 'mp-arrow left', type: 'button', 'aria-label': 'Scroll left', onclick: () => track.scrollBy({ left: -220, behavior: 'smooth' }) }, icon('chevL'));
+  const next = h('button', { class: 'mp-arrow right', type: 'button', 'aria-label': 'Scroll right', onclick: () => track.scrollBy({ left: 220, behavior: 'smooth' }) }, icon('chevR'));
+  const status = h('p', { class: 'mp-status muted small' });
+  const paintArrows = () => { prev.hidden = track.scrollLeft < 4; next.hidden = track.scrollLeft + track.clientWidth > track.scrollWidth - 4; };
+  track.addEventListener('scroll', paintArrows, { passive: true });
+  track.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { track.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+  const paint = () => {
+    tabs.replaceChildren(...groups.map(([g]) => h('button', { class: `mp-tab ${g === group ? 'on' : ''}`, type: 'button', role: 'tab', 'aria-selected': String(g === group), onclick: () => { group = g; paint(); track.scrollLeft = 0; } },
+      icon(MOVE_ICONS[g] || 'dot'), g === 'Universal Board' ? 'Universal' : g)));
+    const list = groups.find(([g]) => g === group)[1];
+    track.replaceChildren(...list.map(([v, l]) => h('button', {
+      class: `mp-chip ${v === value ? 'on' : ''} ${v === cur ? 'is-here' : ''}`, type: 'button', role: 'option', 'aria-selected': String(v === value), dataset: { value: v },
+      onclick: () => { value = v === value ? cur : v; paint(); },
+    }, v === cur ? h('span', { class: 'mp-here' }, 'Here') : null, l.replace(/^(Projects|Goals|Folder|Links) › /, (m0, k) => `${k} · `))));
+    status.textContent = value === cur ? `Now in ${destinationLabel(cur)}. Pick a place to move it.` : `Will move to ${destinationLabel(value)} when you save.`;
+    status.classList.toggle('pending', value !== cur);
+    requestAnimationFrame(() => { track.querySelector('.mp-chip.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }); paintArrows(); });
+  };
+  const el = h('div', { class: 'move-picker' }, tabs, h('div', { class: 'mp-rail' }, prev, track, next), status);
+  Object.defineProperty(el, 'value', { get: () => value, set: v => { value = v; paint(); } });
+  paint();
+  return el;
 }
 /** Stand-alone "Move to…" dialog for editors that aren't the shared one (SMART goals, Brainly notes). */
 export function openMoveDialog(id, after) {

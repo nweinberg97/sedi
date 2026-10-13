@@ -8,7 +8,7 @@ import {
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
 } from './util.js';
 import { registerDrop } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet, withMic } from './cards.js';
 import { todoCards, todoCapacity, completeTask } from './taskly.js';
 import { tick, checkSound } from './sound.js';
 import { listen, canListen } from './speech.js';
@@ -22,7 +22,12 @@ const RECUR_SHORT = { daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly', mo
 export const ITEM_TYPES = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Work session', icon: 'target' } };
 const ARCHIVE_DAYS = 30;
 
-let root, body, planAdding = null;
+let root, body, tbRight, planAdding = null;
+let dayScroll = null;      // { key, top }: keeps your place in the day while things change
+let zoom = null;           // { view: 'week'|'month', date, slot?, anim }: the zoomed-in period or day
+const SLOT_HOURS = { morning: [5, 11], noon: [11, 13], afternoon: [13, 17], evening: [17, 21], night: [21, 29] }; // 29 = 5am next day
+const hourLabel = hr => fmtMinutes((hr % 24) * 60);
+export const dayName = (key, { short = false } = {}) => { const d = parseKey(key); return `${key === todayKey() ? 'Today · ' : ''}${short ? DAY_NAMES[d.getDay()].slice(0, 3) : DAY_NAMES[d.getDay()]}, ${fmtShortDate(d)}`; };
 
 // ---------- Queries ----------
 const isSched = c => c.tool === 'timely' && !c.meta?.board;
@@ -100,6 +105,7 @@ export function mount(el) {
   root = el;
   body = h('div', { class: 'timely-body' });
   root.replaceChildren(h('div', { class: 'view timely' }, h('div', { class: 'timely-head' }), body));
+  dayScroll = null; zoom = null;
   render();
 }
 
@@ -109,18 +115,23 @@ export function render() {
   const seg = (items, value, onPick, cls = '') => h('div', { class: `segmented ${cls}`, role: 'tablist' },
     items.map(([v, label]) => h('button', { class: v === value ? 'on' : '', role: 'tab', 'aria-selected': String(v === value), onclick: () => onPick(v) }, label)));
   // SD-T1/T2/T3: Scheduling / Planning on top; the sub-views sit in a smaller, indented bar beneath.
+  // One clear hierarchy: the tool, then the mode, then a single toolbar with the views (left) and what you can do (right).
+  const tabs = (items, value, onPick) => h('div', { class: 'tl-tabs', role: 'tablist' },
+    items.map(([v, label, ic]) => h('button', { class: `tl-tab ${v === value ? 'on' : ''}`, role: 'tab', 'aria-selected': String(v === value), onclick: () => { zoom = null; onPick(v); } }, icon(ic), label)));
+  tbRight = h('div', { class: 'tb-right' });
   head.replaceChildren(
     h('div', { class: 'timely-top' },
       h('h1', { class: 'view-title' }, 'Timely'),
-      seg([['schedule', 'Scheduling'], ['plan', 'Planning']], mode(), v => { store.setPref('timelyMode', v); render(); }, 'mode-toggle'),
+      seg([['schedule', 'Scheduling'], ['plan', 'Planning']], mode(), v => { zoom = null; store.setPref('timelyMode', v); render(); }, 'mode-toggle'),
       h('span', { class: 'head-spacer' })),
-    h('div', { class: 'nest-bar' },
+    h('div', { class: 'timely-toolbar' },
       mode() === 'schedule'
-        ? seg([['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly'], ['reminders', 'Reminders']], view(), v => { store.setPref('timelyView', v); render(); }, 'sub-tabs')
-        : seg([['projects', 'Projects'], ['goals', 'Goals']], planBoard(), v => { store.setPref('timelyPlan', v); render(); }, 'sub-tabs'),
-      mode() === 'plan' ? h('span', { class: 'nest-actions' },
-        planBoard() === 'goals' ? h('button', { class: 'chip ghost', onclick: openGoalGuide }, icon('sparkle'), 'How to set a good goal') : null,
-        h('button', { class: 'chip', onclick: () => (planBoard() === 'goals' ? openGoalWizard(null) : addContainer('projects')) }, icon('plus'), planBoard() === 'goals' ? 'New goal' : 'Add list')) : null));
+        ? tabs([['day', 'Daily', 'sun'], ['week', 'Weekly', 'columns'], ['month', 'Monthly', 'grid'], ['reminders', 'Reminders', 'pin']], view(), v => { store.setPref('timelyView', v); render(); })
+        : tabs([['projects', 'Projects', 'folder'], ['goals', 'Goals', 'flag']], planBoard(), v => { store.setPref('timelyPlan', v); render(); }),
+      tbRight));
+  if (mode() === 'plan') tbRight.append(...[
+    planBoard() === 'goals' ? h('button', { class: 'chip ghost', onclick: openGoalGuide }, icon('sparkle'), 'How to set a good goal') : null,
+    h('button', { class: 'btn sm primary', onclick: () => (planBoard() === 'goals' ? openGoalWizard(null) : addContainer('projects')) }, icon('plus'), planBoard() === 'goals' ? 'New goal' : 'Add project')].filter(Boolean));
   if (mode() === 'plan') return renderPlan();
   ({ day: renderDay, week: renderWeek, month: renderMonth, reminders: renderReminders })[view()]();
 }
@@ -128,13 +139,15 @@ export function render() {
 function navControl(label, step, extra) {
   const a = anchor(), atToday = view() === 'day' || view() === 'week' ? a === todayKey()
     : parseKey(a).getMonth() === new Date().getMonth() && parseKey(a).getFullYear() === new Date().getFullYear();
-  return h('div', { class: 'time-nav' },
-    h('div', { class: 'time-nav-main' },
-      h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Previous', disabled: atToday, onclick: () => setAnchor(step(-1)) }, icon('chevL')),
-      h('span', { class: 'time-label' }, label),
-      h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Next', onclick: () => setAnchor(step(1)) }, icon('chevR')),
-      h('button', { class: 'chip ghost', disabled: atToday, onclick: () => setAnchor(todayKey()) }, 'Today')),
-    h('div', { class: 'time-nav-extra' }, extra || null, archiveButton()));
+  const go = k => { zoom = null; dayScroll = null; setAnchor(k); };
+  tbRight.append(...[extra, archiveButton()].filter(Boolean),
+    h('div', { class: 'time-nav' },
+      h('button', { class: 'chip ghost today-btn', disabled: atToday, onclick: () => go(todayKey()) }, 'Today'),
+      h('div', { class: 'time-nav-main' },
+        h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Previous', disabled: atToday, onclick: () => go(step(-1)) }, icon('chevL')),
+        h('span', { class: 'time-label' }, label),
+        h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Next', onclick: () => go(step(1)) }, icon('chevR')))));
+  return null;
 }
 function archiveButton() {
   const n = store.cardsWhere(c => isSched(c) && c.meta?.archivedAt).length;
@@ -158,8 +171,8 @@ function renderDay() {
   const grid = h('div', { class: 'day-grid', dataset: { drop: 'timely-day', accept: 'card', date: key } });
   scroll.append(grid);
   // SD-T9 narrower day column, SD-T10 the day's to-do list beside it, SD-T11 Daily routine.
+  navControl(label, n => dateKey(addDays(parseKey(key), n)));
   body.replaceChildren(
-    navControl(label, n => dateKey(addDays(parseKey(key), n))),
     h('div', { class: 'day-layout' },
       h('div', { class: 'day-col' }, allDay, scroll),
       dayPlanPanel(key)));
@@ -173,21 +186,57 @@ function renderDay() {
       grid.append(h('div', { class: 'hour-row', style: { top: hr * hourH + 'px', height: hourH + 'px' } },
         h('span', { class: 'hour-label' }, hr === 0 ? '' : fmtMinutes(hr * 60))));
     }
-    for (const o of timed) grid.append(eventBlock(o.card, hourH, key, o.done));
-    if (key === todayKey()) {
-      const n = new Date(); const mins = n.getHours() * 60 + n.getMinutes();
-      grid.append(h('div', { class: 'now-line', style: { top: (mins / 60) * hourH + 'px' } }));
+    // Overlapping blocks sit side by side instead of on top of each other.
+    const spans = timed.map(o => ({ o, a: o.card.meta.start, b: o.card.meta.start + (o.card.meta.dur || 60) })).sort((x, y) => x.a - y.a || y.b - x.b);
+    let cluster = [], clusterEnd = -1;
+    const flush = () => {
+      const lanes = [];
+      for (const sp of cluster) { let i = lanes.findIndex(end => end <= sp.a); if (i < 0) { i = lanes.length; lanes.push(0); } lanes[i] = sp.b; sp.lane = i; }
+      cluster.forEach(sp => { sp.lanes = lanes.length; });
+      cluster = [];
+    };
+    for (const sp of spans) { if (sp.a >= clusterEnd && cluster.length) flush(); cluster.push(sp); clusterEnd = Math.max(clusterEnd, sp.b); }
+    flush();
+    for (const sp of spans) {
+      const el = eventBlock(sp.o.card, hourH, key, sp.o.done);
+      if (sp.lanes > 1) { el.style.setProperty('--lane', sp.lane); el.style.setProperty('--lanes', sp.lanes); el.classList.add('in-lane'); }
+      grid.append(el);
     }
-    scroll.scrollTop = 7 * hourH;
-    grid.addEventListener('click', e => {
-      if (e.target !== grid && !e.target.classList.contains('hour-row')) return;
-      const y = e.clientY - grid.getBoundingClientRect().top;
-      const start = clamp(Math.floor((y / hourH) * 2) * 30, 0, 23 * 60 + 30);
-      const card = store.createCard({ type: 'event', tool: 'timely', title: 'New block', meta: { date: key, start, dur: 60, itemType: 'task' } });
+    const nowMins = (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
+    const addAt = (start, dur = 60) => {
+      const card = store.createCard({ type: 'event', tool: 'timely', title: 'New block', meta: { date: key, start, dur, itemType: 'task' } });
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        const t = body.querySelector(`[data-id="${card.id}"] .ev-title`);
+        const el = body.querySelector(`[data-id="${card.id}"]`);
+        el?.classList.add('just-added');
+        const t = el?.querySelector('.ev-title');
         if (t) editInline(t, { onCommit: v => store.updateCard(card.id, { title: v }) });
       }));
+    };
+    if (key === todayKey()) {
+      grid.append(h('div', { class: 'now-line', style: { top: (nowMins / 60) * hourH + 'px' } },
+        h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: `Add at ${fmtMinutes(Math.floor(nowMins / 5) * 5)}`, onclick: e => { e.stopPropagation(); addAt(Math.floor(nowMins / 5) * 5, 30); } }, icon('plus'), h('span', {}, 'Now'))));
+    }
+    // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
+    scroll.scrollTop = dayScroll?.key === key ? dayScroll.top : key === todayKey() ? Math.max(0, (nowMins / 60 - 1.25) * hourH) : 7 * hourH;
+    scroll.addEventListener('scroll', () => { dayScroll = { key, top: scroll.scrollTop }; }, { passive: true });
+    // Hover the day: the half hour under the pointer lights up with a + so adding feels natural.
+    const ghost = h('div', { class: 'slot-ghost', hidden: true }, h('span', { class: 'slot-ghost-pill' }, icon('plus'), h('span', { class: 'slot-ghost-time' })));
+    grid.append(ghost);
+    const slotAt = e => clamp(Math.floor(((e.clientY - grid.getBoundingClientRect().top) / hourH) * 2) * 30, 0, 23 * 60 + 30);
+    grid.addEventListener('pointermove', e => {
+      const onEmpty = e.target === grid || e.target.classList.contains('hour-row') || e.target.closest('.slot-ghost');
+      if (!onEmpty || document.body.classList.contains('is-dragging')) { ghost.hidden = true; return; }
+      const start = slotAt(e);
+      ghost.hidden = false;
+      ghost.style.top = (start / 60) * hourH + 'px';
+      ghost.style.height = hourH / 2 + 'px';
+      ghost.querySelector('.slot-ghost-time').textContent = `Add at ${fmtMinutes(start)}`;
+    });
+    grid.addEventListener('pointerleave', () => { ghost.hidden = true; });
+    grid.addEventListener('click', e => {
+      if (e.target !== grid && !e.target.classList.contains('hour-row') && !e.target.closest('.slot-ghost')) return;
+      ghost.hidden = true;
+      addAt(slotAt(e));
     });
   });
 }
@@ -251,7 +300,7 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
 /** Hover actions for Timely cards: add to calendar, and repeat (turn it into a routine). */
 function quickActions(c) {
   return [
-    h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Add to calendar', title: 'Add to calendar (.ics)', onclick: e => { e.stopPropagation(); exportCard(store.getCard(c.id)); } }, icon('calendar')),
+    h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Add to calendar', title: store.pref('calTarget') ? `Add to ${CAL_TARGETS[store.pref('calTarget')]?.label || 'calendar'} (Shift-click to choose)` : 'Add to your calendar', onclick: e => { e.stopPropagation(); addToCalendar(e.currentTarget, c.id, { choose: e.shiftKey }); } }, icon('calendar')),
     h('button', { class: `card-tool ${isRoutine(c) ? 'on-routine' : ''}`, type: 'button', 'aria-label': 'Repeat', title: isRoutine(c) ? `Repeats ${RECUR_SHORT[c.meta.recurrence].toLowerCase()}` : 'Repeat: make it a routine', onclick: e => { e.stopPropagation(); openRepeat(e.currentTarget, c.id); } }, icon('repeat')),
   ];
 }
@@ -293,7 +342,7 @@ function dayPlanPanel(key) {
       el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Task' }));
       return el;
     })),
-    input,
+    withMic(input, { label: 'Dictate a plan item' }),
     h('p', { class: 'muted small' }, list.length ? 'Drag a task onto the day to give it a time.' : 'Nothing in To do. Add the day’s plan here; it shows up in Taskly too.'));
 }
 /** Put a plan task on the day at the next free half hour (moves it from Taskly into Timely). */
@@ -352,38 +401,53 @@ registerDrop('timely-reminders', ({ id }) => {
 });
 
 // ---------- Weekly: a rolling week that starts today (SD-T13) ----------
+const nowSlot = () => { const n = new Date(); return slotOfMinutes(n.getHours() * 60 + n.getMinutes()); };
+const slotOf = c => c.meta.slot || (c.meta.start != null ? slotOfMinutes(c.meta.start) : 'morning');
 function renderWeek() {
   const ws = parseKey(anchor());
   const days = [...Array(7)].map((_, i) => addDays(ws, i));
   const label = `${fmtShortDate(days[0])} – ${fmtShortDate(days[6])}`;
   const today = todayKey();
+  const curSlot = nowSlot();
   const grid = h('div', { class: 'week-grid' });
   grid.append(h('div', { class: 'week-corner' }));
   for (const d of days) {
     const k = dateKey(d);
     grid.append(h('div', { class: `week-day-head ${k === today ? 'today' : ''}` },
-      h('span', {}, k === today ? 'Today' : DAY_NAMES[d.getDay()].slice(0, 3)), h('strong', {}, d.getDate())));
+      h('span', { class: 'wd-name' }, k === today ? 'Today' : DAY_NAMES[d.getDay()].slice(0, 3)), h('strong', { class: 'wd-num' }, d.getDate())));
   }
   const byDay = Object.fromEntries(days.map(d => [dateKey(d), occurrencesOn(dateKey(d))]));
   for (const slot of SLOTS) {
-    grid.append(h('div', { class: 'week-slot-label' }, SLOT_LABELS[slot]));
+    const [a, b] = SLOT_HOURS[slot];
+    grid.append(h('div', { class: `week-slot-label ${slot === curSlot && days.some(d => dateKey(d) === today) ? 'now' : ''}` },
+      h('span', {}, SLOT_LABELS[slot]), h('small', {}, `${hourLabel(a)}–${hourLabel(b)}`)));
     for (const d of days) {
       const k = dateKey(d);
-      const items = byDay[k].filter(o => (o.card.meta.slot || (o.card.meta.start != null ? slotOfMinutes(o.card.meta.start) : 'morning')) === slot);
+      const items = byDay[k].filter(o => slotOf(o.card) === slot);
+      const isNow = k === today && slot === curSlot;
       const cell = h('div', {
-        class: `week-cell ${k === today ? 'today' : ''}`,
+        class: `week-cell ${k === today ? 'today' : ''} ${isNow ? 'now' : ''}`, title: `${DAY_NAMES[d.getDay()]} ${SLOT_LABELS[slot].toLowerCase()} · click to zoom in`,
         dataset: { drop: 'timely-cell', accept: 'card', date: k, slot }, 'data-list': '',
-      }, items.map(o => chip(o.card, { showTime: true, date: k, done: o.done })));
-      cell.append(h('button', { class: 'cell-add icon-btn xs', 'aria-label': `Add to ${SLOT_LABELS[slot]}`, onclick: e => openItemForm(e.currentTarget, { type: 'task', date: k, slot }) }, icon('plus')));
+      }, isNow ? h('span', { class: 'now-badge' }, h('i'), 'Now') : null,
+      items.slice(0, 3).map(o => chip(o.card, { showTime: true, date: k, done: o.done })),
+      items.length > 3 ? h('span', { class: 'cell-more' }, `+${items.length - 3} more`) : null);
+      cell.append(
+        h('button', { class: 'cell-zoom icon-btn xs', 'aria-label': `Zoom into ${DAY_NAMES[d.getDay()]} ${SLOT_LABELS[slot]}`, title: 'Zoom in', onclick: e => { e.stopPropagation(); openZoom('week', k, slot, cell); } }, icon('expand')),
+        h('button', { class: 'cell-add icon-btn xs', 'aria-label': `Add to ${SLOT_LABELS[slot]}`, onclick: e => { e.stopPropagation(); openItemForm(e.currentTarget, { type: 'task', date: k, slot }); } }, icon('plus')));
+      cell.addEventListener('click', e => { if (!e.target.closest('.t-chip, button')) openZoom('week', k, slot, cell); });
       grid.append(cell);
     }
   }
-  // SD-T14 one-off buttons; SD-T15 the weekly routine button looks different on purpose.
-  const adders = h('div', { class: 'item-adders' },
-    Object.entries(ITEM_TYPES).map(([t, v]) => h('button', { class: `chip add-${t}`, onclick: e => openItemForm(e.currentTarget, { type: t, date: today }) }, icon(v.icon), v.label)),
-    h('span', { class: 'muted small adders-hint' }, 'Hover a card to add it to your calendar or make it repeat.'));
-  body.replaceChildren(navControl(label, n => dateKey(addDays(ws, 7 * n))), adders, grid);
+  navControl(label, n => dateKey(addDays(ws, 7 * n)),
+    h('span', { class: 'item-adders' }, Object.entries(ITEM_TYPES).map(([t, v]) => h('button', { class: `chip add-${t}`, title: `New ${v.label.toLowerCase()}`, onclick: e => openItemForm(e.currentTarget, { type: t, date: today }) }, icon(v.icon), v.label))));
+  const wk = weekPlanKey(ws);
+  const host = h('div', { class: 'zoom-host week-main' }, grid);
+  body.replaceChildren(h('div', { class: 'period-layout' }, host,
+    periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`)));
+  if (zoom?.view === 'week') host.append(zoomPanel());
 }
+export const weekPlanKey = d => dateKey(startOfWeek(d instanceof Date ? d : parseKey(d)));
+export const monthPlanKey = d => { const x = d instanceof Date ? d : parseKey(d); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}`; };
 
 // ---------- Monthly ----------
 function renderMonth() {
@@ -405,6 +469,7 @@ function renderMonth() {
     const shown = rest.slice(0, 3);
     const cell = h('div', {
       class: `month-cell ${inMonth ? '' : 'out'} ${k < today ? 'past' : ''} ${k === today ? 'today' : ''}`, role: 'button', tabindex: 0,
+      title: k < today ? '' : `${DAY_NAMES[d.getDay()]}, ${fmtShortDate(d)} · click to zoom in`,
       dataset: { drop: 'timely-month', accept: 'card', date: k },
     }, h('span', { class: 'month-num' }, d.getDate()),
     // SD-T16: click an item to change its time right there.
@@ -414,17 +479,150 @@ function renderMonth() {
     }, o.card.meta.start != null ? h('b', {}, fmtMinutes(o.card.meta.start)) : null, o.card.title)),
     rest.length > 3 ? h('span', { class: 'month-more' }, `+${rest.length - 3} more`) : null,
     daily.length ? h('span', { class: 'month-routines' }, icon('repeat'), `${daily.length} daily`) : null);
-    cell.addEventListener('click', () => openDayOverlay(k));
-    cell.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === cell) openDayOverlay(k); });
+    if (k >= today) {
+      cell.addEventListener('click', () => openZoom('month', k, null, cell));
+      cell.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === cell) openZoom('month', k, null, cell); });
+    }
     grid.append(cell);
   }
   const label = `${MONTH_NAMES[a.getMonth()]} ${a.getFullYear()}`;
-  body.replaceChildren(
-    navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); },
-      h('span', { class: 'nav-buttons' },
-        h('button', { class: 'chip', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: today, pickDate: true, title: 'Create event' }) }, icon('plus'), 'Create event'))),
-    grid);
+  navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); },
+    h('button', { class: 'btn sm primary', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: today, pickDate: true, title: 'Create event' }) }, icon('plus'), 'Create event'));
+  const host = h('div', { class: 'zoom-host month-main' }, grid);
+  body.replaceChildren(h('div', { class: 'period-layout' }, host,
+    periodPlanPanel('monthplan', monthPlanKey(a), `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month')));
+  if (zoom?.view === 'month') host.append(zoomPanel());
 }
+
+// ---------- Zoom: open a period of a weekday, or a whole day of the month, right in place ----------
+function openZoom(v, date, slot, fromEl) {
+  if (date < todayKey()) return;
+  const host = fromEl?.closest('.zoom-host');
+  let origin = '50% 50%';
+  if (host && fromEl) {
+    const hr = host.getBoundingClientRect(), cr = fromEl.getBoundingClientRect();
+    origin = `${cr.left - hr.left + cr.width / 2}px ${cr.top - hr.top + cr.height / 2}px`;
+  }
+  zoom = { view: v, date, slot, anim: true, origin };
+  render();
+}
+function closeZoom() {
+  const panel = body.querySelector('.zoom-panel');
+  if (!panel) { zoom = null; return render(); }
+  panel.classList.add('closing');
+  setTimeout(() => { zoom = null; render(); }, 180);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && zoom && !document.querySelector('.modal-backdrop, .popover') && root?.isConnected) closeZoom(); });
+function zoomHours() {
+  if (zoom.view === 'month') return [...Array(18)].map((_, i) => i + 6); // 6am–11pm
+  const [a, b] = SLOT_HOURS[zoom.slot];
+  return [...Array(b - a)].map((_, i) => (a + i) % 24);
+}
+function zoomPanel() {
+  const { date, slot, view: v } = zoom;
+  const all = occurrencesOn(date);
+  const inScope = o => (v === 'month' ? true : slotOf(o.card) === slot);
+  const occ = all.filter(inScope);
+  const hours = zoomHours();
+  const untimed = occ.filter(o => o.card.meta.start == null);
+  const timed = occ.filter(o => o.card.meta.start != null);
+  const outside = v === 'month' ? timed.filter(o => !hours.includes(Math.floor(o.card.meta.start / 60))) : [];
+  const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  const isToday = date === todayKey();
+  const addRowFor = (meta, placeholder) => {
+    const input = h('input', { class: 'zoom-input', placeholder, 'aria-label': placeholder, 'data-keep': `zoom-${date}-${meta.start ?? 'any'}` });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        store.createCard({ type: 'event', tool: 'timely', title: input.value.trim(), meta: { date, itemType: 'task', ...meta } });
+        input.value = '';
+      }
+      if (e.key === 'Escape') { e.stopPropagation(); input.blur(); }
+    });
+    return withMic(input, { label: 'Dictate it' });
+  };
+  const hourRow = hr => {
+    const items = timed.filter(o => Math.floor(o.card.meta.start / 60) % 24 === hr);
+    const past = isToday && (hr + 1) * 60 <= nowM && hr >= 5;
+    const current = isToday && Math.floor(nowM / 60) === hr;
+    const row = h('div', { class: `zoom-hour ${past ? 'past' : ''} ${current ? 'current' : ''}`, dataset: { drop: 'timely-hour', accept: 'card', date, start: hr * 60 } },
+      h('span', { class: 'zh-time' }, hourLabel(hr)),
+      h('div', { class: 'zh-items' }, items.map(o => chip(o.card, { showTime: true, date, done: o.done }))),
+      h('button', { class: 'zh-add', type: 'button', 'aria-label': `Add at ${hourLabel(hr)}`, onclick: e => {
+        e.stopPropagation();
+        const slotEl = row.querySelector('.zh-items');
+        if (slotEl.querySelector('.zoom-input')) return slotEl.querySelector('.zoom-input').focus();
+        const field = addRowFor({ start: hr * 60, dur: 60, slot: null }, `What’s at ${hourLabel(hr)}?`);
+        slotEl.append(field);
+        field.querySelector('input').focus();
+      } }, icon('plus'), h('span', {}, 'Add')));
+    if (current) row.append(h('span', { class: 'zh-now', style: { top: `${((nowM % 60) / 60) * 100}%` } }));
+    return row;
+  };
+  const title = v === 'month' ? dayName(date).replace('Today · ', 'Today, ') : `${dayName(date).replace('Today · ', 'Today, ')}`;
+  const sub = v === 'month' ? `${occ.length ? `${occ.length} planned` : 'Nothing planned yet'}` : `${SLOT_LABELS[slot]} · ${hourLabel(SLOT_HOURS[slot][0])}–${hourLabel(SLOT_HOURS[slot][1])}`;
+  const panel = h('section', { class: `zoom-panel ${zoom.anim ? 'opening' : ''}`, style: { transformOrigin: zoom.origin }, role: 'dialog', 'aria-label': `${title}, ${sub}` },
+    h('header', { class: 'zoom-head' },
+      h('button', { class: 'zoom-back', type: 'button', onclick: closeZoom }, icon('chevL'), v === 'month' ? 'Month' : 'Week'),
+      h('div', { class: 'zoom-title' }, h('strong', {}, title), h('span', {}, sub)),
+      v === 'week' ? h('div', { class: 'zoom-slots', role: 'tablist' }, SLOTS.map(sl => h('button', { class: `zs ${sl === slot ? 'on' : ''}`, role: 'tab', 'aria-selected': String(sl === slot), onclick: () => { zoom = { ...zoom, slot: sl, anim: false }; render(); } }, SLOT_LABELS[sl]))) : null,
+      h('button', { class: 'icon-btn sm', 'aria-label': 'Close', onclick: closeZoom }, icon('x'))),
+    h('div', { class: 'zoom-body' },
+      h('div', { class: 'zoom-any', dataset: { drop: 'timely-cell', accept: 'card', date, slot: v === 'week' ? slot : '' } },
+        h('span', { class: 'zh-time' }, v === 'week' ? 'Any time' : 'All day'),
+        h('div', { class: 'zh-items' }, untimed.map(o => chip(o.card, { date, done: o.done })), addRowFor(v === 'week' ? { slot, start: null } : { start: null, slot: null }, v === 'week' ? `Something for this ${SLOT_LABELS[slot].toLowerCase()}…` : 'Something for this day…'))),
+      outside.length ? h('div', { class: 'zoom-any' }, h('span', { class: 'zh-time' }, 'Outside'), h('div', { class: 'zh-items' }, outside.map(o => chip(o.card, { showTime: true, date, done: o.done })))) : null,
+      h('div', { class: 'zoom-hours' }, hours.map(hourRow))));
+  if (zoom.anim) { zoom.anim = false; }
+  requestAnimationFrame(() => panel.querySelector('.zoom-hour.current')?.scrollIntoView({ block: 'center' }));
+  return panel;
+}
+registerDrop('timely-hour', {
+  accepts: ({ data }) => data.date >= todayKey(),
+  drop: ({ id, data }) => { const c = store.getCard(id); return placeSched(id, { date: data.date, start: +data.start, dur: isSched(c) && c.meta.dur ? c.meta.dur : 60, slot: null }, 'Rescheduled'); },
+});
+
+// ---------- Weekly and monthly plans (separate from Taskly; only Today's plan is Taskly's To do) ----------
+const periodCards = (kind, key) => store.cardsWhere(c => c.tool === 'timely' && c.meta?.board === kind && c.meta.planKey === key).sort(byOrder);
+function periodPlanPanel(kind, key, heading, sub) {
+  const list = periodCards(kind, key);
+  const done = list.filter(c => c.meta.done).length;
+  const input = h('input', { class: 'field-input sm', placeholder: kind === 'weekplan' ? 'Add to this week, then Enter' : 'Add to this month, then Enter', 'aria-label': heading, 'data-keep': `pp-${kind}-${key}` });
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !input.value.trim()) return;
+    store.createCard({ type: 'task', tool: 'timely', title: input.value.trim(), meta: { board: kind, planKey: key, order: list.length, done: false } });
+    input.value = '';
+  });
+  const items = list.map(c => {
+    const el = h('div', { class: `plan-item ${c.meta.done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id } },
+      h('button', { class: `plan-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? `Mark “${c.title}” not done` : `Complete “${c.title}”`, onclick: e => {
+        e.stopPropagation();
+        if (!c.meta.done) checkSound();
+        store.updateCard(c.id, { meta: { done: !c.meta.done } }, { log: !c.meta.done, logLabel: 'Completed' });
+      } }, icon('check')),
+      h('div', { class: 'plan-main' }, h('span', { class: 'plan-text' }, c.title), notesSnippet(c)));
+    el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Plan item' }));
+    return cardChrome(el, c, () => openEditor(c.id, { title: 'Plan item' }), { compact: true });
+  });
+  return h('aside', { class: `day-plan period-plan plan-${kind}`, dataset: { drop: 'period-plan', accept: 'card', kind, key }, 'data-list': '' },
+    h('div', { class: 'day-plan-head' },
+      h('div', { class: 'pp-title' }, h('h3', {}, heading), h('span', { class: 'pp-sub' }, sub)),
+      list.length ? h('span', { class: 'pp-count', title: `${done} of ${list.length} done` }, `${done}/${list.length}`) : null),
+    list.length ? h('div', { class: 'pp-progress' }, h('span', { style: { width: `${Math.round((done / list.length) * 100)}%` } })) : null,
+    h('div', { class: 'day-plan-list' }, items),
+    withMic(input, { label: 'Dictate a plan item' }),
+    h('p', { class: 'muted small' }, list.length ? `Drag an item onto a ${kind === 'weekplan' ? 'day' : 'date'} to schedule it.` : kind === 'weekplan' ? 'What should this week include? Add a few things, then drag them onto days.' : 'Big things for the month. Drag them onto dates when you’re ready.'));
+}
+const PLAN_STRIP = ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt', 'containerId', 'doneDates', 'itemType', 'columnId', 'completedAt', 'reviewUntil'];
+registerDrop('period-plan', ({ id, index, data }) => {
+  const c = store.getCard(id);
+  if (!c) return false;
+  const meta = { board: data.kind, planKey: data.key, order: index ?? periodCards(data.kind, data.key).length, done: false };
+  if (c.tool === 'timely') {
+    const m = { ...c.meta }; PLAN_STRIP.forEach(k => delete m[k]);
+    store.updateCard(id, { type: 'task', meta: { ...m, ...meta } }, { replaceMeta: true, log: true, logLabel: 'Added to plan' });
+  } else routeCard(id, { tool: 'timely', type: 'task', meta, log: 'Added to plan' });
+  reorder(periodCards(data.kind, data.key), id, index);
+});
 
 /** Small time editor for the monthly view. */
 function openTimePopover(anchorEl, id) {
@@ -432,7 +630,7 @@ function openTimePopover(anchorEl, id) {
   if (!c) return;
   const m = c.meta || {};
   const time = h('input', { class: 'field-input sm', type: 'time', value: m.start != null ? `${pad(Math.floor(m.start / 60))}:${pad(m.start % 60)}` : '', 'aria-label': 'Time' });
-  const date = h('input', { class: 'field-input sm', type: 'date', min: todayKey(), value: m.date || todayKey(), 'aria-label': 'Date', disabled: isRoutine(c) });
+  const date = daySelect(m.date && m.date >= todayKey() ? m.date : todayKey());
   const durs = [15, 30, 45, 60, 90, 120, 180];
   const dur = h('select', { class: 'field-input sm', 'aria-label': 'Length' }, durs.map(v => h('option', { value: v, selected: (m.dur || 60) === v }, v < 60 ? `${v} min` : `${v / 60} hr`)));
   const save = () => {
@@ -451,36 +649,6 @@ function openTimePopover(anchorEl, id) {
   setTimeout(() => time.focus(), 40);
 }
 
-function openDayOverlay(k) {
-  const d = parseKey(k);
-  const list = h('div', { class: 'modal-list' });
-  const fill = () => {
-    const occ = occurrencesOn(k);
-    list.replaceChildren(...occ.map(o => {
-      const m = o.card.meta;
-      const r = h('div', { class: 'activity-row clickable' }, typeIcon(o.card.type), h('span', { class: 'activity-text' }, o.card.title, isRoutine(o.card) ? h('span', { class: 'muted small' }, `  · ${RECUR_SHORT[m.recurrence]} routine`) : null),
-        h('span', { class: 'muted small' }, m.start != null ? fmtMinutes(m.start) : SLOT_LABELS[m.slot] || 'Any time'));
-      r.addEventListener('click', () => openEventEditor(o.card.id));
-      return r;
-    }));
-    if (!occ.length) list.append(h('p', { class: 'muted' }, 'Nothing planned.'));
-  };
-  fill();
-  const input = h('input', { class: 'field-input', placeholder: 'Add something for this day', 'aria-label': 'New item' });
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && input.value.trim()) {
-      store.createCard({ type: 'event', tool: 'timely', title: input.value.trim(), meta: { date: k, itemType: 'task' } });
-      input.value = ''; setTimeout(fill, 30);
-    }
-  });
-  const past = k < todayKey();
-  modal({
-    title: d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
-    body: h('div', {}, list, past ? null : input),
-    actions: past ? [] : [{ label: 'Open day view', kind: 'ghost', onClick: () => { store.setPref('timelyView', 'day'); setAnchor(k); } }],
-  });
-}
-
 // ---------- New items and routines ----------
 function timeFields(start = null) {
   const time = h('input', { class: 'field-input sm', type: 'time', value: start != null ? `${pad(Math.floor(start / 60))}:${pad(start % 60)}` : '', 'aria-label': 'Time' });
@@ -488,11 +656,38 @@ function timeFields(start = null) {
   const read = () => { const [hh, mm] = time.value.split(':').map(Number); return time.value ? hh * 60 + mm : null; };
   return { time, dur, read };
 }
+/** A day picker that reads like a person would say it: “Tuesday, Oct 13”. Next 60 days, plus any date. */
+function daySelect(value) {
+  const t = parseKey(todayKey());
+  const keys = [...Array(60)].map((_, i) => dateKey(addDays(t, i)));
+  if (value && !keys.includes(value)) keys.push(value);
+  const sel = h('select', { class: 'field-input sm day-select', 'aria-label': 'Day' },
+    keys.map(k => h('option', { value: k, selected: k === value }, dayName(k))),
+    h('option', { value: '__pick' }, 'Another date…'));
+  const picker = h('input', { type: 'date', class: 'day-select-native', min: todayKey(), tabindex: -1, 'aria-hidden': 'true' });
+  let last = value;
+  sel.addEventListener('change', () => {
+    if (sel.value !== '__pick') { last = sel.value; return; }
+    sel.value = last;
+    try { picker.showPicker(); } catch { picker.focus(); }
+  });
+  picker.addEventListener('change', () => {
+    if (!picker.value) return;
+    if (![...sel.options].some(o => o.value === picker.value)) sel.insertBefore(h('option', { value: picker.value }, dayName(picker.value)), sel.lastChild);
+    sel.value = last = picker.value;
+  });
+  const wrap = h('span', { class: 'day-select-wrap' }, sel, picker);
+  Object.defineProperty(wrap, 'value', { get: () => sel.value });
+  return wrap;
+}
 /** SD-T14 / SD-T17: a one-off Task, Meeting, Appointment or Work session, with an optional exact time. */
 function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null, pickDate = true, title: heading } = {}) {
   const typeSel = h('select', { class: 'field-input sm', 'aria-label': 'Type' }, Object.entries(ITEM_TYPES).map(([v, t]) => h('option', { value: v, selected: v === type }, t.label)));
   const title = h('input', { class: 'field-input sm', placeholder: { task: 'Pick up the dry cleaning', meeting: 'Sync with Sam', appointment: 'Dentist', work: 'Focus: budget draft' }[type], 'aria-label': 'Title' });
-  const dateIn = h('input', { class: 'field-input sm', type: 'date', min: todayKey(), value: date, 'aria-label': 'Date' });
+  const dateIn = daySelect(date);
+  const dayText = h('span', {}, dayName(date));
+  const dayHead = h('span', { class: 'form-pop-day' }, icon('calendar'), dayText, slot ? h('span', { class: 'muted' }, ` · ${SLOT_LABELS[slot]}`) : null);
+  dateIn.querySelector('select').addEventListener('change', () => { if (dateIn.value !== '__pick') dayText.textContent = dayName(dateIn.value); });
   const { time, dur, read } = timeFields();
   const slotSel = h('select', { class: 'field-input sm', 'aria-label': 'Part of day' }, SLOTS.map(s => h('option', { value: s, selected: s === (slot || 'morning') }, SLOT_LABELS[s])));
   const sync = () => { slotSel.disabled = !!time.value; dur.disabled = !time.value; };
@@ -506,6 +701,7 @@ function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null,
   title.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
   popover(anchorEl, h('div', { class: 'form-pop' },
     h('strong', {}, heading || `New ${ITEM_TYPES[type].label.toLowerCase()}`),
+    dayHead,
     field('What', title), field('Type', typeSel),
     pickDate ? field('Day', dateIn) : null,
     h('div', { class: 'time-pop-row' }, field('Time (optional)', time), field('Length', dur)),
@@ -516,6 +712,7 @@ function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null,
 // ---------- Reminders: a cork board of sticky notes (SD-T19/T20/T21) ----------
 const STICKY = ['#fff3a3', '#ffd7c2', '#d6f0b8', '#c9e8fb', '#e7d6f7'];
 let remDraft = { when: null, label: '' };
+let justPinned = null, refocusPad = false;
 function quickWhen(kind, hours) {
   const n = new Date();
   const at = (d, hh, mm = 0) => ({ date: dateKey(d), start: hh * 60 + mm });
@@ -549,6 +746,7 @@ function renderReminders() {
   const lanes = Object.fromEntries(LANES.map(([k]) => [k, []]));
   rem.forEach(c => lanes[laneOf(c)].push(c));
 
+  const prevScroll = body.querySelector('.cork')?.scrollTop || 0;
   const board = h('div', { class: 'cork', dataset: { drop: 'timely-reminders', accept: 'card' } }, composerSticky());
   for (const [k, label] of LANES) {
     if (!lanes[k].length) continue;
@@ -558,6 +756,17 @@ function renderReminders() {
   }
   if (!rem.length) board.append(h('p', { class: 'cork-empty' }, 'Nothing pinned yet. Write one on the blank note, or drop any card here.'));
   body.replaceChildren(h('div', { class: 'reminders' }, board));
+  board.scrollTop = prevScroll;
+  if (justPinned) {
+    const el = board.querySelector(`.sticky[data-id="${justPinned}"]`);
+    justPinned = null;
+    if (el) {
+      el.classList.add('pin-drop');
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      setTimeout(() => tick(), 260);
+      setTimeout(() => el.classList.remove('pin-drop'), 900);
+    }
+  }
 }
 
 function stickyEl(c, overdue) {
@@ -578,7 +787,8 @@ function stickyEl(c, overdue) {
     h('button', { class: 'sticky-btn', 'aria-label': 'Done', title: isRoutine(c) ? 'Done for today (the routine stays)' : 'Done', onclick: e => {
       e.stopPropagation();
       if (isRoutine(c)) return toggleRoutineDay(c.id, todayKey());
-      tick(); store.updateCard(c.id, { meta: { done: true } }, { log: true, logLabel: 'Completed' }); runMaintenance();
+      tick(); el.classList.add('sticky-done-out');
+      setTimeout(() => { store.updateCard(c.id, { meta: { done: true } }, { log: true, logLabel: 'Completed' }); runMaintenance(); }, 300);
     } }, icon('check'), 'Done'),
     h('button', { class: 'sticky-btn', 'aria-label': 'Send to Apple Reminders', title: 'Send to Apple Reminders', onclick: e => { e.stopPropagation(); sendToReminders(store.getCard(c.id)); } }, icon('bell'))));
   cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
@@ -591,7 +801,8 @@ function composerSticky() {
   const whenLabel = h('span', { class: 'pad-when' }, remDraft.when ? remDraft.when.label : 'No time');
   const dateIn = h('input', { class: 'pad-date', type: 'date', min: todayKey(), 'aria-label': 'Date' });
   const timeIn = h('input', { class: 'pad-date', type: 'time', 'aria-label': 'Time' });
-  const custom = h('div', { class: 'pad-custom', hidden: true }, dateIn, timeIn);
+  const custom = h('div', { class: 'pad-custom', hidden: true },
+    h('label', { class: 'pad-field' }, h('span', {}, 'Day'), dateIn), h('label', { class: 'pad-field' }, h('span', {}, 'Time'), timeIn));
   const setWhen = w => { remDraft.when = w; whenLabel.textContent = w ? w.label : 'No time'; chips.querySelectorAll('.pad-chip').forEach(c => c.classList.toggle('on', c.dataset.k === w?.k)); };
   const syncCustom = () => {
     if (!dateIn.value) return;
@@ -600,16 +811,23 @@ function composerSticky() {
     setWhen({ date: dateIn.value, start, k: 'custom', label: `${dateIn.value === todayKey() ? 'Today' : fmtShortDate(parseKey(dateIn.value))}${start != null ? ` · ${fmtMinutes(start)}` : ''}` });
   };
   dateIn.addEventListener('change', syncCustom); timeIn.addEventListener('change', syncCustom);
+  const toggleOff = k => remDraft.when?.k === k;
   const chips = h('div', { class: 'pad-chips' },
-    [['1h', 'In 1 hour'], ['tonight', 'Tonight'], ['morning', 'Tomorrow AM'], ['weekend', 'Weekend']].map(([k, l]) =>
-      h('button', { class: `pad-chip ${remDraft.when?.k === k ? 'on' : ''}`, type: 'button', dataset: { k }, onclick: () => setWhen({ ...quickWhen(k), k }) }, l)),
-    h('button', { class: 'pad-chip', type: 'button', dataset: { k: 'custom' }, onclick: () => { custom.hidden = !custom.hidden; if (!custom.hidden) dateIn.focus(); } }, 'Pick…'));
+    [['1h', 'In 1 hour'], ['tonight', 'Tonight'], ['morning', 'Tomorrow 9am'], ['weekend', 'Saturday']].map(([k, l]) =>
+      h('button', { class: `pad-chip ${remDraft.when?.k === k ? 'on' : ''}`, type: 'button', dataset: { k }, onclick: () => { custom.hidden = true; setWhen(toggleOff(k) ? null : { ...quickWhen(k), k }); } }, l)),
+    h('button', { class: `pad-chip pad-chip-date ${remDraft.when?.k === 'custom' ? 'on' : ''}`, type: 'button', dataset: { k: 'custom' }, 'aria-expanded': 'false', onclick: e => {
+      custom.hidden = !custom.hidden; e.currentTarget.setAttribute('aria-expanded', String(!custom.hidden));
+      if (!custom.hidden) { dateIn.value ||= todayKey(); try { dateIn.showPicker(); } catch { dateIn.focus(); } }
+    } }, icon('calendar'), 'Date & time'));
   const add = () => {
     const title = input.value.trim();
-    if (!title) { input.focus(); return; }
+    if (!title) { pad.classList.remove('nudge'); void pad.offsetWidth; pad.classList.add('nudge'); input.focus(); return; }
     const w = remDraft.when;
-    store.createCard({ type: 'event', tool: 'timely', title, meta: { kind: 'reminder', date: w?.date || null, start: w?.start ?? null } });
+    const card = store.createCard({ type: 'event', tool: 'timely', title, meta: { kind: 'reminder', date: w?.date || null, start: w?.start ?? null } }, { silent: true });
     input.value = ''; remDraft = { when: null };
+    justPinned = card.id; refocusPad = true;
+    pad.classList.add('pinning');
+    setTimeout(() => store.notify({ reason: 'pin' }), 140);
   };
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); add(); } });
   // Voice: "call mom tomorrow at 9am" → the title and the time are pulled out for you.
@@ -633,11 +851,15 @@ function composerSticky() {
         onEnd: () => { session = null; mic.classList.remove('on'); },
       });
     } }, icon('mic'));
-  return h('div', { class: 'sticky composer' },
+  const pad = h('div', { class: 'sticky composer' },
     h('span', { class: 'sticky-pin', 'aria-hidden': 'true' }),
     h('span', { class: 'pad-label' }, 'New reminder'),
-    input, chips, custom,
-    h('div', { class: 'pad-foot' }, icon('clock'), whenLabel, heard, h('span', { class: 'head-spacer' }), mic, h('button', { class: 'pad-pin', type: 'button', onclick: add }, 'Pin')));
+    input,
+    h('span', { class: 'pad-sub' }, 'When?'),
+    chips, custom,
+    h('div', { class: 'pad-foot' }, icon('clock'), whenLabel, heard, h('span', { class: 'head-spacer' }), mic, h('button', { class: 'pad-pin', type: 'button', 'aria-label': 'Pin', onclick: add }, icon('pin'), 'Pin it')));
+  if (refocusPad) { refocusPad = false; setTimeout(() => input.focus(), 30); }
+  return pad;
 }
 
 function quickAdd(meta) {
@@ -673,7 +895,7 @@ export function openEventEditor(id) {
         h('div', { class: 'ical-row' }, f.type ? field('Type', f.type) : null, field('Part of day', f.slot), field('Repeat', f.rec)),
         isRoutine(card) ? h('p', { class: 'muted small' }, 'Changes apply from today on. Days you already ticked stay ticked.') : null,
         h('div', { class: 'ical-actions' },
-          h('button', { class: 'chip', type: 'button', onclick: () => exportCard(store.getCard(id)) }, icon('calendar'), 'Add to calendar (.ics)'),
+          h('button', { class: 'chip', type: 'button', onclick: e => addToCalendar(e.currentTarget, id, { choose: true }) }, icon('calendar'), 'Add to calendar…'),
           // SD-T12: Send to Reminders only for reminders.
           isRem ? h('button', { class: 'chip', type: 'button', onclick: () => sendToReminders(store.getCard(id)) }, icon('bell'), 'Send to Reminders') : null));
     },
@@ -719,7 +941,43 @@ const slug = s => (s || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '-').replac
 export function exportCard(c) {
   if (!c) return;
   download(`${slug(c.title)}.ics`, wrapCal(vevent(c)), 'text/calendar');
-  toast('Downloaded .ics — open it to add to Calendar');
+  toast('Saved. Open the file and your calendar adds it.');
+}
+const plainText = s => String(s || '').replace(/<\/(div|p|li)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+/** A prefilled Google Calendar event (opens in a new tab; you press Save there). */
+export function googleCalendarUrl(c) {
+  const m = c.meta || {};
+  const date = (m.date || todayKey()).replace(/-/g, '');
+  let dates;
+  if (m.start != null) {
+    const t = mins => `${pad(Math.floor(mins / 60) % 24)}${pad(mins % 60)}00`;
+    dates = `${date}T${t(m.start)}/${date}T${t(Math.min(m.start + (m.dur || 60), 24 * 60 - 1))}`;
+  } else dates = `${date}/${dateKey(addDays(parseKey(m.date || todayKey()), 1)).replace(/-/g, '')}`;
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: c.title, dates, details: plainText(c.description), ctz: Intl.DateTimeFormat().resolvedOptions().timeZone || '' });
+  if (m.recurrence) q.set('recur', `RRULE:${RRULE[m.recurrence]}`);
+  return `https://calendar.google.com/calendar/render?${q}`;
+}
+const CAL_TARGETS = {
+  google: { label: 'Google Calendar', hint: 'Opens prefilled; press Save', run: c => { window.open(googleCalendarUrl(c), '_blank', 'noopener'); toast('Opened in Google Calendar. Press Save there.'); } },
+  ics: { label: 'Apple Calendar or Outlook', hint: 'Downloads a file that opens in your calendar', run: c => exportCard(c) },
+};
+/** Add a card to a calendar: one click once you've picked a calendar (choice is remembered; change it any time). */
+export function addToCalendar(anchor, id, { choose = false } = {}) {
+  const c = store.getCard(id);
+  if (!c) return;
+  const saved = store.pref('calTarget');
+  if (saved && CAL_TARGETS[saved] && !choose) {
+    CAL_TARGETS[saved].run(c);
+    return;
+  }
+  let remember = true;
+  const pick = k => { if (remember) store.setPref('calTarget', k); closePopovers(); CAL_TARGETS[k].run(c); };
+  popover(anchor, h('div', { class: 'cal-pop' },
+    h('strong', {}, 'Add to calendar'),
+    h('p', { class: 'muted small' }, `${c.title}${c.meta?.date ? ` · ${fmtShortDate(parseKey(c.meta.date))}` : ''}${c.meta?.start != null ? ` · ${fmtMinutes(c.meta.start)}` : ''}`),
+    ...Object.entries(CAL_TARGETS).map(([k, t]) => h('button', { class: `cal-opt ${saved === k ? 'on' : ''}`, type: 'button', onclick: () => pick(k) },
+      h('span', { class: `cal-logo cal-${k}` }, icon(k === 'google' ? 'calendar' : 'download')), h('span', { class: 'cal-opt-text' }, h('b', {}, t.label), h('small', {}, t.hint)))),
+    h('label', { class: 'cal-remember small muted' }, h('input', { type: 'checkbox', checked: true, onchange: e => { remember = e.target.checked; } }), ' Remember, and do it in one click next time')));
 }
 // ---------- Apple Reminders via Shortcuts (SD-B2) ----------
 const shortcutName = () => store.pref('reminderShortcut', 'Sedi Reminder');
@@ -802,7 +1060,7 @@ export const DEFAULT_CONTAINERS = () => ({
   goals: ['Health', 'Craft', 'People'].map(name => ({ id: uuid(), name })),
 });
 const COL_GAP = 14;
-const colW = b => (b === 'goals' ? 300 : 272);
+const colW = () => 288; // every list and goal column shares one width
 
 function renderPlan() {
   const b = planBoard();
@@ -811,7 +1069,7 @@ function renderPlan() {
   // data-list="x": the list runs left to right, so lists can be dragged into a new order.
   const track = h('div', { class: `plan-track board-${b}`, dataset: { drop: 'plan-track', accept: 'ctcol', board: b }, 'data-list': 'x' },
     list.map(ct => (b === 'goals' ? goalEl(ct) : containerEl(b, ct))),
-    h('button', { class: 'plan-ghost', onclick: () => (b === 'goals' ? openGoalWizard(null) : addContainer(b)) }, icon('plus'), b === 'goals' ? 'New goal' : 'Add a list'));
+    h('button', { class: 'plan-ghost', onclick: () => (b === 'goals' ? openGoalWizard(null) : addContainer(b)) }, icon('plus'), b === 'goals' ? 'New goal' : 'Add project'));
   viewport.append(track);
   const left = h('button', { class: 'carousel-btn left', 'aria-label': 'Previous lists' }, h('span', { class: 'tri' }));
   const right = h('button', { class: 'carousel-btn right', 'aria-label': 'Next lists' }, h('span', { class: 'tri' }));
@@ -852,8 +1110,10 @@ function addInput(b, ct, placeholder, onAdd) {
   });
   input.addEventListener('blur', () => setTimeout(() => { if (planAdding === ct.id && !input.value.trim()) { planAdding = null; render(); } }, 150));
   setTimeout(() => input.focus(), 30);
-  return input;
+  return withMic(input, { label: 'Dictate the card' });
 }
+/** The add row that sits right under a list's header (Taskly-style). */
+const addRow = (ct, label) => h('button', { class: 'col-add ct-add-row', 'aria-label': `${label} to ${ct.name}`, onclick: () => { planAdding = ct.id; render(); } }, icon('plus'), label);
 
 function containerEl(b, ct) {
   const cards = planCards(b, ct.id);
@@ -862,7 +1122,7 @@ function containerEl(b, ct) {
     adding ? addInput(b, ct, 'New task, then Enter', title => {
       const card = store.createCard({ type: 'task', tool: 'timely', title, meta: { board: b, containerId: ct.id, order: -1 } });
       reorder(planCards(b, ct.id), card.id, 0);
-    }) : null,
+    }) : addRow(ct, 'Add task'),
     cards.map(c => {
       const t = h('span', { class: 'pc-title', title: c.title }, c.title);
       t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
@@ -871,10 +1131,7 @@ function containerEl(b, ct) {
     }));
   if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, 'No tasks yet.'));
   return h('section', { class: 'ct', dataset: { drag: 'ctcol', id: ct.id } },
-    listHead(b, ct, [
-      // SD-T8: add sits right next to the title.
-      h('button', { class: 'ct-add', 'aria-label': `Add to ${ct.name}`, title: 'Add a card', onclick: () => { planAdding = ct.id; render(); } }, icon('plus')),
-      h('span', { class: 'col-count' }, cards.length || '')]),
+    listHead(b, ct, [h('span', { class: 'col-count' }, cards.length || '')]),
     listEl);
 }
 
@@ -897,14 +1154,13 @@ function goalEl(ct) {
     adding ? h('div', { class: 'step-add' }, kindToggle, addInput(b, ct, 'Describe the step, then Enter', title => {
       const card = store.createCard({ type: 'goal', tool: 'timely', title, meta: { board: b, containerId: ct.id, order: steps.length, stepKind: addKind, done: false } });
       void card;
-    })) : null,
+    })) : (steps.length ? addRow(ct, 'Add a step') : null),
     steps.map(c => stepEl(c)));
   if (!steps.length && !adding) listEl.append(h('div', { class: 'goal-empty' },
     h('p', {}, 'No steps yet.'),
     h('button', { class: 'btn sm primary', onclick: () => openGoalWizard(ct.id) }, icon('sparkle'), 'Break it down')));
   return h('section', { class: 'ct goal-ct', dataset: { drag: 'ctcol', id: ct.id } },
-    listHead(b, ct, [
-      h('button', { class: 'ct-add', 'aria-label': `Add a step to ${ct.name}`, title: 'Add a step', onclick: () => { planAdding = ct.id; render(); } }, icon('plus'))]),
+    listHead(b, ct, [h('span', { class: 'col-count' }, steps.length ? `${done}/${steps.length}` : '')]),
     h('div', { class: 'goal-meta' },
       h('div', { class: 'goal-progress', role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100, title: `${done} of ${steps.length} steps done` }, h('span', { style: { width: `${pct}%` } })),
       h('div', { class: 'goal-stats' },

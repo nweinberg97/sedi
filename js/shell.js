@@ -3,7 +3,7 @@
 import * as store from './store.js';
 import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, reorder, byOrder, trashCard, typeIcon, openEditor, truncate, cardChrome } from './cards.js';
+import { routeCard, reorder, byOrder, trashCard, typeIcon, openEditor, truncate, cardChrome, withMic } from './cards.js';
 import { openBrainPanel } from './brain.js';
 import { openRemindersSetup } from './timely.js';
 import { openEnginesPanel } from './engines.js';
@@ -111,7 +111,7 @@ export function spinAtom(el) {
 }
 
 // ---------- Navigator: same-size tool buttons with icons, open by default ----------
-const NAV_ICONS = { taskly: 'checklist', boardly: 'target', home: 'home', timely: 'calendar', brainly: 'brain' };
+const NAV_ICONS = { taskly: 'checklist', boardly: 'board', home: 'home', timely: 'calendar', brainly: 'brain' };
 export function buildNavigator() {
   const panel = h('nav', { class: 'navigator-panel', 'aria-label': 'Tools' });
   for (const r of NAV_ORDER) {
@@ -164,7 +164,7 @@ export function buildUniversal() {
   uniList = h('div', { class: 'uni-list', dataset: { drop: 'universal', accept: 'card' }, 'data-list': '' });
   uniPanel = h('section', { class: 'universal-panel', 'aria-label': 'Universal Board' },
     h('div', { class: 'uni-head' }, h('h2', {}, 'Universal Board'), uniCount),
-    quick, uniList,
+    withMic(quick, { label: 'Dictate to the Universal Board' }), uniList,
     h('p', { class: 'uni-hint' }, 'Drop cards here, switch tools, then drag them out.'));
   const wrap = h('div', { class: 'universal' }, trigger, uniPanel);
   document.addEventListener('pointerdown', e => {

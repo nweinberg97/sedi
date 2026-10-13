@@ -51,14 +51,15 @@ export function listen({ onInterim, onFinal, onEnd, onError, continuous = true }
   rec.lang = navigator.language || 'en-US';
   rec.interimResults = true;
   rec.continuous = continuous;
-  let stopped = false;
+  let stopped = false, pendingInterim = '';
   rec.onresult = e => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const r = e.results[i];
-      if (r.isFinal) onFinal?.(r[0].transcript.trim());
+      if (r.isFinal) { onFinal?.(r[0].transcript.trim()); pendingInterim = ''; }
       else interim += r[0].transcript;
     }
+    if (interim) pendingInterim = interim.trim();
     onInterim?.(interim);
   };
   rec.onerror = e => {
@@ -70,7 +71,12 @@ export function listen({ onInterim, onFinal, onEnd, onError, continuous = true }
     }[e.error] || `Voice input stopped (${e.error}).`;
     if (e.error !== 'aborted') onError?.(msg);
   };
-  rec.onend = () => { if (!stopped && continuous) { try { rec.start(); return; } catch {} } onEnd?.(); };
+  rec.onend = () => {
+    if (!stopped && continuous) { try { rec.start(); return; } catch {} }
+    // Some browsers end without marking the last words final; keep them instead of losing them.
+    if (pendingInterim) { onFinal?.(pendingInterim); pendingInterim = ''; }
+    onEnd?.();
+  };
   try { rec.start(); } catch (err) { onError?.(err.message); onEnd?.(); }
   return { stop() { stopped = true; try { rec.stop(); } catch {} } };
 }
@@ -87,15 +93,55 @@ function pickVoice() {
 }
 if (canSpeak) speechSynthesis.onvoiceschanged = () => { voice = null; pickVoice(); };
 
+// Chrome quirks handled here: speaking right after cancel() can be dropped, long utterances get cut off
+// after ~15 seconds, and an utterance can be garbage-collected mid-sentence (so onend never fires).
+let queue = [], speakToken = 0;
+const live = new Set();
+/** Plain words for the ear: no markdown, no links, short sentences. */
+export function speakable(text) {
+  return String(text || '')
+    .replace(/https?:\/\/\S+/g, 'a link')
+    .replace(/[*_#`>|]/g, '')
+    .replace(/^\s*[-•]\s+/gm, '')
+    .replace(/\s*\n+\s*/g, '. ')
+    .replace(/[:;,]\s*\./g, '.')
+    .replace(/\.\s*\./g, '.')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 export function speak(text, { onEnd } = {}) {
   if (!canSpeak || !text) { onEnd?.(); return; }
+  const token = ++speakToken;
   speechSynthesis.cancel();
-  const clean = text.replace(/[*_#`>]/g, '').replace(/\n+/g, '. ').slice(0, 600);
-  const u = new SpeechSynthesisUtterance(clean);
-  const v = pickVoice();
-  if (v) u.voice = v;
-  u.rate = 1.03;
-  if (onEnd) { u.onend = () => onEnd(); u.onerror = () => onEnd(); }
-  speechSynthesis.speak(u);
+  const clean = speakable(text).slice(0, 1200);
+  // Speak in sentence-sized pieces so nothing gets cut off.
+  const parts = (clean.match(/[^.!?]+[.!?]*/g) || [clean]).reduce((acc, s) => {
+    const last = acc[acc.length - 1];
+    if (last && (last + s).length < 180) acc[acc.length - 1] = last + s; else acc.push(s);
+    return acc;
+  }, []).map(x => x.trim()).filter(Boolean);
+  queue = parts;
+  let finished = false;
+  const done = () => { if (finished) return; finished = true; onEnd?.(); };
+  const next = () => {
+    if (token !== speakToken) return;          // a newer reply took over
+    const part = queue.shift();
+    if (!part) return done();
+    const u = new SpeechSynthesisUtterance(part);
+    const v = pickVoice();
+    if (v) u.voice = v;
+    u.rate = 1.03;
+    live.add(u);
+    let ended = false;
+    const end = () => { if (ended) return; ended = true; live.delete(u); clearTimeout(guard); next(); };
+    u.onend = end;
+    u.onerror = end; // next() bows out if a newer reply took over
+    // Safety net: if the browser never reports the end, move on anyway.
+    const guard = setTimeout(end, 1500 + part.length * 90);
+    speechSynthesis.speak(u);
+    if (speechSynthesis.paused) speechSynthesis.resume();
+  };
+  setTimeout(next, 80); // give cancel() a beat, or Chrome drops the first utterance
 }
-export const stopSpeaking = () => canSpeak && speechSynthesis.cancel();
+export const stopSpeaking = () => { speakToken++; queue = []; if (canSpeak) speechSynthesis.cancel(); };
+export const isSpeaking = () => canSpeak && (speechSynthesis.speaking || queue.length > 0);

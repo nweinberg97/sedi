@@ -3,7 +3,7 @@
 import * as store from './store.js';
 import { h, icon, toast, popover, closePopovers } from './util.js';
 import { registerDrop } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet, withMic } from './cards.js';
 import { crunch, checkSound } from './sound.js';
 
 export const COLUMNS = [
@@ -110,7 +110,7 @@ export function render() {
       const body = h('div', { class: 'col-body' });
       const count = h('span', { class: 'col-count' });
       const head = h('header', { class: 'col-head' }, h('span', { class: 'col-icon' }, icon(col.icon)), h('h2', {}, col.name), count);
-      if (col.id === 'completed') head.append(h('button', { class: 'chip ghost col-clear', title: 'Move every completed card to the trash (you can Undo)', onclick: clearCompleted }, icon('trash'), 'Clear'));
+      if (col.id === 'completed') head.append(h('button', { class: 'col-clear', 'aria-label': 'Clear completed', title: 'Clear completed (moves them to the trash, you can Undo)', onclick: clearCompleted }, icon('trash'), h('span', { class: 'col-clear-label' }, 'Clear')));
       const add = h('button', { class: 'col-add', 'aria-label': `Add a task to ${col.name}`, onclick: () => startAdd(col.id) }, icon('plus'), 'Add task');
       board.append(h('section', {
         class: `taskly-col col-${col.id}`, dataset: { drop: 'taskly-col', accept: 'card', col: col.id }, 'data-list': '',
@@ -223,11 +223,11 @@ function startAdd(colId) {
   if (body.querySelector('.task-input')) return body.querySelector('.task-input').focus();
   body.querySelector('.col-empty')?.remove();
   const input = h('input', { class: 'task-input', placeholder: 'New task, then Enter', 'aria-label': 'New task title' });
-  body.prepend(input);
+  body.prepend(withMic(input, { label: 'Dictate the task' }));
   input.focus();
   const commit = () => {
     const title = input.value.trim();
-    input.remove();
+    (input.closest('.mic-field') || input).remove();
     if (title) {
       const card = store.createCard({ type: 'task', tool: 'taskly', title, meta: { columnId: colId, order: -1, ...columnMeta(null, colId) } });
       reorder(colCards(colId), card.id, 0);

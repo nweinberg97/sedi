@@ -289,10 +289,10 @@ export function editInline(el, { multiline = false, onCommit, selectAll = true }
 // ---------- Icons (1.6px strokes, currentColor) ----------
 const S = (inner, vb = 24) => `<svg viewBox="0 0 ${vb} ${vb}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 export const ICONS = {
-  // The original LifeOS atom: thin, uneven orbits around a small nucleus.
-  atom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true" class="atom-mark"><circle cx="12" cy="12" r="2"/><ellipse cx="12" cy="12" rx="9" ry="2.5" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="8" ry="3" transform="rotate(90 12 12)"/><ellipse cx="12" cy="12" rx="7.5" ry="3.5" transform="rotate(150 12 12)"/></svg>',
-  // Universal Board: a tilted two-arm spiral galaxy with a few stars.
-  galaxy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><g class="galaxy-arms"><g transform="rotate(-25 12 12)"><g transform="translate(12 12) scale(1 .62) translate(-12 -12)"><path d="M13.6 10.9C16.9 11.8 17.4 16.4 13.9 18.1C10.4 19.8 5.4 17.6 4.7 13"/><path d="M13.6 10.9C16.9 11.8 17.4 16.4 13.9 18.1C10.4 19.8 5.4 17.6 4.7 13" transform="rotate(180 12 12)"/></g></g></g><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="19.8" cy="18.6" r=".7" fill="currentColor" stroke="none"/><circle cx="4.4" cy="5.6" r=".55" fill="currentColor" stroke="none"/><circle cx="20.2" cy="4.6" r=".4" fill="currentColor" stroke="none"/></svg>',
+  // A modern atom: three even, thin orbits, a solid nucleus and two electrons.
+  atom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true" class="atom-mark"><ellipse cx="12" cy="12" rx="10.2" ry="4"/><ellipse cx="12" cy="12" rx="10.2" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10.2" ry="4" transform="rotate(-60 12 12)"/><circle cx="12" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="22.2" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="6.9" cy="20.8" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  // Universal Board: one clean spiral and two stars.
+  galaxy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><g class="galaxy-arms"><path d="M12 12c0-1 1.6-1.4 2.3-.4.9 1.3-.2 3.3-2 3.5-2.4.3-4.1-2-3.6-4.3.6-3 4-4.6 6.9-3.6 3.6 1.3 5 5.6 3.4 9"/></g><circle cx="5" cy="17.5" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="5.5" r=".7" fill="currentColor" stroke="none"/></svg>',
   flag: S('<path d="M6 20.5V4.5"/><path d="M6 5h11l-2.5 4L17 13H6"/>'),
   arrowR: S('<path d="M5 12h12M13 7.5 17.5 12 13 16.5"/>'),
   sparkle: S('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M7 17l2-2M15 9l2-2"/>'),
@@ -323,6 +323,11 @@ export const ICONS = {
   check: S('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
   expand: S('<path d="M14 4.5h5.5V10M10 19.5H4.5V14M19.5 4.5l-6 6M4.5 19.5l6-6"/>'),
   minimize: S('<path d="M19.5 4.5l-5.5 5.5M14 5.5V10h4.5M4.5 19.5 10 14M10 18.5V14H5.5"/>'),
+  board: S('<rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/>'),
+  plus2: S('<path d="M12 6v12M6 12h12"/>'),
+  sun: S('<circle cx="12" cy="12" r="3.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'),
+  columns: S('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.2 4.5v15M14.8 4.5v15"/>'),
+  grid: S('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.2 4.5v15M14.8 4.5v15"/>'),
   chevL: S('<path d="M14.5 6 8.5 12l6 6"/>'),
   chevR: S('<path d="M9.5 6l6 6-6 6"/>'),
   stop: S('<rect x="7" y="7" width="10" height="10" rx="2"/>'),

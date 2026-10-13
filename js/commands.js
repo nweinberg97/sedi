@@ -18,14 +18,15 @@ const TYPE_WORDS = {
   goal: 'goal', event: 'event', meeting: 'event', appointment: 'event', block: 'event', 'time block': 'event',
   reminder: 'reminder', link: 'link',
 };
-const DEFAULT_TOOL = { task: 'taskly', note: 'brainly', goal: 'boardly', event: 'timely', reminder: 'timely', link: 'brainly', card: 'universal' };
+// A bare "add buy milk" is a task for To do; say "to the universal board" or "to my inbox" to capture it there instead.
+const DEFAULT_TOOL = { task: 'taskly', note: 'brainly', goal: 'boardly', event: 'timely', reminder: 'timely', link: 'brainly', card: 'taskly' };
 const NATIVE_TYPE = { taskly: 'task', timely: 'event', brainly: 'note', universal: 'note' };
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const NUM_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, a: 1, an: 1 };
 const SLOT_WORDS = { morning: 'morning', 'this morning': 'morning', noon: 'noon', lunch: 'noon', lunchtime: 'noon', afternoon: 'afternoon', 'this afternoon': 'afternoon', evening: 'evening', 'this evening': 'evening', night: 'night', tonight: 'evening' };
 
-const CREATE_VERBS = 'create|add|make|new|put|write down|write|jot down|jot|capture|note down|log|save|set up|set|schedule|book|plan';
+const CREATE_VERBS = 'block out|block off|block|set aside|reserve|create|add|make|new|put|write down|write|jot down|jot|capture|note down|log|save|set up|set|schedule|book|plan';
 const MOVE_VERBS = 'move|send|shift|bump|push|reschedule|drag|put';
 const CMD_START = new RegExp(`^(?:${CREATE_VERBS}|${MOVE_VERBS}|remind me|delete|remove|trash|get rid of|throw away|complete|finish|finished|check off|tick off|mark|rename|open|go to|go|show me|switch to|take me to|i finished|i did|i completed)\\b`, 'i');
 
@@ -132,11 +133,49 @@ export function extractWhen(text, now = new Date()) {
 
 const tidy = s => s.replace(/\s{2,}/g, ' ').replace(/\s+([,.])/g, '$1').trim();
 
+/** "for 2 hours", "90 minutes", "half an hour" → minutes. */
+export function extractDur(text) {
+  const n = w => (/\d/.test(w) ? parseFloat(w) : NUM_WORDS[w.toLowerCase()]);
+  let m;
+  if ((m = /\b(?:for\s+)?(?:a\s+)?half(?:\s+an)?\s+hour\b/i.exec(text))) return { dur: 30, rest: tidy(text.replace(m[0], ' ')) };
+  if ((m = new RegExp(`\\b(?:for\\s+)?(\\d+(?:\\.\\d+)?|${Object.keys(NUM_WORDS).join('|')})\\s*(hours?|hrs?|h|minutes?|mins?|m)\\b`, 'i').exec(text))) {
+    const v = n(m[1]);
+    if (v) return { dur: Math.round(/^h/i.test(m[2]) ? v * 60 : v), rest: tidy(text.replace(m[0], ' ')) };
+  }
+  return { dur: null, rest: text };
+}
+
 // ---------- Destinations (tool, column, Boardly tab) ----------
 function extractDest(text, ctx) {
   let rest = text;
   const dest = {};
   let m;
+  // Timely plans: "to this week's plan", "on my weekly plan", "for the month plan"
+  if ((m = /\b(?:to|on|onto|in|into|for)\s+(?:the\s+|my\s+)?(?:(?:this|next)\s+)?(week|weekly|month|monthly)(?:'?s)?\s+(?:plan|plans|list|goals)\b|\b(?:to|on|in|into|for)\s+(?:the\s+|my\s+)?plan\s+for\s+(?:this|the)\s+(week|month)\b/i.exec(rest))) {
+    dest.tool = 'timely'; dest.plan = /week/i.test(m[1] || m[2]) ? 'weekplan' : 'monthplan';
+    return { dest, rest: tidy(rest.replace(m[0], ' ')) };
+  }
+  // Timely projects and goals by name: "to the Garden project", "to project Garden", "under my Health goal"
+  const plan = ctx.plan || {};
+  for (const [board, word] of [['projects', 'project|list'], ['goals', 'goal']]) {
+    const list = (plan[board] || []).filter(x => x.name);
+    if (!list.length) continue;
+    const names = list.map(x => esc(x.name)).sort((a, b) => b.length - a.length).join('|');
+    const re = new RegExp(`\\b(?:to|in|into|on|onto|under|for)\\s+(?:the\\s+|my\\s+)?(?:(?:${word})\\s+(${names})|(${names})\\s+(?:${word}))\\b`, 'i');
+    if ((m = re.exec(rest))) {
+      const name = (m[1] || m[2]).toLowerCase();
+      const ct = list.find(x => x.name.toLowerCase() === name);
+      dest.tool = 'timely'; dest.board = board; dest.containerId = ct.id; dest.containerName = ct.name;
+      return { dest, rest: tidy(rest.replace(m[0], ' ')) };
+    }
+  }
+  // Boardly tabs right after the tool: "to boardly work", "on the board health"
+  const tabsAll = ctx.tabs || [];
+  if (tabsAll.length && (m = new RegExp(`\\b(?:in|to|into|on|onto|under)\\s+(?:the\\s+|my\\s+)?(?:boardly|board)\\s+(${tabsAll.map(t => esc(t.name)).join('|')})\\b`, 'i').exec(rest))) {
+    const tab = tabsAll.find(t => t.name.toLowerCase() === m[1].toLowerCase());
+    dest.tool = 'boardly'; dest.tabId = tab.id; dest.tabName = tab.name;
+    return { dest, rest: tidy(rest.replace(m[0], ' ')) };
+  }
   const toolRe = new RegExp(`\\b(?:in|to|into|on|onto|under|for)\\s+(?:the\\s+|my\\s+)?(${Object.keys(TOOL_WORDS).sort((a, b) => b.length - a.length).map(esc).join('|')})\\b`, 'i');
   if ((m = toolRe.exec(rest))) {
     const tool = TOOL_WORDS[m[1].toLowerCase()];
@@ -256,12 +295,16 @@ export function parseCommand(raw, ctx = {}) {
       else if (/^(meeting|appointment|idea)$/i.test(tm[1]) && /^(with|about|for|at)\b/i.test(after)) body = `${tm[1]} ${after}`;
       else body = after;
     }
-    const { dest, rest } = extractDest(body, ctx);
+    const { dest, rest: rest0 } = extractDest(body, ctx);
+    const { dur, rest } = extractDur(rest0);
     const { when, rest: rest2 } = extractWhen(rest, now);
     const title = cleanTitle(rest2);
     if (!title) return null;
     const verb = text.split(/\s+/)[0].toLowerCase();
-    if (!type && ['schedule', 'book'].includes(verb)) type = 'event';
+    if (!type && (['schedule', 'book', 'block', 'reserve'].includes(verb) || /^set aside/i.test(text) || dur)) type = 'event';
+    if (dest.plan || dest.board) {
+      return { kind: 'create', tool: 'timely', type: dest.board === 'goals' ? 'goal' : 'task', title, plan: dest.plan || null, board: dest.board || null, containerId: dest.containerId || null, containerName: dest.containerName || null, when: null, explicit: true };
+    }
     if (!type) type = dest.tool === 'boardly' ? 'note' : 'card';
     let tool = dest.tool || (when ? 'timely' : DEFAULT_TOOL[type]);
     if (tool === 'home') tool = 'universal';
@@ -271,7 +314,8 @@ export function parseCommand(raw, ctx = {}) {
       kind: 'create', type: finalType, reminder, tool, title, column: dest.column || null,
       tabId: dest.tabId || null, tabName: dest.tabName || null,
       when: tool === 'timely' ? (when || (reminder ? null : { date: key(now) })) : null,
-      explicit: !!(tm || dest.tool || when || ['create', 'add', 'schedule', 'book', 'jot', 'capture', 'remind'].includes(verb)),
+      dur: tool === 'timely' ? dur : null,
+      explicit: !!(tm || dest.tool || when || dur || ['create', 'add', 'schedule', 'book', 'jot', 'capture', 'remind', 'block', 'reserve'].includes(verb)),
     };
   }
   return null;

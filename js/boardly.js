@@ -31,9 +31,11 @@ export function mount(el) {
   canvas = h('div', { class: 'board-canvas', tabindex: 0, 'aria-label': 'Board canvas. G adds a goal, T a task, N a note.', dataset: { drop: 'boardly-canvas', accept: 'card' }, 'data-canvas': '' });
   // SD-O4: Goal / Task / Note live inside the canvas as a vertical toolbar.
   // Hovering a button slides out a label that says exactly what it adds.
-  const tool = (type, ic, label, hint, key) => h('button', { class: 'vtool', 'aria-label': `New ${label} (${key})`, onclick: () => addCard(type) },
-    icon(ic), h('span', { class: 'vtool-tip' }, h('strong', {}, `New ${label.toLowerCase()}`), h('small', {}, hint), h('kbd', {}, key)));
-  const toolbar = h('div', { class: 'vtools' },
+  const tool = (type, ic, label, hint, key) => h('button', { class: `vtool vt-${type}`, 'aria-label': `New ${label} (${key})`, onclick: () => addCard(type) },
+    h('span', { class: 'vt-icon' }, icon(ic)), h('span', { class: 'vt-label' }, label),
+    h('span', { class: 'vtool-tip' }, h('strong', {}, `New ${label.toLowerCase()}`), h('small', {}, hint), h('kbd', {}, key)));
+  const toolbar = h('div', { class: 'vtools', role: 'toolbar', 'aria-label': 'Add to the board' },
+    h('span', { class: 'vt-head' }, 'Add'),
     tool('goal', 'target', 'Goal', 'A big outcome, with SMART fields', 'G'),
     tool('task', 'checklist', 'Task', 'Something to tick off', 'T'),
     tool('note', 'pencil', 'Note', 'A thought or a reminder', 'N'));

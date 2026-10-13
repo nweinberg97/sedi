@@ -44,7 +44,7 @@ export function seedIfEmpty() {
 
   // Timely
   c({ type: 'event', tool: 'timely', title: 'Plan tomorrow', description: 'Ten minutes to pick tomorrow’s top three.', meta: { date: todayKey(), start: nextHour, dur: 30 } });
-  c({ type: 'event', tool: 'timely', title: 'Try exporting me as .ics', description: 'Open my details and choose Export .ics to add me to your calendar.', meta: { kind: 'reminder', date: todayKey(), start: null } });
+  c({ type: 'event', tool: 'timely', title: 'Add me to your calendar', description: 'Hover me and press the calendar button, or open Details and choose Add to calendar.', meta: { kind: 'reminder', date: todayKey(), start: null } });
   c({ type: 'task', tool: 'timely', title: 'Sketch the first milestone', meta: { board: 'projects', containerId: containers.projects[0].id, order: 0 } });
   c({ type: 'goal', tool: 'timely', title: 'Sleep 7+ hours, 5 nights a week', meta: { board: 'goals', containerId: containers.goals[0].id, order: 0 } });
 

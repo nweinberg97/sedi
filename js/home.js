@@ -19,9 +19,9 @@ export function mount(el) {
   listEl = h('div', { class: 'home-stack' });
   tabBar = h('div', { class: 'segmented home-tabs', role: 'tablist' });
   const seeAll = h('button', { class: 'chip ghost see-all-btn', onclick: () => (homeTab() === 'next' ? openNextUpList() : openActivityList()) }, 'See all');
-  root.replaceChildren(h('div', { class: 'home' },
+  root.replaceChildren(h('div', { class: 'home' }, h('div', { class: 'home-col' },
     h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
-    h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl)));
+    h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl))));
   tickClock();
   timer = setInterval(tickClock, 1000);
   renderWeather();
@@ -82,7 +82,7 @@ export function render() {
     listEl.replaceChildren(...(next.length ? next.map(i => row(i.card, i.label))
       : [h('p', { class: 'home-empty' }, 'Nothing scheduled. Add a task in Taskly or a block in Timely.')]));
   } else {
-    const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
+    const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
     listEl.replaceChildren(...(recent.length ? recent.map(c => row(c, relTime(c.updatedAt)))
       : [h('p', { class: 'home-empty' }, 'Your latest changes will show up here.')]));
   }
