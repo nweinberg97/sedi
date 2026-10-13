@@ -1,11 +1,13 @@
 // Sedi — persistent chrome: header + menu drawer, tool navigator, Universal Board, trash bin, routing.
 
 import * as store from './store.js';
-import { h, icon, $, toast, modal, confirmModal, download, todayKey, clamp } from './util.js';
+import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, reorder, byOrder, trashCard, typeIcon, openEditor, truncate } from './cards.js';
+import { routeCard, reorder, byOrder, trashCard, typeIcon, openEditor, truncate, cardChrome } from './cards.js';
 import { openBrainPanel } from './brain.js';
 import { openRemindersSetup } from './timely.js';
+import { openEnginesPanel } from './engines.js';
+import { openGooglePanel } from './google.js';
 
 export const ROUTES = ['home', 'taskly', 'boardly', 'timely', 'brainly'];
 const NAV_ORDER = ['taskly', 'boardly', 'home', 'timely', 'brainly'];
@@ -45,6 +47,8 @@ export function buildDrawer() {
       item('download', 'Download data', 'Save everything as a .json file', exportData),
       item('upload', 'Import data', 'Load a Sedi .json file', () => fileInput.click()),
       item('brain', 'Sovereign Brain', 'Private, on-device coach', openBrainPanel),
+      item('atom', 'AI engines', 'On-device by default; add others if you like', openEnginesPanel),
+      item('file', 'Google account', 'Create Google Docs from Brainly', openGooglePanel),
       item('bell', 'Apple Reminders', 'Set up the Shortcuts bridge', openRemindersSetup),
       h('div', { class: 'drawer-sep' }),
       item('trash', 'Clear storage', 'Erase everything on this device', clearStorage, 'danger')),
@@ -55,10 +59,10 @@ export function buildDrawer() {
   return drawer;
 }
 
-function exportData() {
-  const data = store.exportAll();
+async function exportData() {
+  const data = await store.exportAllWithFiles();
   download(`sedi-${todayKey()}.json`, JSON.stringify(data, null, 2));
-  toast('Downloaded your Sedi data');
+  toast(`Downloaded your Sedi data${data.files?.length ? ` (including ${data.files.length} PDF${data.files.length === 1 ? '' : 's'})` : ''}`);
 }
 
 async function importFile(file, input) {
@@ -132,7 +136,9 @@ export function markActiveRoute(route) {
 const UNI_ITEM_H = 46;
 let uniPanel, uniList, uniCount;
 export function buildUniversal() {
-  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', 'aria-expanded': 'false', onclick: () => toggleUniversal() }, icon('universe'));
+  // SD-H1: the LifeOS 6/8 three-ring mark, white on a dark 44px circle.
+  const rings = svg('<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>');
+  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', 'aria-expanded': 'false', onclick: () => toggleUniversal() }, rings);
   const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
@@ -182,15 +188,8 @@ export function renderUniversal() {
   uniCount.textContent = list.length ? `${list.length}/${uniCapacity()}` : '';
   uniList.replaceChildren(...list.map(c => {
     const el = h('div', { class: 'uni-card', dataset: { drag: 'card', id: c.id } },
-      h('div', { class: 'uni-row' },
-        typeIcon(c.type),
-        h('span', { class: 'uni-title', title: c.title }, c.title),
-        h('button', {
-          class: 'icon-btn sm', 'aria-label': 'Show details', onclick: e => {
-            e.stopPropagation();
-            openEditor(c.id, { title: 'Universal card' });
-          },
-        }, icon('info'))));
+      h('div', { class: 'uni-row' }, typeIcon(c.type), h('span', { class: 'uni-title', title: c.title }, c.title)));
+    cardChrome(el, c, () => openEditor(c.id, { title: 'Universal card' }));
     el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Universal card' }));
     return el;
   }));
@@ -199,10 +198,11 @@ export function renderUniversal() {
 
 // ---------- Trash ----------
 export function buildTrash() {
-  const bin = h('div', { class: 'trash', dataset: { drop: 'trash', accept: 'card bfolder' }, 'aria-label': 'Trash: drag cards here to delete' }, icon('trash'));
+  const bin = h('div', { class: 'trash', dataset: { drop: 'trash', accept: 'card bfolder lfolder' }, 'aria-label': 'Trash: drag cards here to delete' }, icon('trash'));
   registerDrop('trash', ({ kind, id }) => {
     if (kind === 'card') trashCard(id);
     else if (kind === 'bfolder') import('./brainly.js').then(m => m.trashFolder(id));
+    else if (kind === 'lfolder') import('./brainly.js').then(m => m.trashLinkFolder(id));
     bin.classList.add('gulp');
     setTimeout(() => bin.classList.remove('gulp'), 380);
   });
@@ -211,6 +211,36 @@ export function buildTrash() {
 
 onDragStart(() => document.querySelector('.trash')?.classList.add('ready'));
 onDragEnd(() => document.querySelector('.trash')?.classList.remove('ready'));
+
+// ---------- Reveal a card (search results, assistant): open its tool and flash it ----------
+export function revealCard(id) {
+  const c = store.getCard(id);
+  if (!c) return;
+  const m = c.meta || {};
+  if (c.tool === 'universal') { toggleUniversal(true); return flashCard(id); }
+  if (c.tool === 'timely') {
+    if (m.board) { store.setPref('timelyMode', 'plan'); store.setPref('timelyPlan', m.board); }
+    else {
+      store.setPref('timelyMode', 'schedule');
+      if (m.kind === 'reminder') store.setPref('timelyView', 'reminders');
+      else { store.setPref('timelyView', 'day'); if (m.date && m.date >= todayKey()) store.setPref('timelyAnchor', m.date); }
+    }
+  }
+  if (c.tool === 'boardly' && m.tabId) store.setPref('boardlyTab', m.tabId);
+  navigate(c.tool);
+  store.notify({ reason: 'reveal' });
+  if (c.tool === 'brainly' && c.type !== 'link' && m.folderId) import('./brainly.js').then(b => setTimeout(() => b.openNote(id), 300));
+  else flashCard(id);
+}
+function flashCard(id) {
+  setTimeout(() => {
+    const el = document.querySelector(`#view [data-id="${CSS.escape(id)}"], .universal [data-id="${CSS.escape(id)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    el.classList.remove('flash-card'); void el.offsetWidth; el.classList.add('flash-card');
+    setTimeout(() => el.classList.remove('flash-card'), 1700);
+  }, 380);
+}
 
 // Keep a reference to helpers other modules may want.
 export { clamp, truncate };

@@ -254,8 +254,9 @@ export function popover(anchor, content, { className = '', placement = 'below' }
   requestAnimationFrame(() => pop.classList.add('in'));
   const off = e => { if (!pop.contains(e.target) && !anchor.contains(e.target)) closePopovers(); };
   const key = e => { if (e.key === 'Escape') closePopovers(); };
-  setTimeout(() => { document.addEventListener('pointerdown', off, true); document.addEventListener('keydown', key); });
-  pop._cleanup = () => { document.removeEventListener('pointerdown', off, true); document.removeEventListener('keydown', key); };
+  // Capture phase, so inputs that stop key events can't keep a popover open on Escape.
+  setTimeout(() => { document.addEventListener('pointerdown', off, true); document.addEventListener('keydown', key, true); });
+  pop._cleanup = () => { document.removeEventListener('pointerdown', off, true); document.removeEventListener('keydown', key, true); };
   return pop;
 }
 export function closePopovers() { $$('.popover').forEach(p => { p._cleanup?.(); p.remove(); }); }
@@ -322,6 +323,17 @@ export const ICONS = {
   archive: S('<rect x="3.5" y="4.5" width="17" height="4" rx="1.2"/><path d="M5 8.5V19h14V8.5M10 12h4"/>'),
   share: S('<path d="M12 4v11M8 8l4-4 4 4"/><path d="M6 12v7.5h12V12"/>'),
   dot: S('<circle cx="12" cy="12" r="3" fill="currentColor"/>'),
+  more: S('<circle cx="6" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3" fill="currentColor"/>'),
+  clock: S('<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>'),
+  copy: S('<rect x="8" y="8" width="11.5" height="11.5" rx="2"/><path d="M15.5 8V5.5a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H8"/>'),
+  play: S('<path d="M8 5.5l10 6.5-10 6.5z"/>'),
+  eye: S('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>'),
+  inbox: S('<path d="M4 13.5l2.5-8h11l2.5 8v5h-16z"/><path d="M4 13.5h5l1 2h4l1-2h5"/>'),
+  move: S('<path d="M5 12h14M14 7l5 5-5 5"/>'),
+  gear: S('<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M6 6l1.8 1.8M16.2 16.2 18 18M6 18l1.8-1.8M16.2 7.8 18 6"/>'),
+  chevD: S('<path d="M6 9.5l6 6 6-6"/>'),
+  external: S('<path d="M14 4.5h5.5V10M19.5 4.5 11 13"/><path d="M18 14v4.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1H10"/>'),
+  pin: S('<path d="M9 4.5h6l-1 5 3 3H7l3-3z"/><path d="M12 12.5v7"/>'),
   palette: S('<circle cx="12" cy="12" r="8"/>'),
   text: S('<path d="M5 6.5h14M12 6.5V19"/>'),
   bold: S('<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>'),
