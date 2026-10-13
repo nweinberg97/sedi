@@ -4,27 +4,24 @@ import * as store from './store.js';
 import { h, icon, fmtLongDate, pad, popover, closePopovers, modal, relTime, todayKey, fmtMinutes, debounce } from './util.js';
 import { mountLiquidGlass } from './glass.js';
 import { typeIcon, peekBody, byOrder, TOOL_NAMES } from './cards.js';
-import { navigate } from './shell.js';
+import { navigate, revealCard } from './shell.js';
 import { occurrencesOn, SLOT_LABELS } from './timely.js';
 
-let root, clockTime, clockDate, weatherEl, nextCol, recentCol, timer, weatherTimer, glassCleanup;
+let root, clockTime, clockDate, weatherEl, listEl, tabBar, timer, weatherTimer, glassCleanup;
+const homeTab = () => store.pref('homeTab', 'next');
 
 export function mount(el) {
   root = el;
   clockTime = h('div', { class: 'clock-time', 'aria-live': 'off' });
   clockDate = h('div', { class: 'clock-date' });
   weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', onclick: e => openWeatherMenu(e.currentTarget) });
-  nextCol = h('div', { class: 'home-stack' });
-  recentCol = h('div', { class: 'home-stack' });
+  // SD-H5: one white column with tabs. Next up is the default; Recent activity is the second tab.
+  listEl = h('div', { class: 'home-stack' });
+  tabBar = h('div', { class: 'segmented home-tabs', role: 'tablist' });
+  const seeAll = h('button', { class: 'chip ghost see-all-btn', onclick: () => (homeTab() === 'next' ? openNextUpList() : openActivityList()) }, 'See all');
   root.replaceChildren(h('div', { class: 'home' },
     h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
-    h('div', { class: 'home-cols' },
-      h('section', { class: 'home-col glass' },
-        h('button', { class: 'home-col-head', onclick: openNextUpList }, h('h2', {}, 'Next up'), h('span', { class: 'see-all' }, 'See all')),
-        nextCol),
-      h('section', { class: 'home-col glass' },
-        h('button', { class: 'home-col-head', onclick: openActivityList }, h('h2', {}, 'Recent activity'), h('span', { class: 'see-all' }, 'See all')),
-        recentCol))));
+    h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl)));
   tickClock();
   timer = setInterval(tickClock, 1000);
   renderWeather();
@@ -49,9 +46,11 @@ export function nextUpItems(limit = 3) {
   const top = store.cardsWhere(c => c.tool === 'taskly' && c.meta?.columnId === 'todo').sort(byOrder)[0];
   if (top) items.push({ card: top, label: 'Top task' });
   for (const occ of occurrencesOn(todayKey())) {
+    if (occ.done) continue; // a routine already ticked off today
     const m = occ.card.meta || {};
-    const label = m.kind === 'reminder' ? (m.start != null ? `Reminder ${fmtMinutes(m.start)}` : 'Reminder')
+    let label = m.kind === 'reminder' ? (m.start != null ? `Reminder ${fmtMinutes(m.start)}` : 'Reminder')
       : m.start != null ? fmtMinutes(m.start) : m.slot ? SLOT_LABELS[m.slot] : 'Today';
+    if (m.recurrence) label += ' · routine';
     items.push({ card: occ.card, label });
   }
   return items.slice(0, limit);
@@ -65,8 +64,8 @@ function row(card, label) {
     h('button', {
       class: 'icon-btn sm', 'aria-label': 'Show details',
       onclick: e => { e.stopPropagation(); popover(e.currentTarget, peekBody(card), { className: 'peek-pop' }); },
-    }, icon('info')));
-  const go = () => navigate(card.tool === 'universal' ? 'home' : card.tool);
+    }, icon('more')));
+  const go = () => { document.querySelector('.modal-backdrop .modal-head .icon-btn')?.click(); revealCard(card.id); };
   el.addEventListener('click', go);
   el.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   return el;
@@ -74,12 +73,19 @@ function row(card, label) {
 
 export function render() {
   if (!root?.isConnected) return;
-  const next = nextUpItems(3);
-  nextCol.replaceChildren(...(next.length ? next.map(i => row(i.card, i.label))
-    : [h('p', { class: 'home-empty' }, 'Nothing scheduled. Add a task in Taskly or a block in Timely.')]));
-  const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
-  recentCol.replaceChildren(...(recent.length ? recent.map(c => row(c, relTime(c.updatedAt)))
-    : [h('p', { class: 'home-empty' }, 'Your latest changes will show up here.')]));
+  const tab = homeTab();
+  tabBar.replaceChildren(...[['next', 'Next up'], ['recent', 'Recent activity']].map(([v, l]) => h('button', {
+    class: v === tab ? 'on' : '', role: 'tab', 'aria-selected': String(v === tab), onclick: () => { store.setPref('homeTab', v); render(); },
+  }, l)));
+  if (tab === 'next') {
+    const next = nextUpItems(5);
+    listEl.replaceChildren(...(next.length ? next.map(i => row(i.card, i.label))
+      : [h('p', { class: 'home-empty' }, 'Nothing scheduled. Add a task in Taskly or a block in Timely.')]));
+  } else {
+    const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
+    listEl.replaceChildren(...(recent.length ? recent.map(c => row(c, relTime(c.updatedAt)))
+      : [h('p', { class: 'home-empty' }, 'Your latest changes will show up here.')]));
+  }
 }
 
 function openNextUpList() {
@@ -114,7 +120,7 @@ function openActivityList() {
       typeIcon(e.type),
       h('span', { class: 'activity-text' }, h('strong', {}, e.action), ' ', e.title),
       h('span', { class: 'muted small' }, `${TOOL_NAMES[e.tool] || ''} · ${relTime(e.at)}`));
-    if (card) { item.classList.add('clickable'); item.addEventListener('click', () => { navigate(card.tool === 'universal' ? 'home' : card.tool); document.querySelector('.modal-backdrop .icon-btn')?.click(); }); }
+    if (card) { item.classList.add('clickable'); item.addEventListener('click', () => { document.querySelector('.modal-backdrop .modal-head .icon-btn')?.click(); revealCard(card.id); }); }
     list.append(item);
   }
   if (!log.length) list.append(h('p', { class: 'muted' }, 'No activity yet.'));
