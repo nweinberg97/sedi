@@ -25,7 +25,7 @@ export function navigate(route) {
 // ---------- Header ----------
 export function buildHeader() {
   const header = h('header', { class: 'topbar' },
-    h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home' }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
+    h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home', onclick: e => spinAtom(e.currentTarget) }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
     h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', onclick: toggleDrawer }, icon('menu')));
   return header;
 }
@@ -103,29 +103,43 @@ async function clearStorage() {
   });
 }
 
-// ---------- Navigator ----------
+/** The atom spins once when you click it (and on hover, via CSS). */
+export function spinAtom(el) {
+  const mark = el.querySelector('.atom-mark') || el;
+  mark.classList.remove('spin'); void mark.getBoundingClientRect(); mark.classList.add('spin');
+  setTimeout(() => mark.classList.remove('spin'), 1100);
+}
+
+// ---------- Navigator: same-size tool buttons with icons, open by default ----------
+const NAV_ICONS = { taskly: 'checklist', boardly: 'target', home: 'home', timely: 'calendar', brainly: 'brain' };
 export function buildNavigator() {
   const panel = h('nav', { class: 'navigator-panel', 'aria-label': 'Tools' });
   for (const r of NAV_ORDER) {
-    const pill = h('a', {
-      class: `nav-pill ${r === 'home' ? 'home-pill' : ''}`, href: `#/${r}`,
+    panel.append(h('a', {
+      class: 'nav-pill', href: `#/${r}`, title: LABELS[r],
       dataset: { route: r, springRoute: r }, 'aria-label': LABELS[r],
-      onclick: () => setTimeout(() => toggleNav(false), 120),
-    }, r === 'home' ? icon('home') : LABELS[r]);
-    panel.append(pill);
+    }, icon(NAV_ICONS[r]), h('span', { class: 'nav-label' }, LABELS[r])));
   }
-  const trigger = h('button', { class: 'navigator-trigger', 'aria-label': 'Switch tool', 'aria-expanded': 'false', onclick: () => toggleNav() },
+  const trigger = h('button', { class: 'navigator-trigger', 'aria-label': 'Hide tool buttons', 'aria-expanded': 'true', onclick: () => toggleNav() },
     h('span', { class: 'tri' }));
   const wrap = h('div', { class: 'navigator' }, panel, trigger);
-  function toggleNav(force) {
+  // Open unless you've closed it (small screens start closed so nothing covers the content).
+  const startOpen = store.pref('navOpen', innerWidth > 900);
+  function toggleNav(force, remember = true) {
     const open = typeof force === 'boolean' ? force : !wrap.classList.contains('open');
     wrap.classList.toggle('open', open);
     trigger.setAttribute('aria-expanded', String(open));
+    trigger.setAttribute('aria-label', open ? 'Hide tool buttons' : 'Show tool buttons');
+    if (remember) store.setPref('navOpen', open);
   }
-  document.addEventListener('pointerdown', e => { if (wrap.classList.contains('open') && !wrap.contains(e.target)) toggleNav(false); });
+  const narrow = matchMedia('(max-width: 900px)');
+  toggleNav(narrow.matches ? false : startOpen, false);
+  // Phones and small windows: fold away so the buttons never sit on top of your content.
+  narrow.addEventListener?.('change', e => toggleNav(e.matches ? false : store.pref('navOpen', true), false));
   // While dragging, open the navigator when hovering the trigger so tools can be switched mid-drag.
-  trigger.addEventListener('pointerenter', () => { if (document.body.classList.contains('is-dragging')) toggleNav(true); });
-  onDragEnd(() => toggleNav(false));
+  let openedForDrag = false;
+  trigger.addEventListener('pointerenter', () => { if (document.body.classList.contains('is-dragging') && !wrap.classList.contains('open')) { openedForDrag = true; toggleNav(true, false); } });
+  onDragEnd(() => { if (openedForDrag) { openedForDrag = false; toggleNav(store.pref('navOpen', true), false); } });
   return wrap;
 }
 export function markActiveRoute(route) {
@@ -136,9 +150,8 @@ export function markActiveRoute(route) {
 const UNI_ITEM_H = 46;
 let uniPanel, uniList, uniCount;
 export function buildUniversal() {
-  // SD-H1: the LifeOS 6/8 three-ring mark, white on a dark 44px circle.
-  const rings = svg('<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>');
-  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', 'aria-expanded': 'false', onclick: () => toggleUniversal() }, rings);
+  // SD-H1: a dark 44px circle with a small spiral galaxy, the "universal" place cards pass through.
+  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', title: 'Universal Board', 'aria-expanded': 'false', onclick: () => toggleUniversal() }, icon('galaxy'));
   const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
@@ -156,6 +169,10 @@ export function buildUniversal() {
   const wrap = h('div', { class: 'universal' }, trigger, uniPanel);
   document.addEventListener('pointerdown', e => {
     if (!wrap.classList.contains('open') || wrap.contains(e.target) || e.target.closest('.modal-backdrop, .popover, .toast, [data-drag]')) return;
+    toggleUniversal(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !wrap.classList.contains('open') || document.querySelector('.modal-backdrop, .popover')) return;
     toggleUniversal(false);
   });
   registerDrop('universal', {

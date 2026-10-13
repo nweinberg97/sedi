@@ -289,7 +289,14 @@ export function editInline(el, { multiline = false, onCommit, selectAll = true }
 // ---------- Icons (1.6px strokes, currentColor) ----------
 const S = (inner, vb = 24) => `<svg viewBox="0 0 ${vb} ${vb}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 export const ICONS = {
-  atom: S('<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>'),
+  // The original LifeOS atom: thin, uneven orbits around a small nucleus.
+  atom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true" class="atom-mark"><circle cx="12" cy="12" r="2"/><ellipse cx="12" cy="12" rx="9" ry="2.5" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="8" ry="3" transform="rotate(90 12 12)"/><ellipse cx="12" cy="12" rx="7.5" ry="3.5" transform="rotate(150 12 12)"/></svg>',
+  // Universal Board: a tilted two-arm spiral galaxy with a few stars.
+  galaxy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><g class="galaxy-arms"><g transform="rotate(-25 12 12)"><g transform="translate(12 12) scale(1 .62) translate(-12 -12)"><path d="M13.6 10.9C16.9 11.8 17.4 16.4 13.9 18.1C10.4 19.8 5.4 17.6 4.7 13"/><path d="M13.6 10.9C16.9 11.8 17.4 16.4 13.9 18.1C10.4 19.8 5.4 17.6 4.7 13" transform="rotate(180 12 12)"/></g></g></g><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="19.8" cy="18.6" r=".7" fill="currentColor" stroke="none"/><circle cx="4.4" cy="5.6" r=".55" fill="currentColor" stroke="none"/><circle cx="20.2" cy="4.6" r=".4" fill="currentColor" stroke="none"/></svg>',
+  flag: S('<path d="M6 20.5V4.5"/><path d="M6 5h11l-2.5 4L17 13H6"/>'),
+  arrowR: S('<path d="M5 12h12M13 7.5 17.5 12 13 16.5"/>'),
+  sparkle: S('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M7 17l2-2M15 9l2-2"/>'),
+  grip: S('<circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/>'),
   menu: S('<path d="M4 8h16M4 16h16"/>'),
   universe: S('<circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="10" ry="3.4" transform="rotate(-20 12 12)"/><path d="M5 4.5v1.6M4.2 5.3h1.6M19 17.6v1.6M18.2 18.4h1.6" stroke-width="1.3"/>'),
   home: S('<path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>'),

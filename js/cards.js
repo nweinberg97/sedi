@@ -3,6 +3,7 @@
 import * as store from './store.js';
 import { h, icon, modal, stripHtml, toast } from './util.js';
 import { crunch } from './sound.js';
+import { listen, canListen } from './speech.js';
 
 export const TOOL_NAMES = { taskly: 'Taskly', boardly: 'Boardly', timely: 'Timely', brainly: 'Brainly', universal: 'Universal Board', home: 'Home' };
 export const TYPE_ICON = { goal: 'target', task: 'checklist', note: 'pencil', event: 'calendar', link: 'link' };
@@ -89,13 +90,75 @@ export function hasNotes(card) {
   if (d.trim() && d.trim() !== (card.meta?.url || '')) return true;
   return !!(card.meta?.smart && Object.values(card.meta.smart).some(v => v && String(v).trim()));
 }
-/** Adds the shared corner chrome to a card element: delete, details, and the notes fold. */
-export function cardChrome(el, card, onInfo) {
+/** First line of a card's notes, shown small and italic under the title, so you can see there's more inside. */
+export function notesSnippet(card, cls = '') {
+  if (!hasNotes(card)) return null;
+  const d = /<\/?[a-z][\s\S]*>/i.test(card.description || '') ? stripHtml(card.description) : (card.description || '');
+  let line = d.split('\n').map(x => x.trim()).find(Boolean) || '';
+  if (!line && card.meta?.smart) line = Object.values(card.meta.smart).find(v => v && String(v).trim()) || '';
+  return line ? h('span', { class: `card-snippet ${cls}`, title: d.slice(0, 400) }, line) : null;
+}
+
+/** Adds the shared corner chrome to a card element: delete, details, dictate, and the notes fold.
+ *  Small cards pass { compact: true } and keep extras (dictation, quick actions) inside Details only. */
+export function cardChrome(el, card, onInfo, { compact = false, actions = [] } = {}) {
   el.classList.add('has-chrome');
   el.classList.toggle('with-notes', hasNotes(card));
   if (hasNotes(card)) el.title = el.title || 'Has notes';
   el.append(deleteButton(card.id), infoButton(onInfo));
+  if (!compact) {
+    // Hover tools, top right next to delete: dictate plus any tool-specific quick actions.
+    el.append(h('div', { class: 'card-tools' }, ...actions, dictateButton(card.id)));
+  }
   return el;
+}
+
+// ---------- Dictation into any card (speak; the words are added to the card's notes) ----------
+let dictation = null;
+export const dictateButton = id => h('button', {
+  class: 'card-tool card-mic', type: 'button', 'aria-label': 'Dictate a note into this card', title: canListen ? 'Dictate into this card' : 'Voice input isn’t supported in this browser',
+  onclick: e => { e.stopPropagation(); dictateInto(id, e.currentTarget); },
+}, icon('mic'));
+const escHtml = s => s.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+function appendNote(id, text) {
+  const c = store.getCard(id);
+  if (!c || !text) return;
+  const t = text.charAt(0).toUpperCase() + text.slice(1) + (/[.!?]$/.test(text) ? '' : '.');
+  const isHtml = /<\/?[a-z][\s\S]*>/i.test(c.description || '') || (c.tool === 'brainly' && c.type === 'note');
+  const desc = isHtml ? `${c.description || ''}<div>${escHtml(t)}</div>` : (c.description?.trim() ? `${c.description.trimEnd()}\n${t}` : t);
+  store.updateCard(id, { description: desc }, { log: true, logLabel: 'Dictated a note' });
+  toast(`Added to “${truncate(c.title, 24)}”: ${truncate(t, 48)}`);
+}
+export function dictateInto(id, anchor) {
+  if (dictation) { dictation.stop(); return; }
+  const text = h('span', { class: 'dictate-text' }, 'Listening…');
+  const bubble = h('div', { class: 'dictate-bubble', role: 'status' }, h('span', { class: 'wave', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i'), h('i')), text,
+    h('button', { class: 'dictate-stop', type: 'button', onclick: () => dictation?.stop() }, 'Done'));
+  document.body.append(bubble);
+  const r = anchor.getBoundingClientRect();
+  bubble.style.left = Math.max(12, Math.min(r.left - 120, innerWidth - 300)) + 'px';
+  bubble.style.top = (r.bottom + 8 > innerHeight - 60 ? r.top - 52 : r.bottom + 8) + 'px';
+  anchor.classList.add('on');
+  dictation = listen({
+    continuous: false,
+    onInterim: t => { if (t) text.textContent = t; },
+    onFinal: t => appendNote(id, t),
+    onError: msg => toast(msg),
+    onEnd: () => { dictation = null; anchor.classList.remove('on'); bubble.remove(); },
+  });
+}
+
+// ---------- Duplicate any card ----------
+export function duplicateCard(id) {
+  const c = store.getCard(id);
+  if (!c) return null;
+  const { summary, summaryOf, summaryBy, doneDates, archivedAt, ...meta } = c.meta || {};
+  void summary; void summaryOf; void summaryBy; void doneDates; void archivedAt;
+  if (meta.x != null) { meta.x += 26; meta.y = (meta.y ?? 0) + 26; }
+  if (meta.order != null) meta.order += 0.5;
+  const copy = store.createCard({ type: c.type, tool: c.tool, title: `${c.title} copy`, description: c.description, meta });
+  toast(`Duplicated “${truncate(c.title, 28)}”`, { action: 'Undo', onAction: () => store.deleteCard(copy.id) });
+  return copy;
 }
 
 // ---------- Move to… (SD-C4): the same routes dragging uses ----------
@@ -192,13 +255,26 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
   if (!card) return;
   const refs = {};
   refs.title = h('input', { class: 'field-input title-input', value: card.title, placeholder: 'Title', 'aria-label': 'Title' });
-  refs.desc = h('textarea', { class: 'field-input', rows: 6, placeholder: 'Add details…', 'aria-label': 'Description' });
+  refs.desc = h('textarea', { class: 'field-input', rows: 6, placeholder: 'Add details, or press the mic and speak…', 'aria-label': 'Description' });
+  // Dictate straight into the details box.
+  let session = null;
+  const mic = h('button', { class: 'icon-btn sm field-mic', type: 'button', 'aria-label': 'Dictate into details', title: canListen ? 'Dictate' : 'Voice input isn’t supported in this browser', disabled: !canListen,
+    onclick: () => {
+      if (session) { session.stop(); return; }
+      mic.classList.add('on');
+      session = listen({
+        continuous: true,
+        onFinal: t => { if (!t) return; const v = refs.desc.value; refs.desc.value = `${v}${v && !/\s$/.test(v) ? ' ' : ''}${t.charAt(0).toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? '' : '.'}`; },
+        onError: msg => toast(msg),
+        onEnd: () => { session = null; mic.classList.remove('on'); },
+      });
+    } }, icon('mic'));
   refs.desc.value = /<\/?[a-z][\s\S]*>/i.test(card.description || '') ? stripHtml(card.description) : (card.description || '');
   if (readOnlyDescription) refs.desc.readOnly = true;
   const body = h('div', { class: 'editor' },
     h('div', { class: 'editor-meta' }, typeIcon(card.type), h('span', {}, `${card.type[0].toUpperCase()}${card.type.slice(1)} in ${TOOL_NAMES[card.tool]}`)),
     refs.title,
-    h('label', { class: 'field-label' }, 'Details'),
+    h('div', { class: 'field-label-row' }, h('label', { class: 'field-label' }, 'Details'), mic),
     refs.desc,
     extra ? extra(card, refs) : null,
     h('label', { class: 'field-label' }, 'Move to…'),
@@ -212,7 +288,9 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
     if (moveTo && moveTo !== currentDestination(card)) moveCardTo(id, moveTo);
   };
   refs.title.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); m.close(); } });
-  const m = modal({ title, body, actions: [{ label: 'Cancel', kind: 'ghost' }, { label: 'Save', kind: 'primary', onClick: save }] });
+  const m = modal({ title, body, onClose: () => session?.stop(), actions: [
+    { label: 'Duplicate', kind: 'ghost', onClick: () => { save(); duplicateCard(id); } },
+    { label: 'Cancel', kind: 'ghost' }, { label: 'Save', kind: 'primary', onClick: save }] });
   return m;
 }
 

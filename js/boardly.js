@@ -3,7 +3,7 @@
 import * as store from './store.js';
 import { h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, confirmModal, SOFT_COLORS } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, openEditor, cardChrome, openMoveDialog } from './cards.js';
+import { routeCard, openEditor, cardChrome, openMoveDialog, notesSnippet, duplicateCard } from './cards.js';
 import { crunch } from './sound.js';
 
 const MAX_TABS = 10;
@@ -30,9 +30,13 @@ export function mount(el) {
   tabBar = h('div', { class: 'tabs boardly-tabs', role: 'tablist' });
   canvas = h('div', { class: 'board-canvas', tabindex: 0, 'aria-label': 'Board canvas. G adds a goal, T a task, N a note.', dataset: { drop: 'boardly-canvas', accept: 'card' }, 'data-canvas': '' });
   // SD-O4: Goal / Task / Note live inside the canvas as a vertical toolbar.
-  const tool = (type, ic, label, key) => h('button', { class: 'vtool', 'aria-label': `New ${label} (${key})`, title: `New ${label}  ·  ${key} or ⌥${key}`, onclick: () => addCard(type) },
-    icon(ic), h('span', { class: 'vtool-label' }, label), h('kbd', {}, key));
-  const toolbar = h('div', { class: 'vtools' }, tool('goal', 'target', 'Goal', 'G'), tool('task', 'checklist', 'Task', 'T'), tool('note', 'pencil', 'Note', 'N'), h('span', { class: 'vtools-tri', 'aria-hidden': 'true' }));
+  // Hovering a button slides out a label that says exactly what it adds.
+  const tool = (type, ic, label, hint, key) => h('button', { class: 'vtool', 'aria-label': `New ${label} (${key})`, onclick: () => addCard(type) },
+    icon(ic), h('span', { class: 'vtool-tip' }, h('strong', {}, `New ${label.toLowerCase()}`), h('small', {}, hint), h('kbd', {}, key)));
+  const toolbar = h('div', { class: 'vtools' },
+    tool('goal', 'target', 'Goal', 'A big outcome, with SMART fields', 'G'),
+    tool('task', 'checklist', 'Task', 'Something to tick off', 'T'),
+    tool('note', 'pencil', 'Note', 'A thought or a reminder', 'N'));
   root.replaceChildren(h('div', { class: 'view boardly' },
     h('div', { class: 'view-head' }, h('h1', { class: 'view-title' }, 'Boardly'),
       h('p', { class: 'view-note' }, 'Shift-click or drag a box to select several, then drag them together.')),
@@ -218,7 +222,7 @@ function tileEl(c) {
       onclick: e => { e.stopPropagation(); store.updateCard(c.id, { meta: { done: !c.meta?.done } }, { log: true, logLabel: c.meta?.done ? 'Reopened' : 'Completed' }); },
     }, icon('check'));
   const el = h('article', { class: `tile ${c.type}-card ${c.meta?.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } },
-    lead, titleSpan(c));
+    lead, h('div', { class: 'tile-main' }, titleSpan(c), notesSnippet(c)));
   cardChrome(el, c, () => (isGoal ? openSmart(c.id) : openEditor(c.id, { title: 'Task' })));
   return el;
 }
@@ -287,7 +291,7 @@ export function openSmart(id) {
     title: 'SMART goal', wide: true,
     body: h('div', { class: 'editor' }, title, grid, h('label', { class: 'field-label' }, 'Notes'), notes,
       h('p', { class: 'muted small' }, 'When it’s set, drag the goal to the Universal Board and into Timely’s Goals view to plan it out.')),
-    actions: [{ label: 'Move to…', kind: 'ghost', onClick: () => { setTimeout(() => openMoveDialog(id), 200); } }, { label: 'Cancel', kind: 'ghost' }, {
+    actions: [{ label: 'Duplicate', kind: 'ghost', onClick: () => { duplicateCard(id); } }, { label: 'Move to…', kind: 'ghost', onClick: () => { setTimeout(() => openMoveDialog(id), 200); } }, { label: 'Cancel', kind: 'ghost' }, {
       label: 'Save goal', kind: 'primary', onClick: () => {
         const smart = Object.fromEntries(SMART.map(([k]) => [k, fields[k].value]));
         store.updateCard(id, { title: title.value.trim() || 'Untitled goal', description: notes.value, meta: { smart } }, { log: true });

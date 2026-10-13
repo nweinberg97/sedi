@@ -336,7 +336,8 @@ function noteEl(c) {
   const emoji = h('button', { class: 'note-emoji', 'aria-label': 'Change emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => store.updateCard(c.id, { meta: { emoji: v } })); } }, c.meta?.emoji || smartEmoji(c.title));
   const el = h('article', { class: 'b-note', dataset: { drag: 'card', id: c.id }, tabindex: 0, 'aria-label': c.title, style: { '--note': noteColor(c) } },
     emoji, h('span', { class: 'b-note-title' }, c.title));
-  cardChrome(el, c, () => openNote(c.id));
+  // Duplicate on hover: the quickest way to start a new note from an old one.
+  cardChrome(el, c, () => openNote(c.id), { actions: [h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Duplicate', title: 'Duplicate this note (⌘D)', onclick: e => { e.stopPropagation(); hidePeek(); duplicateNote(c.id); } }, icon('copy'))] });
   el.removeAttribute('title');
   el.addEventListener('click', e => { if (!e.target.closest('button')) { hidePeek(); openNote(c.id); } });
   el.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === el) openNote(c.id); });

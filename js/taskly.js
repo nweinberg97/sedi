@@ -3,7 +3,7 @@
 import * as store from './store.js';
 import { h, icon, toast, popover, closePopovers } from './util.js';
 import { registerDrop } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet } from './cards.js';
 import { crunch, checkSound } from './sound.js';
 
 export const COLUMNS = [
@@ -32,7 +32,11 @@ function capacity(body) {
   if (!hgt) return 6;
   return Math.max(1, Math.floor((hgt + GAP) / (CARD_H + GAP)));
 }
-const capOf = col => capacity(document.querySelector(`.taskly-col[data-col="${col}"] .col-body`));
+// When Taskly isn't on screen, use the last measured size; never guess low (that could trash cards).
+const capOf = col => {
+  const body = document.querySelector(`.taskly-col[data-col="${col}"] .col-body`);
+  return body?.clientHeight ? capacity(body) : (store.pref('tasklyCaps', {})[col] ?? Infinity);
+};
 
 export function mount(el) {
   root = el;
@@ -119,6 +123,7 @@ export function render() {
     const cards = colCards(col.id);
     const cap = capacity(body);
     section.querySelector('.col-count').textContent = `${cards.length}/${cap}`;
+    if (body.clientHeight && store.pref('tasklyCaps', {})[col.id] !== cap) store.setPref('tasklyCaps', { ...store.pref('tasklyCaps', {}), [col.id]: cap });
     section.classList.toggle('full', cards.length >= cap);
     const clear = section.querySelector('.col-clear');
     if (clear) clear.hidden = !cards.length;
@@ -133,7 +138,8 @@ function cardEl(c) {
   const el = h('article', { class: `task-card ${col === 'completed' ? 'done' : ''} ${col === 'review' && isDue(c) ? 'due' : ''}`, dataset: { drag: 'card', id: c.id }, tabindex: 0 },
     col === 'todo' ? h('button', { class: 'task-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); complete(c.id, e.currentTarget); } }, icon('check')) : null,
     h('div', { class: 'task-main' },
-      h('span', { class: `task-title ${col === 'review' ? 'one-line' : ''}` }, c.title),
+      h('span', { class: `task-title ${col === 'review' || notesSnippet(c) ? 'one-line' : ''}`, title: c.title }, c.title),
+      col === 'review' ? null : notesSnippet(c),
       col === 'review' ? reviewTimer(c) : null));
   cardChrome(el, c, () => edit(c.id));
   el.addEventListener('dblclick', () => edit(c.id));
@@ -141,18 +147,23 @@ function cardEl(c) {
   return el;
 }
 
+/** Move a card to Completed (used by Taskly's checkmark and by Today's plan in Timely). */
+export function completeTask(id) {
+  const c = store.getCard(id);
+  if (!c) return;
+  routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'completed', order: colCards('completed').length, ...columnMeta(c, 'completed') }, log: 'Completed' });
+  makeRoomInCompleted(id);
+}
+export const todoCards = () => colCards('todo');
+export const todoCapacity = () => capOf('todo');
+
 /** SD-K1: tick a To do card. Check pops, a sound plays, then it slides into Completed. */
 function complete(id, btn) {
   const card = btn.closest('.task-card');
   btn.classList.add('ticked');
   card.classList.add('completing');
   checkSound();
-  setTimeout(() => {
-    const c = store.getCard(id);
-    if (!c) return;
-    routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'completed', order: colCards('completed').length, ...columnMeta(c, 'completed') }, log: 'Completed' });
-    makeRoomInCompleted(id);
-  }, 520);
+  setTimeout(() => completeTask(id), 520);
 }
 
 // ---------- Review timer (SD-K2) ----------

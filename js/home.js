@@ -3,7 +3,7 @@
 import * as store from './store.js';
 import { h, icon, fmtLongDate, pad, popover, closePopovers, modal, relTime, todayKey, fmtMinutes, debounce } from './util.js';
 import { mountLiquidGlass } from './glass.js';
-import { typeIcon, peekBody, byOrder, TOOL_NAMES } from './cards.js';
+import { typeIcon, peekBody, byOrder, TOOL_NAMES, notesSnippet } from './cards.js';
 import { navigate, revealCard } from './shell.js';
 import { occurrencesOn, SLOT_LABELS } from './timely.js';
 
@@ -59,7 +59,7 @@ export function nextUpItems(limit = 3) {
 function row(card, label) {
   const el = h('div', { class: 'home-card', tabindex: 0, role: 'button' },
     typeIcon(card.type),
-    h('span', { class: 'home-card-title' }, card.title),
+    h('div', { class: 'home-card-main' }, h('span', { class: 'home-card-title' }, card.title), notesSnippet(card)),
     label ? h('span', { class: 'home-card-label' }, label) : null,
     h('button', {
       class: 'icon-btn sm', 'aria-label': 'Show details',
@@ -78,7 +78,7 @@ export function render() {
     class: v === tab ? 'on' : '', role: 'tab', 'aria-selected': String(v === tab), onclick: () => { store.setPref('homeTab', v); render(); },
   }, l)));
   if (tab === 'next') {
-    const next = nextUpItems(5);
+    const next = nextUpItems(3);
     listEl.replaceChildren(...(next.length ? next.map(i => row(i.card, i.label))
       : [h('p', { class: 'home-empty' }, 'Nothing scheduled. Add a task in Taskly or a block in Timely.')]));
   } else {

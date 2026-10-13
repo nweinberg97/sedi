@@ -112,7 +112,7 @@ function makeDraggable() {
   token.addEventListener('pointerup', () => {
     if (!start) return;
     if (start.moved) { const r = token.getBoundingClientRect(); store.setPref('assistantPos', { x: r.left, y: r.top }); }
-    else toggle();
+    else { toggle(); token.classList.remove('spin'); void token.offsetWidth; token.classList.add('spin'); setTimeout(() => token.classList.remove('spin'), 1100); }
     start = null;
   });
   addEventListener('resize', () => {

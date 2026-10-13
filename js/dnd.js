@@ -116,15 +116,18 @@ export function initDnd(navigate) {
   }
 
   function listIndex(z) {
-    const items = [...z.querySelectorAll('[data-drag]')].filter(n => n !== drag.el && n.parentElement && n.closest('[data-drop]') === z);
+    // data-list="x" marks a left-to-right list (e.g. Timely's planning lists).
+    const horizontal = z.dataset.list === 'x';
+    const items = [...z.querySelectorAll('[data-drag]')].filter(n => n !== drag.el && n.parentElement && n.closest('[data-drop]') === z && n.dataset.drag === drag.kind);
     let idx = items.length, before = null;
     for (let i = 0; i < items.length; i++) {
       const r = items[i].getBoundingClientRect();
-      if (drag.y < r.top + r.height / 2) { idx = i; before = items[i]; break; }
+      if (horizontal ? drag.x < r.left + r.width / 2 : drag.y < r.top + r.height / 2) { idx = i; before = items[i]; break; }
     }
     return { idx, before, items };
   }
   function placeLine(z) {
+    drag.placeholder.classList.toggle('vertical', z.dataset.list === 'x');
     const { before, items } = listIndex(z);
     const host = before ? before.parentElement : (items.at(-1)?.parentElement || z.querySelector('[data-list-body]') || z);
     if (before) host.insertBefore(drag.placeholder, before);

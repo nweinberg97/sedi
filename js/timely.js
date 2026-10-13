@@ -8,7 +8,8 @@ import {
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
 } from './util.js';
 import { registerDrop } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet } from './cards.js';
+import { todoCards, todoCapacity, completeTask } from './taskly.js';
 import { tick, checkSound } from './sound.js';
 import { listen, canListen } from './speech.js';
 import { extractWhen } from './commands.js';
@@ -112,12 +113,14 @@ export function render() {
     h('div', { class: 'timely-top' },
       h('h1', { class: 'view-title' }, 'Timely'),
       seg([['schedule', 'Scheduling'], ['plan', 'Planning']], mode(), v => { store.setPref('timelyMode', v); render(); }, 'mode-toggle'),
-      h('span', { class: 'head-spacer' }),
-      mode() === 'schedule' ? h('button', { class: 'btn sm primary', onclick: e => openCalendarExport(e.currentTarget) }, icon('calendar'), 'Add to calendar') : null),
+      h('span', { class: 'head-spacer' })),
     h('div', { class: 'nest-bar' },
       mode() === 'schedule'
         ? seg([['day', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly'], ['reminders', 'Reminders']], view(), v => { store.setPref('timelyView', v); render(); }, 'sub-tabs')
-        : seg([['projects', 'Projects'], ['goals', 'Goals']], planBoard(), v => { store.setPref('timelyPlan', v); render(); }, 'sub-tabs')));
+        : seg([['projects', 'Projects'], ['goals', 'Goals']], planBoard(), v => { store.setPref('timelyPlan', v); render(); }, 'sub-tabs'),
+      mode() === 'plan' ? h('span', { class: 'nest-actions' },
+        planBoard() === 'goals' ? h('button', { class: 'chip ghost', onclick: openGoalGuide }, icon('sparkle'), 'How to set a good goal') : null,
+        h('button', { class: 'chip', onclick: () => (planBoard() === 'goals' ? openGoalWizard(null) : addContainer('projects')) }, icon('plus'), planBoard() === 'goals' ? 'New goal' : 'Add list')) : null));
   if (mode() === 'plan') return renderPlan();
   ({ day: renderDay, week: renderWeek, month: renderMonth, reminders: renderReminders })[view()]();
 }
@@ -137,7 +140,6 @@ function archiveButton() {
   const n = store.cardsWhere(c => isSched(c) && c.meta?.archivedAt).length;
   return n ? h('button', { class: 'chip ghost', onclick: openArchive, title: 'Past items are kept for 30 days' }, icon('archive'), `Archive ${n}`) : null;
 }
-const routineBtn = (freq, label) => h('button', { class: 'chip routine-btn', onclick: e => openRoutineForm(e.currentTarget, freq) }, icon('repeat'), label);
 const itemTypeOf = c => (c.meta?.kind === 'reminder' ? 'reminder' : c.meta?.itemType || 'task');
 
 // ---------- Daily ----------
@@ -157,7 +159,7 @@ function renderDay() {
   scroll.append(grid);
   // SD-T9 narrower day column, SD-T10 the day's to-do list beside it, SD-T11 Daily routine.
   body.replaceChildren(
-    navControl(label, n => dateKey(addDays(parseKey(key), n)), routineBtn('daily', 'Daily routine')),
+    navControl(label, n => dateKey(addDays(parseKey(key), n))),
     h('div', { class: 'day-layout' },
       h('div', { class: 'day-col' }, allDay, scroll),
       dayPlanPanel(key)));
@@ -209,9 +211,11 @@ function eventBlock(c, hourH, key, done) {
   },
   h('span', { class: 'ev-title', title: c.title }, c.title),
   h('span', { class: 'ev-time' }, h('span', { class: 'ev-range' }, `${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)}`), isRoutine(c) ? routineTag(c) : null),
+  !short && px >= 70 ? notesSnippet(c) : null,
   isRoutine(c) ? routineTick(c, key, done) : null,
   h('div', { class: 'resize-handle', 'aria-hidden': 'true' }));
-  cardChrome(el, c, () => openEventEditor(c.id));
+  // Calendar + repeat live on the card: on hover for roomy blocks, in Details for small ones.
+  cardChrome(el, c, () => openEventEditor(c.id), { compact: short, actions: quickActions(c) });
   el.querySelector('.ev-title').addEventListener('dblclick', e => { e.stopPropagation(); editInline(e.target, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
   // Resize in 15-minute steps.
   el.querySelector('.resize-handle').addEventListener('pointerdown', e => {
@@ -244,43 +248,73 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
   return el;
 }
 
-// ---------- The day's plan (SD-T10): a simple to-do list per date, stored as a record ----------
-const dayPlan = key => (store.get('dayPlan', {})[key] || []);
-function saveDayPlan(key, list) {
-  const all = { ...store.get('dayPlan', {}) };
-  if (list.length) all[key] = list; else delete all[key];
-  // Forget lists older than two weeks.
-  const cutoff = dateKey(addDays(new Date(), -14));
-  for (const k of Object.keys(all)) if (k < cutoff) delete all[k];
-  store.set('dayPlan', all);
+/** Hover actions for Timely cards: add to calendar, and repeat (turn it into a routine). */
+function quickActions(c) {
+  return [
+    h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Add to calendar', title: 'Add to calendar (.ics)', onclick: e => { e.stopPropagation(); exportCard(store.getCard(c.id)); } }, icon('calendar')),
+    h('button', { class: `card-tool ${isRoutine(c) ? 'on-routine' : ''}`, type: 'button', 'aria-label': 'Repeat', title: isRoutine(c) ? `Repeats ${RECUR_SHORT[c.meta.recurrence].toLowerCase()}` : 'Repeat: make it a routine', onclick: e => { e.stopPropagation(); openRepeat(e.currentTarget, c.id); } }, icon('repeat')),
+  ];
 }
+function openRepeat(anchorEl, id) {
+  const c = store.getCard(id);
+  if (!c) return;
+  const pick = v => {
+    const meta = { recurrence: v || null };
+    if (v && !c.meta.date) meta.date = todayKey();
+    if (v && !c.meta.doneDates) meta.doneDates = [];
+    store.updateCard(id, { meta }, { log: true, logLabel: v ? `Made a ${RECUR_SHORT[v].toLowerCase()} routine` : 'Stopped repeating' });
+    closePopovers();
+    toast(v ? `“${c.title}” now repeats ${RECUR_SHORT[v].toLowerCase()}. Ticking a day never deletes it.` : `“${c.title}” no longer repeats.`);
+  };
+  popover(anchorEl, h('div', { class: 'repeat-pop' },
+    h('strong', {}, 'Repeat'),
+    ...Object.entries(RECUR).map(([v, l]) => h('button', { class: `repeat-opt ${(c.meta.recurrence || '') === v ? 'on' : ''}`, onclick: () => pick(v) }, v ? icon('repeat') : icon('x'), l.replace(/ \(.*\)/, '')))));
+}
+
+// ---------- Today's plan (SD-T10) = Taskly's To do column. One list, shown in both places. ----------
 function dayPlanPanel(key) {
-  const list = dayPlan(key);
+  const list = todoCards();
   const input = h('input', { class: 'field-input sm', placeholder: 'Add to the plan, then Enter', 'aria-label': 'Add to today’s plan', 'data-keep': `plan-${key}` });
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && input.value.trim()) { saveDayPlan(key, [...dayPlan(key), { id: uuid(), title: input.value.trim(), done: false }]); input.value = ''; }
+    if (e.key !== 'Enter' || !input.value.trim()) return;
+    if (todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full. Finish or move something first.'); return; }
+    store.createCard({ type: 'task', tool: 'taskly', title: input.value.trim(), meta: { columnId: 'todo', order: todoCards().length } });
+    input.value = '';
   });
-  const toBlock = item => {
-    // Give a plan item a time: the next free half hour (or 9am on a future day).
-    const now = new Date();
-    const taken = occurrencesOn(key).filter(o => o.card.meta.start != null).map(o => [o.card.meta.start, o.card.meta.start + (o.card.meta.dur || 60)]);
-    let start = key === todayKey() ? Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / 30) * 30 : 9 * 60;
-    while (start < 23 * 60 && taken.some(([a, b]) => start < b && start + 30 > a)) start += 30;
-    store.createCard({ type: 'event', tool: 'timely', title: item.title, meta: { date: key, start: Math.min(start, 23 * 60), dur: 30, itemType: 'task' } });
-    saveDayPlan(key, dayPlan(key).filter(x => x.id !== item.id));
-    toast(`Scheduled “${item.title}” at ${fmtMinutes(Math.min(start, 23 * 60))}`);
-  };
-  const doneN = list.filter(x => x.done).length;
-  return h('aside', { class: 'day-plan' },
-    h('div', { class: 'day-plan-head' }, h('h3', {}, key === todayKey() ? 'Today’s plan' : 'Plan for the day'), list.length ? h('span', { class: 'col-count' }, `${doneN}/${list.length}`) : null),
-    h('ul', { class: 'day-plan-list' }, list.map(item => h('li', { class: item.done ? 'done' : '' },
-      h('button', { class: `plan-check ${item.done ? 'on' : ''}`, 'aria-label': item.done ? 'Not done' : 'Done', onclick: () => { if (!item.done) checkSound(); saveDayPlan(key, dayPlan(key).map(x => (x.id === item.id ? { ...x, done: !x.done } : x))); } }, icon('check')),
-      h('span', { class: 'plan-text' }, item.title),
-      item.done ? null : h('button', { class: 'icon-btn xs', title: 'Give it a time on the day', 'aria-label': 'Schedule it', onclick: () => toBlock(item) }, icon('clock')),
-      h('button', { class: 'icon-btn xs', 'aria-label': 'Remove', onclick: () => saveDayPlan(key, dayPlan(key).filter(x => x.id !== item.id)) }, icon('x'))))),
+  return h('aside', { class: 'day-plan', dataset: { drop: 'day-plan', accept: 'card' }, 'data-list': '' },
+    h('div', { class: 'day-plan-head' },
+      h('h3', {}, key === todayKey() ? 'Today’s plan' : 'Plan'),
+      h('span', { class: 'sync-tag', title: 'This list is Taskly’s To do column. Changes show up in both places.' }, icon('sync'), 'Taskly To do')),
+    h('div', { class: 'day-plan-list' }, list.map(c => {
+      const el = h('div', { class: 'plan-item', dataset: { drag: 'card', id: c.id } },
+        h('button', { class: 'plan-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); e.currentTarget.classList.add('on'); checkSound(); setTimeout(() => completeTask(c.id), 380); } }, icon('check')),
+        h('div', { class: 'plan-main' }, h('span', { class: 'plan-text' }, c.title), notesSnippet(c)),
+        h('button', { class: 'icon-btn xs', title: 'Give it a time today', 'aria-label': 'Schedule it today', onclick: e => { e.stopPropagation(); scheduleToday(c.id, key); } }, icon('clock')));
+      el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Task' }));
+      return el;
+    })),
     input,
-    list.length ? null : h('p', { class: 'muted small' }, 'Jot the day’s plan here. The clock button gives an item a time slot.'));
+    h('p', { class: 'muted small' }, list.length ? 'Drag a task onto the day to give it a time.' : 'Nothing in To do. Add the day’s plan here; it shows up in Taskly too.'));
 }
+/** Put a plan task on the day at the next free half hour (moves it from Taskly into Timely). */
+function scheduleToday(id, key) {
+  const now = new Date();
+  const taken = occurrencesOn(key).filter(o => o.card.meta.start != null).map(o => [o.card.meta.start, o.card.meta.start + (o.card.meta.dur || 60)]);
+  let start = key === todayKey() ? Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / 30) * 30 : 9 * 60;
+  while (start < 23 * 60 && taken.some(([a, b]) => start < b && start + 30 > a)) start += 30;
+  start = Math.min(start, 23 * 60);
+  const c = store.getCard(id);
+  placeSched(id, { date: key, start, dur: 30, slot: null, itemType: 'task' }, 'Scheduled');
+  toast(`Scheduled “${c?.title}” at ${fmtMinutes(start)}`, { action: 'Undo', onAction: () => routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'todo', order: 0 } }) });
+}
+// Dropping a card on Today's plan puts it in Taskly's To do.
+registerDrop('day-plan', ({ id, index }) => {
+  const c = store.getCard(id);
+  if (!c) return false;
+  if (!(c.tool === 'taskly' && c.meta?.columnId === 'todo') && todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full.'); return false; }
+  routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'todo', order: index ?? 0 }, log: 'Added to today’s plan' });
+  reorder(todoCards(), id, index);
+});
 
 // Scheduling drop zones
 const schedMeta = (c, patch) => {
@@ -347,7 +381,7 @@ function renderWeek() {
   // SD-T14 one-off buttons; SD-T15 the weekly routine button looks different on purpose.
   const adders = h('div', { class: 'item-adders' },
     Object.entries(ITEM_TYPES).map(([t, v]) => h('button', { class: `chip add-${t}`, onclick: e => openItemForm(e.currentTarget, { type: t, date: today }) }, icon(v.icon), v.label)),
-    routineBtn('weekly', 'Weekly routine'));
+    h('span', { class: 'muted small adders-hint' }, 'Hover a card to add it to your calendar or make it repeat.'));
   body.replaceChildren(navControl(label, n => dateKey(addDays(ws, 7 * n))), adders, grid);
 }
 
@@ -388,8 +422,7 @@ function renderMonth() {
   body.replaceChildren(
     navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); },
       h('span', { class: 'nav-buttons' },
-        h('button', { class: 'chip', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: today, pickDate: true, title: 'Create event' }) }, icon('plus'), 'Create event'),
-        routineBtn('monthly', 'Monthly routine'))),
+        h('button', { class: 'chip', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: today, pickDate: true, title: 'Create event' }) }, icon('plus'), 'Create event'))),
     grid);
 }
 
@@ -480,35 +513,6 @@ function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null,
     h('button', { class: 'btn sm primary', onclick: save }, 'Add')));
   setTimeout(() => title.focus(), 40);
 }
-/** SD-T11 / T15 / T18: a routine repeats; ticking one day never deletes it. */
-function openRoutineForm(anchorEl, freq) {
-  const title = h('input', { class: 'field-input sm', placeholder: { daily: 'Morning stretch', weekly: 'Weekly review', monthly: 'Pay rent' }[freq], 'aria-label': 'Routine' });
-  const { time, dur, read } = timeFields();
-  const weekday = h('select', { class: 'field-input sm', 'aria-label': 'Day of the week' }, [1, 2, 3, 4, 5, 6, 0].map(d => h('option', { value: d, selected: d === new Date().getDay() }, DAY_NAMES[d])));
-  const monthDay = h('input', { class: 'field-input sm', type: 'number', min: 1, max: 28, value: Math.min(28, new Date().getDate()), 'aria-label': 'Day of the month' });
-  const save = () => {
-    const start = read();
-    // First occurrence on or after today.
-    let first = new Date(); first.setHours(0, 0, 0, 0);
-    if (freq === 'weekly') first = addDays(first, (+weekday.value - first.getDay() + 7) % 7);
-    if (freq === 'monthly') { const want = +monthDay.value; first = new Date(first.getFullYear(), first.getMonth() + (first.getDate() > want ? 1 : 0), want); }
-    store.createCard({ type: 'event', tool: 'timely', title: title.value.trim() || `${RECUR_SHORT[freq]} routine`,
-      meta: { date: dateKey(first), recurrence: freq, itemType: 'task', start, dur: start != null ? +dur.value : undefined, slot: null, doneDates: [] } });
-    closePopovers();
-    toast(`Added a ${freq} routine`);
-  };
-  title.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
-  popover(anchorEl, h('div', { class: 'form-pop routine-pop' },
-    h('strong', {}, icon('repeat'), ` New ${freq} routine`),
-    field('What', title),
-    freq === 'weekly' ? field('Every', weekday) : null,
-    freq === 'monthly' ? field('On day', monthDay) : null,
-    h('div', { class: 'time-pop-row' }, field('Time (optional)', time), field('Length', dur)),
-    h('p', { class: 'muted small' }, 'Shows on every matching day. Ticking a day off never deletes the routine.'),
-    h('button', { class: 'btn sm primary', onclick: save }, 'Add routine')));
-  setTimeout(() => title.focus(), 40);
-}
-
 // ---------- Reminders: a cork board of sticky notes (SD-T19/T20/T21) ----------
 const STICKY = ['#fff3a3', '#ffd7c2', '#d6f0b8', '#c9e8fb', '#e7d6f7'];
 let remDraft = { when: null, label: '' };
@@ -529,26 +533,89 @@ function renderReminders() {
   const nowMs = Date.now();
   const due = c => (c.meta.date ? parseKey(c.meta.date).getTime() + (c.meta.start ?? 23 * 60 + 59) * 60e3 : Infinity);
   rem.sort((a, b) => due(a) - due(b) || byOrder(a, b));
-  const input = h('input', { class: 'field-input', placeholder: 'Remind me to…', 'aria-label': 'New reminder', 'data-keep': 'rem-input' });
-  const whenLabel = h('span', { class: 'rem-when-pick' }, remDraft.when ? remDraft.when.label : 'No time yet');
-  const setWhen = w => { remDraft.when = w; whenLabel.textContent = w ? w.label : 'No time yet'; chips.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.k === w?.k)); };
+  // Lanes so the board reads at a glance: what's late, what's today, what's coming, what repeats.
+  const t0 = parseKey(todayKey()).getTime(), DAY = 864e5;
+  const laneOf = c => {
+    if (isRoutine(c)) return 'routines';
+    if (!c.meta.date) return 'someday';
+    const d = due(c);
+    if (d < nowMs) return 'overdue';
+    if (d < t0 + DAY) return 'today';
+    if (d < t0 + 2 * DAY) return 'tomorrow';
+    if (d < t0 + 7 * DAY) return 'week';
+    return 'later';
+  };
+  const LANES = [['overdue', 'Overdue'], ['today', 'Today'], ['tomorrow', 'Tomorrow'], ['week', 'This week'], ['later', 'Later'], ['someday', 'No date'], ['routines', 'Routines']];
+  const lanes = Object.fromEntries(LANES.map(([k]) => [k, []]));
+  rem.forEach(c => lanes[laneOf(c)].push(c));
+
+  const board = h('div', { class: 'cork', dataset: { drop: 'timely-reminders', accept: 'card' } }, composerSticky());
+  for (const [k, label] of LANES) {
+    if (!lanes[k].length) continue;
+    board.append(h('section', { class: `lane lane-${k}` },
+      h('h3', { class: 'lane-tag' }, label, h('span', { class: 'lane-n' }, lanes[k].length)),
+      h('div', { class: 'lane-notes' }, lanes[k].map(c => stickyEl(c, k === 'overdue')))));
+  }
+  if (!rem.length) board.append(h('p', { class: 'cork-empty' }, 'Nothing pinned yet. Write one on the blank note, or drop any card here.'));
+  body.replaceChildren(h('div', { class: 'reminders' }, board));
+}
+
+function stickyEl(c, overdue) {
+  const m = c.meta;
+  const when = isRoutine(c) ? `${RECUR_SHORT[m.recurrence]}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}`
+    : m.date ? `${m.date === todayKey() ? 'Today' : fmtShortDate(parseKey(m.date))}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}` : 'No date';
+  const hsh = hashStr(c.id);
+  const doneToday = isRoutine(c) && m.doneDates?.includes(todayKey());
+  const el = h('div', {
+    class: `sticky ${overdue ? 'overdue' : ''} ${doneToday ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id },
+    style: { '--sticky': STICKY[hsh % STICKY.length], '--tilt': `${((hsh >> 3) % 5) - 2}deg` },
+  },
+  h('span', { class: 'sticky-pin', 'aria-hidden': 'true' }),
+  h('span', { class: 'sticky-title' }, c.title),
+  notesSnippet(c),
+  h('span', { class: 'sticky-when' }, icon(isRoutine(c) ? 'repeat' : 'clock'), overdue ? `Overdue · ${when}` : when),
+  h('div', { class: 'sticky-actions' },
+    h('button', { class: 'sticky-btn', 'aria-label': 'Done', title: isRoutine(c) ? 'Done for today (the routine stays)' : 'Done', onclick: e => {
+      e.stopPropagation();
+      if (isRoutine(c)) return toggleRoutineDay(c.id, todayKey());
+      tick(); store.updateCard(c.id, { meta: { done: true } }, { log: true, logLabel: 'Completed' }); runMaintenance();
+    } }, icon('check'), 'Done'),
+    h('button', { class: 'sticky-btn', 'aria-label': 'Send to Apple Reminders', title: 'Send to Apple Reminders', onclick: e => { e.stopPropagation(); sendToReminders(store.getCard(c.id)); } }, icon('bell'))));
+  cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
+  return el;
+}
+
+/** The first note on the board is a blank pad: write, pick when (or say it), pin. */
+function composerSticky() {
+  const input = h('textarea', { class: 'pad-input', rows: 2, placeholder: 'Remind me to…', 'aria-label': 'New reminder', 'data-keep': 'rem-input' });
+  const whenLabel = h('span', { class: 'pad-when' }, remDraft.when ? remDraft.when.label : 'No time');
+  const dateIn = h('input', { class: 'pad-date', type: 'date', min: todayKey(), 'aria-label': 'Date' });
+  const timeIn = h('input', { class: 'pad-date', type: 'time', 'aria-label': 'Time' });
+  const custom = h('div', { class: 'pad-custom', hidden: true }, dateIn, timeIn);
+  const setWhen = w => { remDraft.when = w; whenLabel.textContent = w ? w.label : 'No time'; chips.querySelectorAll('.pad-chip').forEach(c => c.classList.toggle('on', c.dataset.k === w?.k)); };
+  const syncCustom = () => {
+    if (!dateIn.value) return;
+    const [hh, mm] = (timeIn.value || '').split(':').map(Number);
+    const start = timeIn.value ? hh * 60 + mm : null;
+    setWhen({ date: dateIn.value, start, k: 'custom', label: `${dateIn.value === todayKey() ? 'Today' : fmtShortDate(parseKey(dateIn.value))}${start != null ? ` · ${fmtMinutes(start)}` : ''}` });
+  };
+  dateIn.addEventListener('change', syncCustom); timeIn.addEventListener('change', syncCustom);
+  const chips = h('div', { class: 'pad-chips' },
+    [['1h', 'In 1 hour'], ['tonight', 'Tonight'], ['morning', 'Tomorrow AM'], ['weekend', 'Weekend']].map(([k, l]) =>
+      h('button', { class: `pad-chip ${remDraft.when?.k === k ? 'on' : ''}`, type: 'button', dataset: { k }, onclick: () => setWhen({ ...quickWhen(k), k }) }, l)),
+    h('button', { class: 'pad-chip', type: 'button', dataset: { k: 'custom' }, onclick: () => { custom.hidden = !custom.hidden; if (!custom.hidden) dateIn.focus(); } }, 'Pick…'));
   const add = () => {
-    if (!input.value.trim()) { input.focus(); return; }
+    const title = input.value.trim();
+    if (!title) { input.focus(); return; }
     const w = remDraft.when;
-    store.createCard({ type: 'event', tool: 'timely', title: input.value.trim(), meta: { kind: 'reminder', date: w?.date || null, start: w?.start ?? null } });
+    store.createCard({ type: 'event', tool: 'timely', title, meta: { kind: 'reminder', date: w?.date || null, start: w?.start ?? null } });
     input.value = ''; remDraft = { when: null };
   };
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
-  const chips = h('div', { class: 'chip-row' },
-    [['1h', 'In 1 hour'], ['tonight', 'Tonight'], ['morning', 'Tomorrow morning'], ['weekend', 'This weekend']].map(([k, l]) =>
-      h('button', { class: `chip ${remDraft.when?.k === k ? 'on' : ''}`, dataset: { k }, onclick: () => setWhen({ ...quickWhen(k), k }) }, l)),
-    h('button', { class: 'chip ghost', onclick: () => setWhen(null) }, 'No time'));
-  const slider = h('input', { type: 'range', min: 1, max: 72, value: 3, class: 'rem-slider', 'aria-label': 'Hours from now' });
-  slider.addEventListener('input', () => setWhen({ ...quickWhen('slider', +slider.value), k: 'slider' }));
-  // Voice entry: say "call mom tomorrow at 9am"; the title and time are pulled out for you.
-  const heard = h('span', { class: 'muted small rem-heard' });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); add(); } });
+  // Voice: "call mom tomorrow at 9am" → the title and the time are pulled out for you.
+  const heard = h('span', { class: 'pad-heard' });
   let session = null;
-  const mic = h('button', { class: 'icon-btn rem-mic', type: 'button', 'aria-label': 'Say the reminder', disabled: !canListen, title: canListen ? 'Say it, e.g. “call mom tomorrow at 9am”' : 'Voice input isn’t supported in this browser',
+  const mic = h('button', { class: 'pad-mic', type: 'button', 'aria-label': 'Say the reminder', disabled: !canListen, title: canListen ? 'Say it, e.g. “call mom tomorrow at 9am”' : 'Voice input isn’t supported in this browser',
     onclick: () => {
       if (session) { session.stop(); return; }
       mic.classList.add('on'); heard.textContent = 'Listening…';
@@ -559,47 +626,18 @@ function renderReminders() {
           if (!t) return;
           const { when, rest } = extractWhen(t.replace(/^remind me (?:to |about )?/i, ''));
           input.value = rest ? rest.charAt(0).toUpperCase() + rest.slice(1) : t;
-          if (when?.date) setWhen({ date: when.date, start: when.start ?? (when.slot ? { morning: 540, noon: 720, afternoon: 900, evening: 1140, night: 1260 }[when.slot] : null), label: `${when.date === todayKey() ? 'Today' : fmtShortDate(parseKey(when.date))}${when.start != null ? ` ${fmtMinutes(when.start)}` : ''}`, k: 'voice' });
-          heard.textContent = `Heard: “${t}”. Press Enter or Pin it.`;
+          if (when?.date) setWhen({ date: when.date, start: when.start ?? (when.slot ? { morning: 540, noon: 720, afternoon: 900, evening: 1140, night: 1260 }[when.slot] : null), label: `${when.date === todayKey() ? 'Today' : fmtShortDate(parseKey(when.date))}${when.start != null ? ` · ${fmtMinutes(when.start)}` : ''}`, k: 'voice' });
+          heard.textContent = 'Got it. Press Pin or Enter.';
         },
         onError: msg => { heard.textContent = msg; },
         onEnd: () => { session = null; mic.classList.remove('on'); },
       });
     } }, icon('mic'));
-  const board = h('div', { class: 'cork', dataset: { drop: 'timely-reminders', accept: 'card' } },
-    rem.map((c, i) => {
-      const m = c.meta;
-      const when = isRoutine(c) ? `${RECUR_SHORT[m.recurrence]}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}`
-        : m.date ? `${m.date === todayKey() ? 'Today' : fmtShortDate(parseKey(m.date))}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}` : 'No date';
-      const overdue = !isRoutine(c) && due(c) < nowMs;
-      const hsh = hashStr(c.id);
-      const doneToday = isRoutine(c) && m.doneDates?.includes(todayKey());
-      const el = h('div', {
-        class: `sticky ${overdue ? 'overdue' : ''} ${doneToday ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id },
-        style: { '--sticky': STICKY[hsh % STICKY.length], '--tilt': `${((hsh >> 3) % 7) - 3}deg` },
-      },
-      h('span', { class: 'sticky-pin', 'aria-hidden': 'true' }),
-      isRoutine(c) ? routineTag(c) : null,
-      h('span', { class: 'sticky-title' }, c.title),
-      h('span', { class: 'sticky-when' }, overdue ? `Overdue · ${when}` : when),
-      h('div', { class: 'sticky-actions' },
-        h('button', { class: 'sticky-btn', 'aria-label': 'Done', title: isRoutine(c) ? 'Done for today (the routine stays)' : 'Done', onclick: e => {
-          e.stopPropagation();
-          if (isRoutine(c)) return toggleRoutineDay(c.id, todayKey());
-          tick(); store.updateCard(c.id, { meta: { done: true } }, { log: true, logLabel: 'Completed' }); runMaintenance();
-        } }, icon('check'), 'Done'),
-        h('button', { class: 'sticky-btn', 'aria-label': 'Send to Apple Reminders', title: 'Send to Apple Reminders', onclick: e => { e.stopPropagation(); sendToReminders(store.getCard(c.id)); } }, icon('bell'))));
-      cardChrome(el, c, () => openEventEditor(c.id));
-      void i;
-      return el;
-    }));
-  if (!rem.length) board.append(h('p', { class: 'cork-empty' }, 'No reminders pinned. Add one above, or drop a card here.'));
-  body.replaceChildren(h('div', { class: 'reminders' },
-    h('div', { class: 'rem-add' },
-      h('div', { class: 'rem-add-row' }, input, mic, h('button', { class: 'btn primary', onclick: add }, 'Pin it')),
-      h('div', { class: 'rem-add-row wrap' }, chips),
-      h('div', { class: 'rem-add-row' }, icon('clock', 'rem-clock'), slider, whenLabel, heard)),
-    board));
+  return h('div', { class: 'sticky composer' },
+    h('span', { class: 'sticky-pin', 'aria-hidden': 'true' }),
+    h('span', { class: 'pad-label' }, 'New reminder'),
+    input, chips, custom,
+    h('div', { class: 'pad-foot' }, icon('clock'), whenLabel, heard, h('span', { class: 'head-spacer' }), mic, h('button', { class: 'pad-pin', type: 'button', onclick: add }, 'Pin')));
 }
 
 function quickAdd(meta) {
@@ -683,32 +721,6 @@ export function exportCard(c) {
   download(`${slug(c.title)}.ics`, wrapCal(vevent(c)), 'text/calendar');
   toast('Downloaded .ics — open it to add to Calendar');
 }
-/** Export a run of days. Routines are written once with their repeat rule, not once per day. */
-function exportRange(startKey, days, name) {
-  const seen = new Set(), events = [];
-  for (let i = 0; i < days; i++) {
-    const k = dateKey(addDays(parseKey(startKey), i));
-    for (const o of occurrencesOn(k)) {
-      if (isRoutine(o.card)) { if (!seen.has(o.card.id)) { seen.add(o.card.id); events.push(...vevent(o.card)); } }
-      else events.push(...vevent(o.card, k));
-    }
-  }
-  if (!events.length) return toast('Nothing to export in that range.');
-  download(`sedi-${name}-${startKey}.ics`, wrapCal(events), 'text/calendar');
-  toast('Downloaded .ics — open it to add everything to Calendar');
-}
-/** SD-T22: one visible "Add to calendar" entry point. */
-function openCalendarExport(anchorEl) {
-  const pick = (days, name) => () => { closePopovers(); exportRange(todayKey(), days, name); };
-  popover(anchorEl, h('div', { class: 'cal-pop' },
-    h('strong', {}, 'Add to your calendar'),
-    h('p', { class: 'muted small' }, 'Downloads an .ics file. Open it and your Calendar app adds the items.'),
-    h('button', { class: 'chip', onclick: pick(1, 'today') }, icon('calendar'), 'Today'),
-    h('button', { class: 'chip', onclick: pick(7, 'week') }, icon('calendar'), 'The next 7 days'),
-    h('button', { class: 'chip', onclick: pick(30, 'month') }, icon('calendar'), 'The next 30 days'),
-    h('p', { class: 'muted small' }, 'For a single item, open its details and choose Add to calendar.')));
-}
-
 // ---------- Apple Reminders via Shortcuts (SD-B2) ----------
 const shortcutName = () => store.pref('reminderShortcut', 'Sedi Reminder');
 /** What Sedi hands the shortcut: one line of JSON, so a missing date can't break it. */
@@ -781,7 +793,7 @@ function openArchive() {
   modal({ title: 'Archive', wide: true, body: h('div', {}, h('p', { class: 'muted small' }, 'Past items stay here for 30 days, then delete themselves. Need a long record? Export to your calendar.'), list) });
 }
 
-// ---------- Planning: an animated carousel of lists (SD-B8, SD-T5–T8) ----------
+// ---------- Planning: an animated carousel of lists you can add and reorder (SD-B8, SD-T5–T8) ----------
 const containers = () => store.get('planContainers', { projects: [], goals: [] });
 const boardContainers = b => containers()[b] || [];
 const planCards = (b, cid) => store.cardsWhere(c => isPlan(c) && c.meta.board === b && c.meta.containerId === cid).sort(byOrder);
@@ -789,29 +801,30 @@ export const DEFAULT_CONTAINERS = () => ({
   projects: ['Ideas', 'In motion', 'Wrapping up'].map(name => ({ id: uuid(), name })),
   goals: ['Health', 'Craft', 'People'].map(name => ({ id: uuid(), name })),
 });
-const COL_W = 272, COL_GAP = 14;
+const COL_GAP = 14;
+const colW = b => (b === 'goals' ? 300 : 272);
 
 function renderPlan() {
   const b = planBoard();
   const list = boardContainers(b);
   const viewport = h('div', { class: 'plan-viewport' });
-  const track = h('div', { class: 'plan-track' },
-    list.map(ct => containerEl(b, ct)),
-    h('button', { class: 'plan-ghost', onclick: () => addContainer(b) }, icon('plus'), b === 'goals' ? 'Add a life outcome' : 'Add a project'));
+  // data-list="x": the list runs left to right, so lists can be dragged into a new order.
+  const track = h('div', { class: `plan-track board-${b}`, dataset: { drop: 'plan-track', accept: 'ctcol', board: b }, 'data-list': 'x' },
+    list.map(ct => (b === 'goals' ? goalEl(ct) : containerEl(b, ct))),
+    h('button', { class: 'plan-ghost', onclick: () => (b === 'goals' ? openGoalWizard(null) : addContainer(b)) }, icon('plus'), b === 'goals' ? 'New goal' : 'Add a list'));
   viewport.append(track);
   const left = h('button', { class: 'carousel-btn left', 'aria-label': 'Previous lists' }, h('span', { class: 'tri' }));
   const right = h('button', { class: 'carousel-btn right', 'aria-label': 'Next lists' }, h('span', { class: 'tri' }));
   const pager = h('div', { class: 'plan-pager' });
   body.replaceChildren(h('div', { class: 'plan' }, left, viewport, right), pager);
-  // Measure how many lists fit, then slide the track rather than redrawing it.
   requestAnimationFrame(() => {
-    const visible = Math.max(1, Math.floor((viewport.clientWidth + COL_GAP) / (COL_W + COL_GAP)));
-    const total = list.length + 1; // + the "add" ghost
-    const max = Math.max(0, total - visible);
+    const step = colW(b) + COL_GAP;
+    const visible = Math.max(1, Math.floor((viewport.clientWidth + COL_GAP) / step));
+    const max = Math.max(0, list.length + 1 - visible);
     let off = clamp((store.pref('planOffset', {})[b]) || 0, 0, max);
     const paint = animate => {
       track.style.transition = animate ? '' : 'none';
-      track.style.transform = `translateX(${-off * (COL_W + COL_GAP)}px)`;
+      track.style.transform = `translateX(${-off * step}px)`;
       left.disabled = off === 0; right.disabled = off >= max;
       pager.replaceChildren(...(max ? Array.from({ length: max + 1 }, (_, i) => h('span', { class: `pdot ${i === off ? 'on' : ''}` })) : []));
       if (!animate) requestAnimationFrame(() => (track.style.transition = ''));
@@ -822,54 +835,195 @@ function renderPlan() {
   });
 }
 
-function containerEl(b, ct) {
-  const cards = planCards(b, ct.id);
+function listHead(b, ct, extra) {
   const name = h('h2', { class: 'ct-name', tabindex: 0, title: 'Click to rename' }, ct.name);
   name.addEventListener('click', () => editInline(name, { onCommit: v => saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, name: v } : x))) }));
-  const adding = planAdding === ct.id;
-  const input = adding ? h('input', { class: 'task-input', placeholder: b === 'goals' ? 'New sub-goal, then Enter' : 'New task, then Enter', 'aria-label': 'Add card', 'data-keep': `ct-${ct.id}` }) : null;
-  input?.addEventListener('keydown', e => {
+  return h('header', { class: 'ct-head' },
+    h('span', { class: 'ct-grip', title: 'Drag to reorder', 'aria-hidden': 'true' }, icon('grip')),
+    name, ...extra,
+    h('button', { class: 'ct-x icon-btn xs', 'aria-label': `Delete ${ct.name}`, title: 'Delete this list (you can Undo)', onclick: () => deleteContainer(b, ct) }, icon('x')));
+}
+function addInput(b, ct, placeholder, onAdd) {
+  const input = h('input', { class: 'task-input', placeholder, 'aria-label': 'Add card', 'data-keep': `ct-${ct.id}` });
+  input.addEventListener('keydown', e => {
     e.stopPropagation();
-    if (e.key === 'Enter' && input.value.trim()) {
-      const card = store.createCard({ type: b === 'goals' ? 'goal' : 'task', tool: 'timely', title: input.value.trim(), meta: { board: b, containerId: ct.id, order: -1 } });
-      reorder(planCards(b, ct.id), card.id, 0);
-      input.value = '';
-    }
+    if (e.key === 'Enter' && input.value.trim()) { onAdd(input.value.trim()); input.value = ''; }
     if (e.key === 'Escape') { planAdding = null; render(); }
   });
-  input?.addEventListener('blur', () => setTimeout(() => { if (planAdding === ct.id && !input.value.trim()) { planAdding = null; render(); } }, 120));
-  if (input) setTimeout(() => input.focus(), 30);
+  input.addEventListener('blur', () => setTimeout(() => { if (planAdding === ct.id && !input.value.trim()) { planAdding = null; render(); } }, 150));
+  setTimeout(() => input.focus(), 30);
+  return input;
+}
+
+function containerEl(b, ct) {
+  const cards = planCards(b, ct.id);
+  const adding = planAdding === ct.id;
   const listEl = h('div', { class: 'ct-list', dataset: { drop: 'plan-container', accept: 'card', container: ct.id, board: b }, 'data-list': '', 'data-autoscroll': '' },
-    input,
+    adding ? addInput(b, ct, 'New task, then Enter', title => {
+      const card = store.createCard({ type: 'task', tool: 'timely', title, meta: { board: b, containerId: ct.id, order: -1 } });
+      reorder(planCards(b, ct.id), card.id, 0);
+    }) : null,
     cards.map(c => {
       const t = h('span', { class: 'pc-title', title: c.title }, c.title);
       t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
-      const el = h('div', { class: 'plan-card', dataset: { drag: 'card', id: c.id } }, typeIcon(c.type), t);
-      return cardChrome(el, c, () => openEditor(c.id, { title: b === 'goals' ? 'Sub-goal' : 'Task' }));
+      const el = h('div', { class: 'plan-card', dataset: { drag: 'card', id: c.id } }, typeIcon(c.type), h('div', { class: 'pc-main' }, t, notesSnippet(c)));
+      return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }));
     }));
-  if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, b === 'goals' ? 'Break the outcome into steps.' : 'No tasks yet.'));
-  return h('section', { class: 'ct' },
-    h('header', { class: 'ct-head' }, name,
+  if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, 'No tasks yet.'));
+  return h('section', { class: 'ct', dataset: { drag: 'ctcol', id: ct.id } },
+    listHead(b, ct, [
       // SD-T8: add sits right next to the title.
       h('button', { class: 'ct-add', 'aria-label': `Add to ${ct.name}`, title: 'Add a card', onclick: () => { planAdding = ct.id; render(); } }, icon('plus')),
-      h('span', { class: 'col-count' }, cards.length || ''),
-      h('button', { class: 'ct-x icon-btn xs', 'aria-label': `Delete ${ct.name}`, title: 'Delete this list (you can Undo)', onclick: () => deleteContainer(b, ct) }, icon('x'))),
+      h('span', { class: 'col-count' }, cards.length || '')]),
     listEl);
+}
+
+// ---------- Goals: framed with WOOP, broken into milestones and next actions ----------
+// WOOP (Wish, Outcome, Obstacle, Plan) comes from Gabriele Oettingen's research on mental contrasting;
+// the "if-then" plan is Peter Gollwitzer's implementation intention. Goal-setting research (Locke & Latham)
+// favours specific, challenging goals with a deadline and visible progress.
+function goalEl(ct) {
+  const b = 'goals';
+  const steps = planCards(b, ct.id);
+  const done = steps.filter(c => c.meta.done).length;
+  const pct = steps.length ? Math.round((done / steps.length) * 100) : 0;
+  const w = ct.woop || {};
+  const adding = planAdding === ct.id;
+  let addKind = 'action';
+  const kindToggle = adding ? h('div', { class: 'segmented small step-kind' },
+    [['milestone', 'Milestone'], ['action', 'Next action']].map(([v, l]) => h('button', { type: 'button', class: v === addKind ? 'on' : '', onmousedown: e => e.preventDefault(), onclick: e => { addKind = v; e.currentTarget.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === e.currentTarget)); } }, l))) : null;
+  const daysLeft = ct.due ? Math.ceil((parseKey(ct.due) - parseKey(todayKey())) / 864e5) : null;
+  const listEl = h('div', { class: 'ct-list goal-steps', dataset: { drop: 'plan-container', accept: 'card', container: ct.id, board: b }, 'data-list': '', 'data-autoscroll': '' },
+    adding ? h('div', { class: 'step-add' }, kindToggle, addInput(b, ct, 'Describe the step, then Enter', title => {
+      const card = store.createCard({ type: 'goal', tool: 'timely', title, meta: { board: b, containerId: ct.id, order: steps.length, stepKind: addKind, done: false } });
+      void card;
+    })) : null,
+    steps.map(c => stepEl(c)));
+  if (!steps.length && !adding) listEl.append(h('div', { class: 'goal-empty' },
+    h('p', {}, 'No steps yet.'),
+    h('button', { class: 'btn sm primary', onclick: () => openGoalWizard(ct.id) }, icon('sparkle'), 'Break it down')));
+  return h('section', { class: 'ct goal-ct', dataset: { drag: 'ctcol', id: ct.id } },
+    listHead(b, ct, [
+      h('button', { class: 'ct-add', 'aria-label': `Add a step to ${ct.name}`, title: 'Add a step', onclick: () => { planAdding = ct.id; render(); } }, icon('plus'))]),
+    h('div', { class: 'goal-meta' },
+      h('div', { class: 'goal-progress', role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100, title: `${done} of ${steps.length} steps done` }, h('span', { style: { width: `${pct}%` } })),
+      h('div', { class: 'goal-stats' },
+        h('span', {}, steps.length ? `${done}/${steps.length} steps` : 'Not broken down yet'),
+        daysLeft != null ? h('span', { class: `goal-due ${daysLeft < 0 ? 'late' : ''}` }, icon('flag'), daysLeft < 0 ? `${-daysLeft}d past due` : daysLeft === 0 ? 'Due today' : `${daysLeft}d left`) : null),
+      w.outcome ? h('p', { class: 'goal-line' }, h('b', {}, 'Outcome '), w.outcome) : null,
+      w.plan ? h('p', { class: 'goal-line ifthen' }, h('b', {}, 'If-then '), w.plan) : null,
+      h('button', { class: 'chip ghost goal-frame-btn', onclick: () => openGoalWizard(ct.id) }, icon('sparkle'), w.wish || w.outcome ? 'Edit the plan' : 'Frame this goal')),
+    listEl);
+}
+function stepEl(c) {
+  const kind = c.meta.stepKind || 'action';
+  const t = h('span', { class: 'pc-title', title: c.title }, c.title);
+  t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
+  const el = h('div', { class: `plan-card step step-${kind} ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } },
+    h('button', { class: `step-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? 'Mark not done' : 'Mark done', onclick: e => {
+      e.stopPropagation();
+      if (!c.meta.done) checkSound();
+      store.updateCard(c.id, { meta: { done: !c.meta.done } }, { log: true, logLabel: c.meta.done ? 'Reopened' : 'Step done' });
+    } }, icon('check')),
+    h('span', { class: 'step-kind-icon', title: kind === 'milestone' ? 'Milestone' : 'Next action' }, icon(kind === 'milestone' ? 'flag' : 'arrowR')),
+    h('div', { class: 'pc-main' }, t, notesSnippet(c)));
+  return cardChrome(el, c, () => openEditor(c.id, { title: kind === 'milestone' ? 'Milestone' : 'Next action' }));
+}
+
+/** Step-by-step goal setup: WOOP, a deadline, milestones and the very next action. */
+export function openGoalWizard(ctId) {
+  const existing = ctId ? boardContainers('goals').find(x => x.id === ctId) : null;
+  const w = existing?.woop || {};
+  const f = {};
+  const area = (k, label, help, ph, val = '') => {
+    f[k] = h('textarea', { class: 'field-input', rows: 2, placeholder: ph, 'aria-label': label });
+    f[k].value = val;
+    f[k].addEventListener('keydown', e => e.stopPropagation());
+    return h('div', { class: 'wiz-step' }, h('label', { class: 'field-label' }, label), h('p', { class: 'muted small' }, help), f[k]);
+  };
+  f.name = h('input', { class: 'field-input title-input', value: existing?.name || '', placeholder: 'Name the goal, e.g. “Run a 10K”', 'aria-label': 'Goal name' });
+  f.due = h('input', { class: 'field-input sm', type: 'date', min: todayKey(), value: existing?.due || '', 'aria-label': 'Deadline' });
+  const ms = [0, 1, 2].map(i => h('input', { class: 'field-input sm', placeholder: ['First milestone, e.g. run 5K without stopping', 'Second milestone', 'Third milestone'][i], 'aria-label': `Milestone ${i + 1}` }));
+  const next = h('input', { class: 'field-input sm', placeholder: 'Something you can start in 5 minutes, e.g. put running shoes by the door', 'aria-label': 'First next action' });
+  [...ms, next, f.name].forEach(x => x.addEventListener('keydown', e => e.stopPropagation()));
+  const bodyEl = h('div', { class: 'editor goal-wizard' },
+    f.name,
+    h('p', { class: 'muted small' }, 'Four short questions, then break it into steps. Write in your own words; one line each is enough.'),
+    area('wish', '1 · Wish', 'What do you want to achieve? Make it challenging but doable.', 'Run a 10K race without walking', w.wish || ''),
+    area('outcome', '2 · Outcome', 'Picture the best result. How will it feel, what changes?', 'More energy, proud crossing the line', w.outcome || ''),
+    area('obstacle', '3 · Obstacle', 'What inside you is most likely to get in the way?', 'Skipping runs when I’m tired after work', w.obstacle || ''),
+    area('plan', '4 · Plan (if-then)', 'If that obstacle shows up, what will you do? Write it as “If …, then I will …”.', 'If I’m tired after work, then I’ll do a 15-minute easy run anyway', w.plan || ''),
+    h('div', { class: 'wiz-row' }, h('label', { class: 'field-label' }, 'Deadline'), f.due),
+    existing ? null : h('div', { class: 'wiz-step' },
+      h('label', { class: 'field-label' }, '5 · Break it down'),
+      h('p', { class: 'muted small' }, 'Milestones are checkpoints you can see. The next action is the smallest first move.'),
+      ...ms, h('label', { class: 'field-label' }, 'Next action'), next));
+  modal({
+    title: existing ? 'Goal plan' : 'New goal', wide: true, body: bodyEl,
+    actions: [
+      { label: 'Guide', kind: 'ghost', onClick: () => { setTimeout(openGoalGuide, 200); return true; } },
+      { label: 'Cancel', kind: 'ghost' },
+      { label: existing ? 'Save' : 'Create goal', kind: 'primary', onClick: () => {
+        const woop = { wish: f.wish.value.trim(), outcome: f.outcome.value.trim(), obstacle: f.obstacle.value.trim(), plan: f.plan.value.trim() };
+        const name = f.name.value.trim() || woop.wish || 'New goal';
+        if (existing) {
+          saveContainers('goals', boardContainers('goals').map(x => (x.id === ctId ? { ...x, name, woop, due: f.due.value || null } : x)));
+          return;
+        }
+        const ct = { id: uuid(), name, woop, due: f.due.value || null };
+        saveContainers('goals', [...boardContainers('goals'), ct]);
+        let order = 0;
+        ms.map(x => x.value.trim()).filter(Boolean).forEach(t => store.createCard({ type: 'goal', tool: 'timely', title: t, meta: { board: 'goals', containerId: ct.id, order: order++, stepKind: 'milestone', done: false } }, { silent: true }));
+        if (next.value.trim()) store.createCard({ type: 'goal', tool: 'timely', title: next.value.trim(), meta: { board: 'goals', containerId: ct.id, order: order++, stepKind: 'action', done: false } }, { silent: true });
+        store.setPref('planOffset', { ...store.pref('planOffset', {}), goals: boardContainers('goals').length });
+        store.notify({ reason: 'goal' });
+        toast(`Created “${name}”`);
+      } },
+    ],
+  });
+  // Focus the first field, unless you've already clicked into another one.
+  setTimeout(() => { if (!bodyEl.contains(document.activeElement)) (existing ? f.wish : f.name).focus(); }, 80);
+}
+function openGoalGuide() {
+  const sec = (title, text) => h('div', { class: 'guide-sec' }, h('h4', {}, title), h('p', {}, text));
+  modal({
+    title: 'How to set a goal that sticks', wide: true,
+    body: h('div', { class: 'editor goal-guide' },
+      sec('1. Be specific, and make it a stretch', 'Specific, challenging goals tend to beat “do your best”. Say what done looks like and by when.'),
+      sec('2. WOOP it: Wish, Outcome, Obstacle, Plan', 'Imagine the best outcome, then the main thing inside you that could stop you. Picturing both together (mental contrasting) gives you energy for goals you can reach and helps you let go of ones you can’t.'),
+      sec('3. Write an if-then plan', '“If it’s 6pm on a workday, then I’ll put on my running shoes.” Linking a situation to an action makes you far more likely to follow through than intention alone.'),
+      sec('4. Break it into milestones', 'Two to four checkpoints you can see. Each one should feel like progress, not busywork.'),
+      sec('5. Always know the next action', 'The very next physical step, small enough to start in five minutes. When it’s done, write the next one.'),
+      sec('6. Review weekly', 'Once a week, tick what’s done, move what slipped, and adjust the plan. Seeing progress keeps motivation up.'),
+      h('p', { class: 'muted small' }, 'Based on Gabriele Oettingen’s WOOP research, Peter Gollwitzer’s implementation intentions, and Locke & Latham’s goal-setting theory.')),
+    actions: [{ label: 'Got it', kind: 'primary' }],
+  });
 }
 
 registerDrop('plan-container', ({ id, data, index }) => {
   const c = store.getCard(id);
   if (!c) return false;
   const type = data.board === 'goals' ? 'goal' : 'task';
-  const meta = { board: data.board, containerId: data.container, order: index ?? 0 };
+  const meta = { board: data.board, containerId: data.container, order: index ?? 0, ...(data.board === 'goals' ? { stepKind: c.meta?.stepKind || 'action', done: !!c.meta?.done } : {}) };
   if (c.tool !== 'timely') routeCard(id, { tool: 'timely', type, meta });
   else store.updateCard(id, { type, meta }, { replaceMeta: true });
   reorder(planCards(data.board, data.container), id, index);
 });
+// Reorder whole lists by dragging their header.
+registerDrop('plan-track', ({ kind, id, index, data }) => {
+  if (kind !== 'ctcol') return false;
+  const b = data.board;
+  const list = boardContainers(b);
+  const moving = list.find(x => x.id === id);
+  if (!moving) return false;
+  const rest = list.filter(x => x.id !== id);
+  rest.splice(clamp(index ?? rest.length, 0, rest.length), 0, moving);
+  saveContainers(b, rest);
+});
 
 function saveContainers(b, list) { store.set('planContainers', { ...containers(), [b]: list }); }
 function addContainer(b) {
-  const ct = { id: uuid(), name: b === 'goals' ? 'New outcome' : 'New project' };
+  const ct = { id: uuid(), name: b === 'goals' ? 'New outcome' : 'New list' };
   const list = [...boardContainers(b), ct];
   store.setPref('planOffset', { ...store.pref('planOffset', {}), [b]: list.length });
   saveContainers(b, list);
