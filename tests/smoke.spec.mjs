@@ -138,11 +138,17 @@ test('v1 fixture loads into a fresh profile and renders everywhere', async ({ pa
   await expect(page.locator('.link-card', { hasText: 'Fixture: MDN' })).toBeVisible();
   // Platform-wide search (Brainly search bar) reaches every tool and the Universal Board.
   const search = page.getByRole('searchbox', { name: 'Search everything' });
-  for (const [q, tool] of [['dentist', 'Taskly'], ['standup', 'Timely'], ['10K', 'Boardly'], ['pancake', 'Brainly'], ['in transit', 'Universal Board']]) {
+  for (const [q, tool] of [['dentist', 'Taskly'], ['standup', 'Timely'], ['10K', 'Boardly'], ['in transit', 'Universal Board']]) {
     await search.fill(q);
     await expect(page.locator('.search-results .result', { hasText: tool }).first(), `search "${q}"`).toBeVisible();
   }
+  // Brainly's own matches filter in place (SD-S1): the folder holding the pancake note stays, the rest hides.
+  await search.fill('pancake');
+  await expect(page.locator('.b-folder', { hasText: 'Recipes' })).toBeVisible();
+  await expect(page.locator('.b-note', { hasText: 'Fixture: welcome note' })).toHaveCount(0);
+  await expect(page.locator('.search-results .result-note')).toContainText('1 match in Brainly');
   await search.fill('');
+  await expect(page.locator('.b-note', { hasText: 'Fixture: welcome note' })).toBeVisible();
   await VIEWS(page, 'fixture');
   // Survives a reload.
   await page.reload();
@@ -156,7 +162,7 @@ test('create, edit, drag between tools via the Universal Board, delete with Undo
   await open(page, 'taskly');
 
   // Create in Taskly
-  await page.getByRole('button', { name: 'Add to To do' }).click();
+  await page.getByRole('button', { name: 'Add a task to To do' }).click();
   await page.locator('.task-input').fill('Smoke task');
   await page.locator('.task-input').press('Enter');
   await expect(page.locator('.task-card', { hasText: 'Smoke task' })).toBeVisible();
@@ -175,7 +181,7 @@ test('create, edit, drag between tools via the Universal Board, delete with Undo
 
   // Create in Boardly
   await open(page, 'boardly');
-  await page.locator('.canvas-tools').getByRole('button', { name: 'Task' }).click();
+  await page.getByRole('button', { name: /New Task/ }).click();
   await expect(page.locator('.tile .editing')).toBeFocused();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('Smoke board task');
@@ -186,7 +192,7 @@ test('create, edit, drag between tools via the Universal Board, delete with Undo
   await open(page, 'timely'); await timelyTab(page, 'Scheduling'); await timelyTab(page, 'Reminders');
   await page.getByPlaceholder('Remind me to…').fill('Smoke reminder');
   await page.getByPlaceholder('Remind me to…').press('Enter');
-  await expect(page.locator('.rem-item', { hasText: 'Smoke reminder' })).toBeVisible();
+  await expect(page.locator('.sticky', { hasText: 'Smoke reminder' })).toBeVisible();
 
   // Create in Brainly
   await open(page, 'brainly');
