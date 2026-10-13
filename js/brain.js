@@ -113,7 +113,8 @@ export async function enable(key) {
 export async function disable(removeFiles) {
   store.setPref('brain', { enabled: false, model: store.pref('brain')?.model });
   generator = null;
-  if (removeFiles && 'caches' in window) await caches.delete('transformers-cache');
+  // Remove both the model weights and the cached runtime files the service worker kept.
+  if (removeFiles && 'caches' in window) { await caches.delete('transformers-cache'); await caches.delete('sedi-runtime'); }
   setState({ status: 'off', progress: 0 });
 }
 export async function ensureLoaded() {
@@ -142,6 +143,20 @@ export async function ask(question, sediContext = [], onToken) {
   const final = out?.[0]?.generated_text;
   const answer = Array.isArray(final) ? final.at(-1)?.content : text;
   return { text: (answer || text).trim(), sources: chunks.map(c => c.title) };
+}
+
+/** Plain generation with the on-device model (used for summaries and general chat). */
+export async function complete(messages, { maxTokens = 220, onToken } = {}) {
+  const gen = await ensureLoaded();
+  if (!gen) throw new Error('Sovereign Brain is off');
+  let text = '';
+  const streamer = TextStreamer ? new TextStreamer(gen.tokenizer, {
+    skip_prompt: true, skip_special_tokens: true,
+    callback_function: t => { text += t; onToken?.(text); },
+  }) : undefined;
+  const out = await gen(messages, { max_new_tokens: maxTokens, do_sample: false, repetition_penalty: 1.1, streamer });
+  const final = out?.[0]?.generated_text;
+  return (Array.isArray(final) ? final.at(-1)?.content : text || '').trim();
 }
 
 // ---------- Settings panel ----------

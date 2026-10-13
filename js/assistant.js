@@ -5,7 +5,10 @@
 import * as store from './store.js';
 import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime } from './util.js';
 import { TOOL_NAMES, typeIcon, byOrder, routeCard, flatten, trashCard } from './cards.js';
-import { navigate } from './shell.js';
+import { navigate, revealCard } from './shell.js';
+import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, askClaudeUrl } from './engines.js';
+import { summaryFor, ensureSummary, noteText } from './summaries.js';
+import { findCard } from './commands.js';
 import { nextUpItems } from './home.js';
 import { COLUMNS } from './taskly.js';
 import { occurrencesOn } from './timely.js';
@@ -46,8 +49,10 @@ export function buildAssistant() {
 
 function paintStatus() {
   const s = brain.brainState();
-  statusEl.textContent = !brain.isEnabled() ? '' : s.status === 'ready' ? 'Brain on' : s.status === 'loading' ? 'Brain loading…' : s.status === 'error' ? 'Brain offline' : 'Brain on';
-  statusEl.title = brain.isEnabled() ? 'Sovereign Brain answers coaching questions on this device' : '';
+  const active = engineConfig().active;
+  if (active !== 'local') { statusEl.textContent = engineLabel(); statusEl.title = 'Answers come from the engine chosen in Menu → AI engines'; return; }
+  statusEl.textContent = !brain.isEnabled() ? 'Search only' : s.status === 'ready' ? 'On-device model' : s.status === 'loading' ? 'Model loading…' : s.status === 'error' ? 'Model offline' : 'On-device model';
+  statusEl.title = brain.isEnabled() ? 'Answers come from the open model running on this device' : 'Turn on Sovereign Brain (menu) for an on-device AI, or pick another engine in Menu → AI engines';
 }
 
 function setMode(m) {
@@ -71,7 +76,7 @@ function toggle(force) {
   const open = typeof force === 'boolean' ? force : tray.hidden;
   tray.hidden = !open;
   token.setAttribute('aria-expanded', String(open));
-  if (open) { positionTray(); setTimeout(() => input.focus(), 30); }
+  if (open) { paintStatus(); positionTray(); setTimeout(() => input.focus(), 30); }
   else { session?.stop(); stopSpeaking(); }
 }
 
@@ -125,8 +130,15 @@ function say(node, who = 'bot') {
   return el;
 }
 const itemList = cards => h('div', { class: 'as-items' }, cards.map(c => h('button', {
-  class: 'as-item', type: 'button', onclick: () => { navigate(c.tool === 'universal' ? 'home' : c.tool); toggle(false); },
+  class: 'as-item', type: 'button', onclick: () => { toggle(false); revealCard(c.id); },
 }, typeIcon(c.type), h('span', {}, c.title), h('small', {}, TOOL_NAMES[c.tool]))));
+/** Who wrote this answer. */
+const engineTag = label => h('span', { class: 'as-engine' }, label);
+/** Free hand-off to Claude.ai, with the question and related cards typed in. */
+const askClaude = (q, cards) => h('a', {
+  class: 'chip ask-claude', href: askClaudeUrl(q, cards.map(c => ({ title: c.title, where: TOOL_NAMES[c.tool], text: flatten(c) }))), target: '_blank', rel: 'noopener noreferrer',
+  title: 'Opens Claude.ai in a new tab with your question and related Sedi cards typed in. Uses your own Claude plan. Nothing is sent until you press send there.',
+}, 'Ask Claude ↗');
 
 // ---------- Submit ----------
 async function submit(text, { fromVoice = false } = {}) {
@@ -201,6 +213,16 @@ const COACH = /stuck|overwhelm|procrastinat|motivat|focus|habit|anxious|stress|c
 async function answer(q) {
   const lower = q.toLowerCase();
   let text;
+  // SD-B5: "summarize <note>" gives that card's summary.
+  const sm = /^(?:summari[sz]e|sum up|tl;?dr)\s+(?:my\s+|the\s+)?(.+)$/i.exec(q.trim());
+  if (sm) {
+    const card = findCard(sm[1], store.allCards());
+    if (card) {
+      const bubble = say(h('div', {}, h('p', {}, h('strong', {}, card.title)), h('p', {}, summaryFor(card).text), engineTag(summaryFor(card).ai ? `AI summary · ${summaryFor(card).engine}` : 'Quick summary'), itemList([card])));
+      ensureSummary(card).then(s => { if (s?.ai) bubble.firstChild.replaceChildren(h('p', {}, h('strong', {}, card.title)), h('p', {}, s.text), engineTag(`AI summary · ${s.engine}`), itemList([card])); });
+      return summaryFor(card).text;
+    }
+  }
   if (/\b(next|today|agenda|schedule|plan for|on my plate)\b/.test(lower)) {
     const items = nextUpItems(5);
     text = items.length ? `Here’s what’s next:\n${items.map(i => `- ${i.card.title} (${i.label})`).join('\n')}` : 'Nothing is lined up. Your To do column and today’s schedule are clear.';
@@ -213,12 +235,27 @@ async function answer(q) {
     return text.replace(/\*\*/g, '');
   }
   const hits = search(q);
+  // A non-default engine (Claude key, OpenAI-compatible, Ollama) answers with your matching cards as context.
+  if (engineConfig().active !== 'local' && engineAvailable()) {
+    const bubble = say(h('div', { class: 'as-stream' }, h('span', { class: 'muted' }, `Asking ${engineLabel()}…`)));
+    try {
+      const ctx = hits.slice(0, 6).map(c => `- ${c.title} (${TOOL_NAMES[c.tool]})${flatten(c) ? `: ${flatten(c).slice(0, 200)}` : ''}`).join('\n');
+      const r = await engineChat({
+        system: `You are the assistant inside Sedi, the user's personal planner (Taskly tasks, Boardly goals, Timely calendar, Brainly notes). Be brief and practical.${ctx ? `\n\nRelevant items from the user's Sedi:\n${ctx}` : ''}`,
+        messages: [{ role: 'user', content: q }],
+      });
+      bubble.firstChild.replaceChildren(renderText(r.text), engineTag(r.engine), hits.length ? itemList(hits.slice(0, 3)) : null, askClaude(q, hits));
+      return r.text;
+    } catch (err) {
+      bubble.firstChild.replaceChildren(h('span', { class: 'muted' }, `${engineLabel()} couldn’t answer: ${err.message || err}. Showing matches instead.`));
+    }
+  }
   if (brain.isEnabled() && (COACH.test(q) || !hits.length)) {
     const bubble = say(h('div', { class: 'as-stream' }, h('span', { class: 'muted' }, brain.brainState().status === 'ready' ? 'Thinking…' : 'Waking the brain…')));
     try {
       const ctx = hits.slice(0, 4).map(c => ({ title: c.title, where: TOOL_NAMES[c.tool] }));
       const res = await brain.ask(q, ctx, partial => { bubble.firstChild.replaceChildren(renderText(partial)); output.scrollTop = output.scrollHeight; });
-      bubble.firstChild.replaceChildren(renderText(res.text), h('small', { class: 'as-sources' }, `From: ${res.sources.join(', ')}`));
+      bubble.firstChild.replaceChildren(renderText(res.text), h('small', { class: 'as-sources' }, `From: ${res.sources.join(', ')}`), engineTag(engineLabel('local')), askClaude(q, hits));
       return res.text;
     } catch (err) {
       bubble.firstChild.replaceChildren(h('span', { class: 'muted' }, `The brain couldn’t answer: ${err.message || err}. Showing matches instead.`));
@@ -226,11 +263,11 @@ async function answer(q) {
   }
   if (hits.length) {
     text = `I found ${hits.length} match${hits.length === 1 ? '' : 'es'}: ${hits.map(c => c.title).join(', ')}.`;
-    say(h('div', {}, h('p', {}, `Found ${hits.length} in your Sedi:`), itemList(hits)));
+    say(h('div', {}, h('p', {}, `Found ${hits.length} in your Sedi:`), itemList(hits), engineTag('Search in your Sedi'), askClaude(q, hits)));
     return text;
   }
-  text = brain.isEnabled() ? 'I couldn’t find anything for that.' : 'Nothing in your Sedi matches that. For coaching questions, turn on the Sovereign Brain from the menu.';
-  say(h('p', {}, text));
+  text = brain.isEnabled() ? 'I couldn’t find anything for that.' : 'Nothing in your Sedi matches that. Turn on the Sovereign Brain (menu) for an on-device AI, or ask Claude with your own plan.';
+  say(h('div', {}, h('p', {}, text), askClaude(q, [])));
   return text;
 }
 

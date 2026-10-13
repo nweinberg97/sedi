@@ -238,7 +238,8 @@ export function parseCommand(raw, ctx = {}) {
     const { when, rest } = extractWhen(m[1], now);
     const title = cleanTitle(rest);
     if (!title) return null;
-    return { kind: 'create', type: 'event', reminder: true, tool: 'timely', title, when: when || null };
+    // "Remind me…" is unmistakably a command, so it runs from Chat and Voice too, not only Command mode.
+    return { kind: 'create', type: 'event', reminder: true, tool: 'timely', title, when: when || null, explicit: true };
   }
 
   // Create
