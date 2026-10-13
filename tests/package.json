@@ -1,0 +1,12 @@
+{
+  "name": "sedi-tests",
+  "private": true,
+  "type": "module",
+  "description": "Smoke tests for Sedi. Not part of the app; nothing here is served or built.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0"
+  }
+}

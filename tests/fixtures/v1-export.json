@@ -1,0 +1,394 @@
+{
+  "app": "sedi",
+  "schemaVersion": 1,
+  "exportedAt": "2026-09-01T12:00:00.000Z",
+  "cards": [
+    {
+      "id": "v1-task-todo",
+      "type": "task",
+      "title": "Fixture: call the dentist",
+      "description": "Ask about the cleaning",
+      "tool": "taskly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "columnId": "todo",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-task-prog",
+      "type": "task",
+      "title": "Fixture: write report",
+      "description": "",
+      "tool": "taskly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "columnId": "inprogress",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-task-review",
+      "type": "task",
+      "title": "Fixture: review budget",
+      "description": "",
+      "tool": "taskly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "columnId": "review",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-task-done",
+      "type": "task",
+      "title": "Fixture: paid rent",
+      "description": "",
+      "tool": "taskly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "columnId": "completed",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-task-backlog",
+      "type": "task",
+      "title": "Fixture: learn piano",
+      "description": "",
+      "tool": "taskly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "columnId": "backlog",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-goal",
+      "type": "goal",
+      "title": "Fixture: run a 10K",
+      "description": "",
+      "tool": "boardly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "tabId": "tab-health",
+        "x": 32,
+        "y": 32,
+        "smart": {
+          "specific": "Run 10K",
+          "measurable": "Timed race",
+          "achievable": "3 runs/week",
+          "relevant": "Energy",
+          "timebound": "May"
+        }
+      }
+    },
+    {
+      "id": "v1-btask",
+      "type": "task",
+      "title": "Fixture: buy shoes",
+      "description": "",
+      "tool": "boardly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "tabId": "tab-health",
+        "x": 32,
+        "y": 120,
+        "done": false
+      }
+    },
+    {
+      "id": "v1-bnote",
+      "type": "note",
+      "title": "Fixture: board note",
+      "description": "Line one\nLine two",
+      "tool": "boardly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "tabId": "tab-work",
+        "x": 280,
+        "y": 32
+      }
+    },
+    {
+      "id": "v1-ev-timed",
+      "type": "event",
+      "title": "Fixture: daily standup",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "date": "2026-01-05",
+        "start": 540,
+        "dur": 30,
+        "recurrence": "daily"
+      }
+    },
+    {
+      "id": "v1-ev-weekly",
+      "type": "event",
+      "title": "Fixture: weekly review",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "date": "2026-01-02",
+        "slot": "afternoon",
+        "start": null,
+        "recurrence": "weekly"
+      }
+    },
+    {
+      "id": "v1-ev-future",
+      "type": "event",
+      "title": "Fixture: dentist appointment",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "date": "2030-03-14",
+        "start": 600,
+        "dur": 60
+      }
+    },
+    {
+      "id": "v1-ev-past",
+      "type": "event",
+      "title": "Fixture: old one-off",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "date": "2026-01-10",
+        "start": 600,
+        "dur": 60
+      }
+    },
+    {
+      "id": "v1-reminder",
+      "type": "event",
+      "title": "Fixture: water the plants",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "kind": "reminder",
+        "date": null,
+        "start": null,
+        "done": false
+      }
+    },
+    {
+      "id": "v1-reminder-rec",
+      "type": "event",
+      "title": "Fixture: take vitamins",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "kind": "reminder",
+        "date": "2026-01-01",
+        "start": 480,
+        "recurrence": "daily",
+        "done": false
+      }
+    },
+    {
+      "id": "v1-plan-task",
+      "type": "task",
+      "title": "Fixture: sketch milestone",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "board": "projects",
+        "containerId": "ct-p1",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-plan-goal",
+      "type": "goal",
+      "title": "Fixture: sleep 7 hours",
+      "description": "",
+      "tool": "timely",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "board": "goals",
+        "containerId": "ct-g1",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-note",
+      "type": "note",
+      "title": "Fixture: welcome note",
+      "description": "<div>Rich <b>text</b> body</div>",
+      "tool": "brainly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "x": 32,
+        "y": 40,
+        "emoji": "💡"
+      }
+    },
+    {
+      "id": "v1-note-folder",
+      "type": "note",
+      "title": "Fixture: pancake recipe",
+      "description": "Flour, eggs, milk",
+      "tool": "brainly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "folderId": "bf-1",
+        "emoji": "🥞"
+      }
+    },
+    {
+      "id": "v1-link",
+      "type": "link",
+      "title": "Fixture: MDN",
+      "description": "https://developer.mozilla.org/",
+      "tool": "brainly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "url": "https://developer.mozilla.org/",
+        "host": "developer.mozilla.org",
+        "linkFolderId": "lf-1",
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-link-loose",
+      "type": "link",
+      "title": "Fixture: example",
+      "description": "https://example.com/",
+      "tool": "brainly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "url": "https://example.com/",
+        "host": "example.com",
+        "linkFolderId": null,
+        "order": 0
+      }
+    },
+    {
+      "id": "v1-textfile",
+      "type": "link",
+      "title": "Fixture: text file",
+      "description": "Plain text file contents",
+      "tool": "brainly",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "file": true,
+        "linkFolderId": null,
+        "order": 1
+      }
+    },
+    {
+      "id": "v1-universal",
+      "type": "note",
+      "title": "Fixture: in transit",
+      "description": "Flattened text",
+      "tool": "universal",
+      "createdAt": "2026-09-01T12:00:00.000Z",
+      "updatedAt": "2026-09-01T12:00:00.000Z",
+      "meta": {
+        "order": 0
+      }
+    }
+  ],
+  "records": {
+    "boardlyTabs": [
+      {
+        "id": "tab-health",
+        "name": "Health",
+        "color": "#86AE95"
+      },
+      {
+        "id": "tab-work",
+        "name": "Work",
+        "color": "#8E9BC9"
+      }
+    ],
+    "planContainers": {
+      "projects": [
+        {
+          "id": "ct-p1",
+          "name": "Ideas"
+        },
+        {
+          "id": "ct-p2",
+          "name": "In motion"
+        }
+      ],
+      "goals": [
+        {
+          "id": "ct-g1",
+          "name": "Health"
+        }
+      ]
+    },
+    "brainFolders": [
+      {
+        "id": "bf-1",
+        "name": "Recipes",
+        "color": "#A796CB",
+        "x": 320,
+        "y": 40
+      }
+    ],
+    "linkFolders": [
+      {
+        "id": "lf-1",
+        "name": "Reading"
+      }
+    ],
+    "onboarded": true,
+    "activity": [
+      {
+        "at": "2026-09-01T12:00:00.000Z",
+        "action": "Created",
+        "id": "v1-task-todo",
+        "title": "Fixture: call the dentist",
+        "tool": "taskly",
+        "type": "task"
+      }
+    ],
+    "commandLog": [
+      {
+        "at": "2026-09-01T12:00:00.000Z",
+        "text": "add call the dentist",
+        "action": "Create task",
+        "result": "created v1-task-todo"
+      }
+    ]
+  },
+  "prefs": {
+    "boardlyTab": "tab-health",
+    "timelyMode": "schedule",
+    "timelyView": "day",
+    "assistantMode": "chat"
+  }
+}
