@@ -75,6 +75,10 @@ export function askClaudeUrl(question, cards = []) {
   return `https://claude.ai/new?q=${encodeURIComponent(prompt.slice(0, 3500))}`;
 }
 
+// The assistant remembers your latest question (and the cards it matched) so Settings can hand it to Claude.
+let lastAsk = { q: '', cards: [] };
+export const rememberAsk = (q, cards = []) => { lastAsk = { q, cards }; };
+
 // ---------- Settings panel ----------
 export function openEnginesPanel() {
   const cfg = engineConfig();
@@ -114,6 +118,17 @@ export function openEnginesPanel() {
       transcribe: { enabled: trOn.checked, base: trBase.value.trim(), model: trModel.value.trim() || 'whisper-1' },
     });
   };
+  const askQ = h('input', { class: 'field-input', value: lastAsk.q, placeholder: 'What do you want to ask Claude?', 'aria-label': 'Question for Claude' });
+  const askSection = h('div', { class: 'engine-section ask-claude-section' },
+    h('strong', {}, 'Ask Claude (with your own Claude plan)'),
+    h('p', { class: 'muted small' }, 'Opens Claude.ai in a new tab with your question and the related Sedi cards typed in. Nothing is sent until you press send there.'),
+    h('div', { class: 'ask-row' }, askQ,
+      h('button', { class: 'btn sm primary', type: 'button', onclick: () => {
+        const q = askQ.value.trim();
+        if (!q) { askQ.focus(); return; }
+        window.open(askClaudeUrl(q, q === lastAsk.q ? lastAsk.cards : []), '_blank', 'noopener');
+      } }, 'Open in Claude ↗')),
+    lastAsk.q ? h('p', { class: 'muted small' }, `Filled in with your last question to the assistant${lastAsk.cards.length ? ` and ${lastAsk.cards.length} related card${lastAsk.cards.length === 1 ? '' : 's'}` : ''}.`) : null);
   modal({
     title: 'AI engines', wide: true,
     body: h('div', { class: 'editor' },
@@ -124,9 +139,7 @@ export function openEnginesPanel() {
         h('p', { class: 'muted small' }, 'Sedi uses your browser’s dictation by default. Wispr Flow and similar apps already work in any Sedi text box. To use a Whisper-style service instead, turn this on.'),
         h('label', { class: 'check-row' }, trOn, ' Use a transcription service'),
         h('div', { class: 'engine-fields' }, lab('Address', trBase), lab('Model', trModel), lab('API key', trKey))),
-      h('div', { class: 'engine-section' },
-        h('strong', {}, 'Ask Claude (free with your Claude plan)'),
-        h('p', { class: 'muted small' }, 'Every assistant answer has an “Ask Claude” button. It opens Claude.ai in a new tab with your question and related cards typed in. Nothing is sent until you press send there.')),
+      askSection,
       h('p', { class: 'muted small' }, 'Keys are stored only in this browser on this device and are never included in “Download data”.'),
       status),
     actions: [

@@ -92,6 +92,9 @@ function favicon(c) {
   if (kind === 'pdf') return h('span', { class: 'link-badge pdf-badge' }, 'PDF');
   if (kind === 'text') return h('span', { class: 'link-badge', style: { background: '#9AA3AD' } }, '📄');
   const letter = h('span', { class: 'link-badge', style: { background: colorFor(m.host || c.title) } }, (m.host || c.title || '?')[0].toUpperCase());
+  // An icon picked from the link's own words (recipes → 🍳, flights → ✈️, GitHub → 💻…); the site icon only when nothing fits.
+  const word = smartEmoji(`${c.title} ${m.host || ''} ${(m.url || '').replace(/[/._-]+/g, ' ')}`, null);
+  if (word) return h('span', { class: 'link-badge word-badge', style: { '--tint': colorFor(m.host || c.title) } }, word);
   if (!m.host) return letter;
   // SD-L3: the site's own icon, straight from the site (no third-party lookup). Falls back to a letter.
   const img = h('img', { class: 'link-fav', alt: '', src: `https://${m.host}/favicon.ico`, loading: 'lazy', referrerpolicy: 'no-referrer' });
@@ -140,7 +143,8 @@ function linkEl(c) {
   return el;
 }
 
-function dotsRow(items, max = 9) {
+const DOT_MAX = 5; // a few dots tell you what's inside; past that it's a count, so nothing gets cluttered
+function dotsRow(items, max = DOT_MAX) {
   const shown = items.slice(0, max);
   return h('div', { class: 'f-dots', 'aria-label': `${items.length} item${items.length === 1 ? '' : 's'}` },
     shown.map(c => h('i', { style: { background: dotColor(c) }, title: c.title })),
@@ -148,32 +152,41 @@ function dotsRow(items, max = 9) {
     !items.length ? h('span', {}, 'Empty') : null);
 }
 
-const PREVIEW_N = 4;
+/** Link folders sit as small squares; click one to open it full width with everything inside. */
 function linkFolderEl(f) {
   const q = query();
   const all = links(f.id);
   const items = all.filter(c => matches(c, q));
-  const open = !f.collapsed || (q && items.length);
+  const open = !!f.expanded || !!(q && items.length);
   const emoji = f.emoji || mostCommonEmoji(all.map(c => `${c.meta?.url || ''} ${c.title}`), '🔗');
   const name = h('span', { class: 'lf-name' }, f.name);
   name.addEventListener('dblclick', e => { e.stopPropagation(); editInline(name, { onCommit: v => saveLinkFolder(f.id, { name: v }) }); });
   const pdfIn = h('input', { type: 'file', accept: 'application/pdf,.pdf', multiple: true, hidden: true, onchange: e => { [...e.target.files].forEach(file => addPdf(file, f.id)); e.target.value = ''; } });
-  const list = h('div', { class: 'link-list lf-list', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': '' }, items.slice(0, PREVIEW_N).map(linkEl));
+  const toggle = () => saveLinkFolder(f.id, { expanded: !f.expanded });
+  const emojiBtn = h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, emoji);
+  if (!open) {
+    const tile = h('section', {
+      class: 'lf-tile', tabindex: 0, role: 'button', 'aria-label': `${f.name}, ${all.length} item${all.length === 1 ? '' : 's'}. Open folder`,
+      dataset: { drag: 'lfolder', id: f.id, lfolder: f.id, drop: 'link-list', accept: 'card' }, 'data-list': '',
+    },
+    emojiBtn,
+    h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, all.length ? `${all.length} item${all.length === 1 ? '' : 's'}` : 'Empty'), all.length ? dotsRow(all) : null),
+    h('button', { class: 'card-del', 'aria-label': `Delete folder ${f.name}`, title: 'Delete folder (its links move to My links)', onclick: e => { e.stopPropagation(); deleteLinkFolder(f); } }, icon('x')),
+    pdfIn);
+    tile.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) toggle(); });
+    tile.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tile) toggle(); });
+    return tile;
+  }
+  const list = h('div', { class: 'link-list lf-list', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': '' }, items.map(linkEl));
   if (!all.length) list.append(h('p', { class: 'empty-hint' }, 'Drag links here, or add PDFs.'));
-  return h('section', { class: `link-folder ${open ? 'open' : ''}`, dataset: { drag: 'lfolder', id: f.id, lfolder: f.id } },
+  return h('section', { class: 'link-folder open', dataset: { drag: 'lfolder', id: f.id, lfolder: f.id } },
     h('header', { class: 'lf-head' },
-      // SD-F1: collapse / expand.
-      h('button', { class: 'lf-caret', 'aria-label': open ? 'Collapse folder' : 'Expand folder', 'aria-expanded': String(!!open), onclick: () => saveLinkFolder(f.id, { collapsed: !f.collapsed }) }, icon('chevR')),
-      h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, emoji),
-      name,
-      h('span', { class: 'col-count' }, all.length || ''),
-      h('button', { class: 'icon-btn xs', 'aria-label': `Open ${f.name}`, title: 'Open in a wide view', onclick: () => openLinkFolder(f.id) }, icon('expand')),
+      emojiBtn,
+      h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, `${all.length} item${all.length === 1 ? '' : 's'}`)),
       h('button', { class: 'icon-btn xs', 'aria-label': `Add PDFs to ${f.name}`, title: 'Add PDFs', onclick: () => pdfIn.click() }, h('span', { class: 'pdf-mini' }, 'PDF')),
-      h('button', { class: 'icon-btn xs', 'aria-label': `Delete folder ${f.name}`, onclick: () => deleteLinkFolder(f) }, icon('x'))),
-    // SD-F6: what's inside, as coloured dots on one row.
-    dotsRow(all),
-    open ? list : null,
-    open && items.length > PREVIEW_N ? h('button', { class: 'chip ghost lf-more', onclick: () => openLinkFolder(f.id) }, `Show all ${items.length}`) : null,
+      h('button', { class: 'icon-btn xs', 'aria-label': `Open ${f.name} wide`, title: 'Open in a wide view', onclick: () => openLinkFolder(f.id) }, icon('expand')),
+      h('button', { class: 'icon-btn xs lf-collapse', 'aria-label': 'Close folder', title: 'Close folder', onclick: toggle }, icon('minimize'))),
+    list,
     pdfIn);
 }
 
@@ -361,7 +374,7 @@ function folderEl(f) {
   h('div', { class: 'bf-body' },
     h('button', { class: 'bf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveFolder(f.id, { emoji: v })); } }, emoji),
     name,
-    dotsRow([...subs.map(s => ({ title: s.name, meta: { color: s.color || '#A796CB' }, type: 'note' })), ...notes], 7),
+    dotsRow([...subs.map(s => ({ title: s.name, meta: { color: s.color || '#A796CB' }, type: 'note' })), ...notes]),
     h('span', { class: 'bf-count' }, count)),
   h('button', { class: 'bf-color', 'aria-label': 'Folder color', style: { background: f.color || '#A796CB' }, onclick: e => { e.stopPropagation(); pickFolderColor(e.currentTarget, f); } }));
   el.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openFolder(f.id); });

@@ -16,10 +16,10 @@ import { extractWhen } from './commands.js';
 
 export const SLOTS = ['morning', 'noon', 'afternoon', 'evening', 'night'];
 export const SLOT_LABELS = { morning: 'Morning', noon: 'Noon', afternoon: 'Afternoon', evening: 'Evening', night: 'Night' };
-const RECUR = { '': 'Does not repeat', daily: 'Every day (daily routine)', weekdays: 'Every weekday', weekly: 'Every week (weekly routine)', monthly: 'Every month (monthly routine)' };
+const RECUR = { '': 'Does not repeat', daily: 'Every day (daily routine)', weekdays: 'Every weekday', weekly: 'Every week (weekly routine)', monthly: 'Every month (monthly routine)', custom: 'Custom…' };
 const RECUR_SHORT = { daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly', monthly: 'Monthly' };
 // SD-T14: one-off item kinds. Stored as meta.itemType so it never collides with meta.kind ('reminder').
-export const ITEM_TYPES = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Work session', icon: 'target' } };
+export const ITEM_TYPES = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Work session', icon: 'target' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
 const ARCHIVE_DAYS = 30;
 
 let root, body, tbRight, planAdding = null;
@@ -45,12 +45,75 @@ function recursOn(meta, key) {
     case 'weekdays': return d.getDay() >= 1 && d.getDay() <= 5;
     case 'weekly': return d.getDay() === base.getDay();
     case 'monthly': return d.getDate() === base.getDate();
+    case 'custom': {
+      const r = meta.repeat || {};
+      if (r.until && key > r.until) return false;
+      const every = Math.max(1, r.every || 1);
+      if (r.unit === 'week') {
+        const weeks = Math.round((startOfWeek(d) - startOfWeek(base)) / (7 * 864e5));
+        const days = r.days?.length ? r.days : [base.getDay()];
+        return weeks % every === 0 && days.includes(d.getDay());
+      }
+      if (r.unit === 'month') {
+        const months = (d.getFullYear() - base.getFullYear()) * 12 + d.getMonth() - base.getMonth();
+        return months % every === 0 && d.getDate() === base.getDate();
+      }
+      return Math.round((d - base) / 864e5) % every === 0;
+    }
     default: return false;
   }
 }
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ICS_DOW = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+/** "Weekly", or for custom rules "Every 2 weeks · Mon, Wed". */
+export function recurLabel(meta) {
+  if (meta?.recurrence !== 'custom') return RECUR_SHORT[meta?.recurrence] || 'Routine';
+  const r = meta.repeat || {}, n = Math.max(1, r.every || 1);
+  const unit = { day: 'day', week: 'week', month: 'month' }[r.unit] || 'day';
+  let out = n === 1 ? `Every ${unit}` : `Every ${n} ${unit}s`;
+  if (unit === 'week' && r.days?.length) out += ` · ${[...r.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(d => DOW[d]).join(', ')}`;
+  if (r.until) out += ` · until ${fmtShortDate(parseKey(r.until))}`;
+  return out;
+}
+function rruleFor(meta) {
+  if (meta.recurrence !== 'custom') return RRULE[meta.recurrence];
+  const r = meta.repeat || {};
+  const freq = { day: 'DAILY', week: 'WEEKLY', month: 'MONTHLY' }[r.unit] || 'DAILY';
+  let rule = `FREQ=${freq};INTERVAL=${Math.max(1, r.every || 1)}`;
+  if (r.unit === 'week' && r.days?.length) rule += `;BYDAY=${r.days.map(d => ICS_DOW[d]).join(',')}`;
+  if (r.until) rule += `;UNTIL=${r.until.replace(/-/g, '')}T235959`;
+  return rule;
+}
+/** Every N days/weeks/months, on chosen weekdays, until a date (or forever). */
+function customRepeatFields(initial = {}, baseDate = todayKey()) {
+  const r = { every: 1, unit: 'week', days: [parseKey(baseDate).getDay()], until: null, ...initial };
+  const every = h('input', { class: 'field-input sm rp-every', type: 'number', min: 1, max: 99, value: r.every, 'aria-label': 'Repeat every' });
+  const unit = h('select', { class: 'field-input sm', 'aria-label': 'Unit' }, [['day', 'days'], ['week', 'weeks'], ['month', 'months']].map(([v, l]) => h('option', { value: v, selected: r.unit === v }, l)));
+  const days = new Set(r.days || []);
+  const dayRow = h('div', { class: 'rp-days', role: 'group', 'aria-label': 'On these days' }, [1, 2, 3, 4, 5, 6, 0].map(d => h('button', {
+    type: 'button', class: `rp-day ${days.has(d) ? 'on' : ''}`, 'aria-pressed': String(days.has(d)), title: DAY_NAMES[d],
+    onclick: e => { days.has(d) ? days.delete(d) : days.add(d); e.currentTarget.classList.toggle('on', days.has(d)); e.currentTarget.setAttribute('aria-pressed', String(days.has(d))); preview(); },
+  }, DAY_NAMES[d][0])));
+  const ends = h('select', { class: 'field-input sm', 'aria-label': 'Ends' }, h('option', { value: '' }, 'Never ends'), h('option', { value: 'on', selected: !!r.until }, 'Ends on…'));
+  const until = h('input', { class: 'field-input sm', type: 'date', min: baseDate, value: r.until || '', hidden: !r.until, 'aria-label': 'Ends on' });
+  const sum = h('p', { class: 'rp-sum muted small' });
+  const read = () => ({ every: Math.max(1, +every.value || 1), unit: unit.value, days: unit.value === 'week' ? [...days] : [], until: ends.value === 'on' && until.value ? until.value : null });
+  const preview = () => { dayRow.hidden = unit.value !== 'week'; until.hidden = ends.value !== 'on'; sum.textContent = recurLabel({ recurrence: 'custom', repeat: read() }); };
+  [every, unit, ends, until].forEach(x => x.addEventListener('input', preview));
+  [every, unit, ends, until].forEach(x => x.addEventListener('change', preview));
+  every.addEventListener('keydown', e => e.stopPropagation());
+  const el = h('div', { class: 'rp-custom' },
+    h('div', { class: 'rp-row' }, h('span', { class: 'rp-lbl' }, 'Every'), every, unit),
+    dayRow,
+    h('div', { class: 'rp-row' }, ends, until),
+    sum);
+  preview();
+  return { el, read };
+}
 /** Everything happening on a day. Routine occurrences carry `done` when that day was ticked. */
 export function occurrencesOn(key) {
-  const out = store.cardsWhere(c => live(c) && !(c.meta.kind === 'reminder' && c.meta.done && !c.meta.recurrence) && (c.meta.date === key || recursOn(c.meta, key)))
+  const spans = m => m.endDate && m.date && key > m.date && key <= m.endDate; // trips and conferences cover every day in between
+  const out = store.cardsWhere(c => live(c) && !(c.meta.kind === 'reminder' && c.meta.done && !c.meta.recurrence) && (c.meta.date === key || spans(c.meta) || recursOn(c.meta, key)))
     .map(card => ({ card, date: key, done: !!card.meta.doneDates?.includes(key) }));
   const slotIdx = s => (s ? SLOTS.indexOf(s) : 9);
   return out.sort((a, b) => {
@@ -84,7 +147,7 @@ export function runMaintenance() {
       if (new Date(m.archivedAt).getTime() < cutoff) { store.deleteCard(c.id, { silent: true }); changed = true; }
       continue;
     }
-    const pastOneOff = m.date && m.date < today && !m.recurrence && m.kind !== 'reminder';
+    const pastOneOff = m.date && (m.endDate || m.date) < today && !m.recurrence && m.kind !== 'reminder';
     const doneReminder = m.kind === 'reminder' && m.done && !m.recurrence; // a routine reminder never archives itself
     if (pastOneOff || doneReminder) { store.updateCard(c.id, { meta: { archivedAt: new Date().toISOString() } }, { silent: true }); changed = true; }
   }
@@ -245,7 +308,7 @@ function routineTick(c, key, done) {
   return h('button', { class: `routine-tick ${done ? 'on' : ''}`, 'aria-label': done ? 'Mark not done for this day' : 'Done for this day', 'aria-pressed': String(done), title: done ? 'Done for this day' : 'Tick off this day (the routine stays)',
     onclick: e => { e.stopPropagation(); toggleRoutineDay(c.id, key); } }, icon('check'));
 }
-const routineTag = c => h('span', { class: 'routine-tag' }, icon('repeat'), RECUR_SHORT[c.meta.recurrence] || 'Routine');
+const routineTag = c => h('span', { class: 'routine-tag' }, icon('repeat'), recurLabel(c.meta));
 
 function eventBlock(c, hourH, key, done) {
   const m = c.meta;
@@ -301,23 +364,31 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
 function quickActions(c) {
   return [
     h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Add to calendar', title: store.pref('calTarget') ? `Add to ${CAL_TARGETS[store.pref('calTarget')]?.label || 'calendar'} (Shift-click to choose)` : 'Add to your calendar', onclick: e => { e.stopPropagation(); addToCalendar(e.currentTarget, c.id, { choose: e.shiftKey }); } }, icon('calendar')),
-    h('button', { class: `card-tool ${isRoutine(c) ? 'on-routine' : ''}`, type: 'button', 'aria-label': 'Repeat', title: isRoutine(c) ? `Repeats ${RECUR_SHORT[c.meta.recurrence].toLowerCase()}` : 'Repeat: make it a routine', onclick: e => { e.stopPropagation(); openRepeat(e.currentTarget, c.id); } }, icon('repeat')),
+    h('button', { class: `card-tool ${isRoutine(c) ? 'on-routine' : ''}`, type: 'button', 'aria-label': 'Repeat', title: isRoutine(c) ? `Repeats ${recurLabel(c.meta).toLowerCase()}` : 'Repeat: make it a routine', onclick: e => { e.stopPropagation(); openRepeat(e.currentTarget, c.id); } }, icon('repeat')),
   ];
 }
 function openRepeat(anchorEl, id) {
   const c = store.getCard(id);
   if (!c) return;
-  const pick = v => {
-    const meta = { recurrence: v || null };
+  const pick = (v, repeat) => {
+    const meta = { recurrence: v || null, repeat: v === 'custom' ? repeat : null };
     if (v && !c.meta.date) meta.date = todayKey();
     if (v && !c.meta.doneDates) meta.doneDates = [];
-    store.updateCard(id, { meta }, { log: true, logLabel: v ? `Made a ${RECUR_SHORT[v].toLowerCase()} routine` : 'Stopped repeating' });
+    const label = v ? recurLabel({ recurrence: v, repeat }).toLowerCase() : '';
+    store.updateCard(id, { meta }, { log: true, logLabel: v ? `Repeats ${label}` : 'Stopped repeating' });
     closePopovers();
-    toast(v ? `“${c.title}” now repeats ${RECUR_SHORT[v].toLowerCase()}. Ticking a day never deletes it.` : `“${c.title}” no longer repeats.`);
+    toast(v ? `“${c.title}” now repeats ${label}. Ticking a day never deletes it.` : `“${c.title}” no longer repeats.`);
   };
+  const custom = customRepeatFields(c.meta.recurrence === 'custom' ? c.meta.repeat : {}, c.meta.date || todayKey());
+  const customBox = h('div', { class: 'rp-box', hidden: c.meta.recurrence !== 'custom' }, custom.el,
+    h('button', { class: 'btn sm primary', type: 'button', onclick: () => pick('custom', custom.read()) }, 'Save repeat'));
   popover(anchorEl, h('div', { class: 'repeat-pop' },
     h('strong', {}, 'Repeat'),
-    ...Object.entries(RECUR).map(([v, l]) => h('button', { class: `repeat-opt ${(c.meta.recurrence || '') === v ? 'on' : ''}`, onclick: () => pick(v) }, v ? icon('repeat') : icon('x'), l.replace(/ \(.*\)/, '')))));
+    ...Object.entries(RECUR).map(([v, l]) => h('button', {
+      class: `repeat-opt ${(c.meta.recurrence || '') === v ? 'on' : ''}`,
+      onclick: () => { if (v === 'custom') { customBox.hidden = !customBox.hidden; return; } pick(v); },
+    }, v === 'custom' ? icon('gear') : v ? icon('repeat') : icon('x'), l.replace(/ \(.*\)/, ''))),
+    customBox));
 }
 
 // ---------- Today's plan (SD-T10) = Taskly's To do column. One list, shown in both places. ----------
@@ -402,7 +473,25 @@ registerDrop('timely-reminders', ({ id }) => {
 
 // ---------- Weekly: a rolling week that starts today (SD-T13) ----------
 const nowSlot = () => { const n = new Date(); return slotOfMinutes(n.getHours() * 60 + n.getMinutes()); };
-const slotOf = c => c.meta.slot || (c.meta.start != null ? slotOfMinutes(c.meta.start) : 'morning');
+const slotOf = c => c.meta.slot || (c.meta.start != null ? slotOfMinutes(c.meta.start) : null); // null = all day
+/** Calm cells: routines fold into one "↻ 3 routines" pill, then at most `max` items and a count. */
+function cellItems(list, key, { max = 2, showTime = true } = {}) {
+  const routines = list.filter(o => isRoutine(o.card) && !ITEM_TYPES[o.card.meta.itemType]?.span);
+  const rest = list.filter(o => !routines.includes(o));
+  const out = [];
+  if (routines.length >= 2) {
+    const left = routines.filter(o => !o.done).length;
+    out.push(h('span', { class: `routine-pill ${left ? '' : 'all-done'}`, title: routines.map(o => `${o.done ? '✓ ' : ''}${o.card.title}`).join('\n') }, icon('repeat'), `${routines.length} routines${left && left < routines.length ? ` · ${left} left` : !left ? ' · done' : ''}`));
+  } else rest.unshift(...routines);
+  rest.slice(0, max).forEach(o => out.push(chip(o.card, { showTime, date: key, done: o.done })));
+  if (rest.length > max) out.push(h('span', { class: 'cell-more' }, `+${rest.length - max} more`));
+  return out;
+}
+/** The add buttons sit on the left of their own row; a quiet hint sits on the right. */
+function actionRow(buttons, hint) {
+  return h('div', { class: 'action-row' }, h('div', { class: 'action-adds' }, buttons), hint ? h('span', { class: 'action-hint' }, hint) : null);
+}
+const addBtn = (type, onClick) => h('button', { class: `add-btn add-${type}`, type: 'button', onclick: onClick }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES[type].icon)), ITEM_TYPES[type].label);
 function renderWeek() {
   const ws = parseKey(anchor());
   const days = [...Array(7)].map((_, i) => addDays(ws, i));
@@ -417,6 +506,14 @@ function renderWeek() {
       h('span', { class: 'wd-name' }, k === today ? 'Today' : DAY_NAMES[d.getDay()].slice(0, 3)), h('strong', { class: 'wd-num' }, d.getDate())));
   }
   const byDay = Object.fromEntries(days.map(d => [dateKey(d), occurrencesOn(dateKey(d))]));
+  // All day: trips, conferences and untimed things, so the parts of the day stay clean.
+  grid.append(h('div', { class: 'week-slot-label allday-label' }, h('span', {}, 'All day')));
+  for (const d of days) {
+    const k = dateKey(d);
+    const items = byDay[k].filter(o => slotOf(o.card) === null);
+    grid.append(h('div', { class: `week-cell week-allday ${k === today ? 'today' : ''}`, dataset: { drop: 'timely-cell', accept: 'card', date: k, slot: '' }, 'data-list': '' },
+      cellItems(items, k, { max: 2, showTime: false })));
+  }
   for (const slot of SLOTS) {
     const [a, b] = SLOT_HOURS[slot];
     grid.append(h('div', { class: `week-slot-label ${slot === curSlot && days.some(d => dateKey(d) === today) ? 'now' : ''}` },
@@ -429,8 +526,7 @@ function renderWeek() {
         class: `week-cell ${k === today ? 'today' : ''} ${isNow ? 'now' : ''}`, title: `${DAY_NAMES[d.getDay()]} ${SLOT_LABELS[slot].toLowerCase()} · click to zoom in`,
         dataset: { drop: 'timely-cell', accept: 'card', date: k, slot }, 'data-list': '',
       }, isNow ? h('span', { class: 'now-badge' }, h('i'), 'Now') : null,
-      items.slice(0, 3).map(o => chip(o.card, { showTime: true, date: k, done: o.done })),
-      items.length > 3 ? h('span', { class: 'cell-more' }, `+${items.length - 3} more`) : null);
+      cellItems(items, k, { max: 2 }));
       cell.append(
         h('button', { class: 'cell-zoom icon-btn xs', 'aria-label': `Zoom into ${DAY_NAMES[d.getDay()]} ${SLOT_LABELS[slot]}`, title: 'Zoom in', onclick: e => { e.stopPropagation(); openZoom('week', k, slot, cell); } }, icon('expand')),
         h('button', { class: 'cell-add icon-btn xs', 'aria-label': `Add to ${SLOT_LABELS[slot]}`, onclick: e => { e.stopPropagation(); openItemForm(e.currentTarget, { type: 'task', date: k, slot }); } }, icon('plus')));
@@ -438,11 +534,12 @@ function renderWeek() {
       grid.append(cell);
     }
   }
-  navControl(label, n => dateKey(addDays(ws, 7 * n)),
-    h('span', { class: 'item-adders' }, Object.entries(ITEM_TYPES).map(([t, v]) => h('button', { class: `chip add-${t}`, title: `New ${v.label.toLowerCase()}`, onclick: e => openItemForm(e.currentTarget, { type: t, date: today }) }, icon(v.icon), v.label))));
+  navControl(label, n => dateKey(addDays(ws, 7 * n)));
   const wk = weekPlanKey(ws);
   const host = h('div', { class: 'zoom-host week-main' }, grid);
-  body.replaceChildren(h('div', { class: 'period-layout' }, host,
+  body.replaceChildren(
+    actionRow(['task', 'meeting', 'appointment', 'work'].map(t => addBtn(t, e => openItemForm(e.currentTarget, { type: t, date: today }))), 'Click any part of a day to zoom in. Routines fold into one line.'),
+    h('div', { class: 'period-layout' }, host,
     periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`)));
   if (zoom?.view === 'week') host.append(zoomPanel());
 }
@@ -464,21 +561,27 @@ function renderMonth() {
     const k = dateKey(d);
     const occ = k >= today ? occurrencesOn(k) : [];
     const inMonth = d.getMonth() === a.getMonth();
-    const daily = occ.filter(o => o.card.meta.recurrence === 'daily' || o.card.meta.recurrence === 'weekdays');
-    const rest = occ.filter(o => !daily.includes(o));
-    const shown = rest.slice(0, 3);
+    // The month shows what's special about a day; routines stay out of the way (zoom in to see them).
+    const rest = occ.filter(o => !isRoutine(o.card) || ITEM_TYPES[o.card.meta.itemType]?.span || o.card.meta.recurrence === 'monthly')
+      .sort((x, y) => (y.card.meta.endDate ? 1 : 0) - (x.card.meta.endDate ? 1 : 0)); // trips and conferences first, so they read as one bar
+    const routineCount = occ.length - rest.length;
+    const shown = rest.slice(0, 2);
     const cell = h('div', {
       class: `month-cell ${inMonth ? '' : 'out'} ${k < today ? 'past' : ''} ${k === today ? 'today' : ''}`, role: 'button', tabindex: 0,
       title: k < today ? '' : `${DAY_NAMES[d.getDay()]}, ${fmtShortDate(d)} · click to zoom in`,
       dataset: { drop: 'timely-month', accept: 'card', date: k },
     }, h('span', { class: 'month-num' }, d.getDate()),
     // SD-T16: click an item to change its time right there.
-    shown.map(o => h('button', {
-      class: `month-item it-${itemTypeOf(o.card)} ${isRoutine(o.card) ? 'is-routine' : ''} ${o.done ? 'is-done' : ''}`, title: `${o.card.title} · click to change the time`,
-      onclick: e => { e.stopPropagation(); openTimePopover(e.currentTarget, o.card.id); },
-    }, o.card.meta.start != null ? h('b', {}, fmtMinutes(o.card.meta.start)) : null, o.card.title)),
-    rest.length > 3 ? h('span', { class: 'month-more' }, `+${rest.length - 3} more`) : null,
-    daily.length ? h('span', { class: 'month-routines' }, icon('repeat'), `${daily.length} daily`) : null);
+    shown.map(o => {
+      const m = o.card.meta, span = !!m.endDate;
+      return h('button', {
+        class: `month-item it-${itemTypeOf(o.card)} ${isRoutine(o.card) ? 'is-routine' : ''} ${o.done ? 'is-done' : ''} ${span ? `is-span ${k === m.date ? 'span-start' : ''} ${k === m.endDate ? 'span-end' : ''}` : ''}`,
+        title: span ? `${o.card.title} · ${fmtShortDate(parseKey(m.date))} – ${fmtShortDate(parseKey(m.endDate))}` : `${o.card.title} · click to change the time`,
+        onclick: e => { e.stopPropagation(); span ? openEventEditor(o.card.id) : openTimePopover(e.currentTarget, o.card.id); },
+      }, span ? icon(ITEM_TYPES[m.itemType]?.icon || 'calendar') : null, m.start != null ? h('b', {}, fmtMinutes(m.start)) : null, h('span', { class: 'mi-text' }, o.card.title));
+    }),
+    rest.length > 2 ? h('span', { class: 'month-more' }, `+${rest.length - 2} more`) : null,
+    routineCount ? h('span', { class: 'month-routine-dot', title: `${routineCount} routine${routineCount === 1 ? '' : 's'}`, 'aria-label': `${routineCount} routines` }) : null);
     if (k >= today) {
       cell.addEventListener('click', () => openZoom('month', k, null, cell));
       cell.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === cell) openZoom('month', k, null, cell); });
@@ -486,10 +589,17 @@ function renderMonth() {
     grid.append(cell);
   }
   const label = `${MONTH_NAMES[a.getMonth()]} ${a.getFullYear()}`;
-  navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); },
-    h('button', { class: 'btn sm primary', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: today, pickDate: true, title: 'Create event' }) }, icon('plus'), 'Create event'));
+  navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); });
   const host = h('div', { class: 'zoom-host month-main' }, grid);
-  body.replaceChildren(h('div', { class: 'period-layout' }, host,
+  const first0 = dateKey(a < parseKey(today) ? parseKey(today) : a);
+  body.replaceChildren(
+    actionRow([
+      addBtn('trip', e => openSpanForm(e.currentTarget, 'trip', first0)),
+      addBtn('meeting', e => openItemForm(e.currentTarget, { type: 'meeting', date: first0 })),
+      addBtn('conference', e => openSpanForm(e.currentTarget, 'conference', first0)),
+      h('button', { class: 'add-btn add-task', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: first0, title: 'New event' }) }, h('span', { class: 'add-btn-ic' }, icon('plus')), 'Event'),
+    ], 'Click a day to zoom in. A small dot means routines, tucked away.'),
+    h('div', { class: 'period-layout' }, host,
     periodPlanPanel('monthplan', monthPlanKey(a), `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month')));
   if (zoom?.view === 'month') host.append(zoomPanel());
 }
@@ -656,13 +766,37 @@ function timeFields(start = null) {
   const read = () => { const [hh, mm] = time.value.split(':').map(Number); return time.value ? hh * 60 + mm : null; };
   return { time, dur, read };
 }
+/** Trips and conferences cover several days. */
+function openSpanForm(anchorEl, type, date = todayKey()) {
+  const t = ITEM_TYPES[type];
+  const title = h('input', { class: 'field-input sm', placeholder: type === 'trip' ? 'Lisbon' : 'Design Week 2026', 'aria-label': 'Name' });
+  const from = daySelect(date);
+  const to = daySelect(dateKey(addDays(parseKey(date), type === 'trip' ? 3 : 1)));
+  const where = h('input', { class: 'field-input sm', placeholder: type === 'trip' ? 'Hotel, flight number… (optional)' : 'Venue, badge pickup… (optional)', 'aria-label': 'Details' });
+  const save = () => {
+    let a = from.value, b = to.value;
+    if (b < a) [a, b] = [b, a];
+    store.createCard({ type: 'event', tool: 'timely', title: title.value.trim() || t.label, description: where.value.trim(),
+      meta: { date: a, endDate: b > a ? b : null, start: null, slot: null, itemType: type } });
+    closePopovers();
+    toast(`${t.label} added: ${fmtShortDate(parseKey(a))}${b > a ? ` – ${fmtShortDate(parseKey(b))}` : ''}`);
+  };
+  [title, where].forEach(x => x.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') save(); }));
+  popover(anchorEl, h('div', { class: 'form-pop' },
+    h('strong', { class: 'form-pop-title' }, h('span', { class: `add-btn-ic add-${type}` }, icon(t.icon)), `New ${t.label.toLowerCase()}`),
+    field('Name', title),
+    h('div', { class: 'time-pop-row' }, field('From', from), field('To', to)),
+    field('Details', where),
+    h('button', { class: 'btn sm primary', onclick: save }, `Add ${t.label.toLowerCase()}`)));
+  setTimeout(() => title.focus(), 40);
+}
 /** A day picker that reads like a person would say it: “Tuesday, Oct 13”. Next 60 days, plus any date. */
 function daySelect(value) {
   const t = parseKey(todayKey());
   const keys = [...Array(60)].map((_, i) => dateKey(addDays(t, i)));
   if (value && !keys.includes(value)) keys.push(value);
   const sel = h('select', { class: 'field-input sm day-select', 'aria-label': 'Day' },
-    keys.map(k => h('option', { value: k, selected: k === value }, dayName(k))),
+    keys.map(k => h('option', { value: k, selected: k === value }, k === todayKey() ? `Today, ${fmtShortDate(parseKey(k))}` : dayName(k))),
     h('option', { value: '__pick' }, 'Another date…'));
   const picker = h('input', { type: 'date', class: 'day-select-native', min: todayKey(), tabindex: -1, 'aria-hidden': 'true' });
   let last = value;
@@ -682,7 +816,7 @@ function daySelect(value) {
 }
 /** SD-T14 / SD-T17: a one-off Task, Meeting, Appointment or Work session, with an optional exact time. */
 function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null, pickDate = true, title: heading } = {}) {
-  const typeSel = h('select', { class: 'field-input sm', 'aria-label': 'Type' }, Object.entries(ITEM_TYPES).map(([v, t]) => h('option', { value: v, selected: v === type }, t.label)));
+  const typeSel = h('select', { class: 'field-input sm', 'aria-label': 'Type' }, Object.entries(ITEM_TYPES).filter(([, t]) => !t.span).map(([v, t]) => h('option', { value: v, selected: v === type }, t.label)));
   const title = h('input', { class: 'field-input sm', placeholder: { task: 'Pick up the dry cleaning', meeting: 'Sync with Sam', appointment: 'Dentist', work: 'Focus: budget draft' }[type], 'aria-label': 'Title' });
   const dateIn = daySelect(date);
   const dayText = h('span', {}, dayName(date));
@@ -771,7 +905,7 @@ function renderReminders() {
 
 function stickyEl(c, overdue) {
   const m = c.meta;
-  const when = isRoutine(c) ? `${RECUR_SHORT[m.recurrence]}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}`
+  const when = isRoutine(c) ? `${recurLabel(m)}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}`
     : m.date ? `${m.date === todayKey() ? 'Today' : fmtShortDate(parseKey(m.date))}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}` : 'No date';
   const hsh = hashStr(c.id);
   const doneToday = isRoutine(c) && m.doneDates?.includes(todayKey());
@@ -881,18 +1015,23 @@ export function openEventEditor(id) {
     extra: card => {
       const m = card.meta || {};
       f.date = h('input', { class: 'field-input', type: 'date', min: todayKey(), value: m.date || '' });
+      f.end = h('input', { class: 'field-input', type: 'date', min: m.date || todayKey(), value: m.endDate || '', 'aria-label': 'Until' });
       f.time = h('input', { class: 'field-input', type: 'time', value: m.start != null ? `${pad(Math.floor(m.start / 60))}:${pad(m.start % 60)}` : '' });
       const durs = [...new Set([15, 30, 45, 60, 90, 120, 180, m.dur || 60])].sort((a, b) => a - b);
       const durLabel = v => (v < 60 ? `${v} min` : v % 60 ? `${Math.floor(v / 60)} hr ${v % 60} min` : `${v / 60} hr`);
       f.dur = h('select', { class: 'field-input' }, durs.map(v => h('option', { value: v, selected: (m.dur || 60) === v }, durLabel(v))));
       f.slot = h('select', { class: 'field-input' }, h('option', { value: '' }, 'Any time'), SLOTS.map(s => h('option', { value: s, selected: m.slot === s }, SLOT_LABELS[s])));
       f.rec = h('select', { class: 'field-input' }, Object.entries(RECUR).map(([v, l]) => h('option', { value: v, selected: (m.recurrence || '') === v }, l)));
+      f.custom = customRepeatFields(m.recurrence === 'custom' ? m.repeat : {}, m.date || todayKey());
+      f.custom.el.hidden = f.rec.value !== 'custom';
+      f.rec.addEventListener('change', () => { f.custom.el.hidden = f.rec.value !== 'custom'; });
       f.type = isRem ? null : h('select', { class: 'field-input' }, Object.entries(ITEM_TYPES).map(([v, t]) => h('option', { value: v, selected: (m.itemType || 'task') === v }, t.label)));
       const sync = () => { f.dur.disabled = !f.time.value; f.slot.disabled = !!f.time.value; };
       f.time.addEventListener('input', sync); sync();
       return h('div', { class: 'ical' },
-        h('div', { class: 'ical-row' }, field('Date', f.date), field('Time', f.time), field('Length', f.dur)),
+        h('div', { class: 'ical-row' }, field(m.endDate || ITEM_TYPES[m.itemType]?.span ? 'From' : 'Date', f.date), m.endDate || ITEM_TYPES[m.itemType]?.span ? field('Until', f.end) : null, field('Time', f.time), field('Length', f.dur)),
         h('div', { class: 'ical-row' }, f.type ? field('Type', f.type) : null, field('Part of day', f.slot), field('Repeat', f.rec)),
+        f.custom.el,
         isRoutine(card) ? h('p', { class: 'muted small' }, 'Changes apply from today on. Days you already ticked stay ticked.') : null,
         h('div', { class: 'ical-actions' },
           h('button', { class: 'chip', type: 'button', onclick: e => addToCalendar(e.currentTarget, id, { choose: true }) }, icon('calendar'), 'Add to calendar…'),
@@ -905,8 +1044,9 @@ export function openEventEditor(id) {
       return {
         meta: {
           ...card.meta, date: f.date.value || (card.meta.kind === 'reminder' ? null : card.meta.date),
+          endDate: f.end.value && f.end.value > (f.date.value || card.meta.date) ? f.end.value : null,
           start, dur: start != null ? +f.dur.value : card.meta.dur, slot: start != null ? null : f.slot.value || null,
-          recurrence: f.rec.value || null, ...(f.type ? { itemType: f.type.value } : {}),
+          recurrence: f.rec.value || null, repeat: f.rec.value === 'custom' ? f.custom.read() : null, ...(f.type ? { itemType: f.type.value } : {}),
         },
       };
     },
@@ -927,10 +1067,10 @@ function vevent(c, onDate) {
     const t = mins => `${pad(Math.floor(mins / 60) % 24)}${pad(mins % 60)}00`;
     lines.push(`DTSTART:${date}T${t(m.start)}`, `DTEND:${date}T${t(Math.min(end, 24 * 60 - 1))}`);
   } else {
-    const next = dateKey(addDays(parseKey(onDate || m.date || todayKey()), 1)).replace(/-/g, '');
+    const next = dateKey(addDays(parseKey(onDate || m.endDate || m.date || todayKey()), 1)).replace(/-/g, '');
     lines.push(`DTSTART;VALUE=DATE:${date}`, `DTEND;VALUE=DATE:${next}`);
   }
-  if (m.recurrence && !onDate) lines.push(`RRULE:${RRULE[m.recurrence]}`);
+  if (m.recurrence && !onDate) lines.push(`RRULE:${rruleFor(m)}`);
   if (c.description) lines.push(`DESCRIPTION:${icsEsc(c.description)}`);
   if (m.kind === 'reminder') lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEsc(c.title)}`, 'TRIGGER:PT0M', 'END:VALARM');
   lines.push('END:VEVENT');
@@ -952,9 +1092,9 @@ export function googleCalendarUrl(c) {
   if (m.start != null) {
     const t = mins => `${pad(Math.floor(mins / 60) % 24)}${pad(mins % 60)}00`;
     dates = `${date}T${t(m.start)}/${date}T${t(Math.min(m.start + (m.dur || 60), 24 * 60 - 1))}`;
-  } else dates = `${date}/${dateKey(addDays(parseKey(m.date || todayKey()), 1)).replace(/-/g, '')}`;
+  } else dates = `${date}/${dateKey(addDays(parseKey(m.endDate || m.date || todayKey()), 1)).replace(/-/g, '')}`;
   const q = new URLSearchParams({ action: 'TEMPLATE', text: c.title, dates, details: plainText(c.description), ctz: Intl.DateTimeFormat().resolvedOptions().timeZone || '' });
-  if (m.recurrence) q.set('recur', `RRULE:${RRULE[m.recurrence]}`);
+  if (m.recurrence) q.set('recur', `RRULE:${rruleFor(m)}`);
   return `https://calendar.google.com/calendar/render?${q}`;
 }
 const CAL_TARGETS = {
@@ -1071,23 +1211,36 @@ function renderPlan() {
     list.map(ct => (b === 'goals' ? goalEl(ct) : containerEl(b, ct))),
     h('button', { class: 'plan-ghost', onclick: () => (b === 'goals' ? openGoalWizard(null) : addContainer(b)) }, icon('plus'), b === 'goals' ? 'New goal' : 'Add project'));
   viewport.append(track);
-  const left = h('button', { class: 'carousel-btn left', 'aria-label': 'Previous lists' }, h('span', { class: 'tri' }));
-  const right = h('button', { class: 'carousel-btn right', 'aria-label': 'Next lists' }, h('span', { class: 'tri' }));
-  const pager = h('div', { class: 'plan-pager' });
-  body.replaceChildren(h('div', { class: 'plan' }, left, viewport, right), pager);
+  // Paging lives in the toolbar (same look as the date navigator), so nothing sits next to the tool buttons on the right edge.
+  const left = h('button', { class: 'icon-btn tri-btn', 'aria-label': `Previous ${b === 'goals' ? 'goals' : 'projects'}` }, icon('chevL'));
+  const right = h('button', { class: 'icon-btn tri-btn', 'aria-label': `Next ${b === 'goals' ? 'goals' : 'projects'}` }, icon('chevR'));
+  const label = h('span', { class: 'time-label plan-range' });
+  const navEl = h('div', { class: 'time-nav plan-nav' }, h('div', { class: 'time-nav-main' }, left, label, right));
+  tbRight.prepend(navEl);
+  body.replaceChildren(h('div', { class: 'plan' }, viewport));
   requestAnimationFrame(() => {
     const step = colW(b) + COL_GAP;
     const visible = Math.max(1, Math.floor((viewport.clientWidth + COL_GAP) / step));
-    const max = Math.max(0, list.length + 1 - visible);
+    const total = list.length + 1;
+    const max = Math.max(0, total - visible);
     let off = clamp((store.pref('planOffset', {})[b]) || 0, 0, max);
+    navEl.hidden = !max;
     const paint = animate => {
       track.style.transition = animate ? '' : 'none';
       track.style.transform = `translateX(${-off * step}px)`;
       left.disabled = off === 0; right.disabled = off >= max;
-      pager.replaceChildren(...(max ? Array.from({ length: max + 1 }, (_, i) => h('span', { class: `pdot ${i === off ? 'on' : ''}` })) : []));
+      const last = Math.min(list.length, off + visible);
+      label.textContent = last > off + 1 ? `${off + 1}–${last} of ${list.length}` : `${Math.min(off + 1, list.length)} of ${list.length}`;
       if (!animate) requestAnimationFrame(() => (track.style.transition = ''));
     };
     const go = d => { off = clamp(off + d, 0, max); store.setPref('planOffset', { ...store.pref('planOffset', {}), [b]: off }); paint(true); };
+    // Trackpads and Shift+wheel page sideways too.
+    let wheelLock = false;
+    viewport.addEventListener('wheel', e => {
+      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+      if (!dx || wheelLock || Math.abs(dx) < 12) return;
+      e.preventDefault(); wheelLock = true; go(dx > 0 ? 1 : -1); setTimeout(() => (wheelLock = false), 380);
+    }, { passive: false });
     left.onclick = () => go(-1); right.onclick = () => go(1);
     paint(false);
   });

@@ -98,7 +98,7 @@ onDragStart(d => {
   const els = [...sel].filter(id => id !== d.id).map(id => canvas.querySelector(`.tile[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
   group = { d, els, ids: [...sel].filter(id => id !== d.id) };
   els.forEach(el => el.classList.add('following'));
-  group.move = () => { const dx = d.x - d.sx, dy = d.y - d.sy; els.forEach(el => { el.style.transform = `translate(${dx}px, ${dy}px)`; }); };
+  group.move = () => { if (live?.inside) return; const dx = d.x - d.sx, dy = d.y - d.sy; els.forEach(el => { el.style.transform = `translate(${dx}px, ${dy}px)`; }); };
   addEventListener('pointermove', group.move);
 });
 onDragEnd(snap => {
@@ -159,6 +159,43 @@ registerDrop('boardly-tab', ({ id, data }) => {
   toast(`Moved to ${tabs().find(t => t.id === data.tab)?.name}`);
 });
 onDragStart(d => { if (d.el.classList.contains('note-card')) collapseNote(d.el); });
+
+// Direct manipulation: inside the board the card itself moves under your pointer (no floating copy, no tilt).
+// Drag it off the board and the floating copy takes over, so it can still go to another tool or the trash.
+let live = null;
+onDragStart(d => {
+  if (!canvas?.isConnected || d.kind !== 'card' || !canvas.contains(d.el)) { live = null; return; }
+  const el = d.el;
+  const base = { left: parseFloat(el.style.left) || 0, top: parseFloat(el.style.top) || 0 };
+  live = { d, el, base, inside: true };
+  el.classList.add('live-drag');
+  document.body.classList.add('board-live');
+  live.move = () => {
+    const cr = canvas.getBoundingClientRect();
+    const inside = d.x >= cr.left && d.x <= cr.right && d.y >= cr.top && d.y <= cr.bottom;
+    if (inside !== live.inside) {
+      live.inside = inside;
+      document.body.classList.toggle('board-live', inside);
+      el.classList.toggle('live-drag', inside);
+    }
+    if (!inside) { el.style.transform = ''; return; }
+    // Where the card's top-left would land, kept inside the board.
+    const x = clamp(d.x - d.gx - cr.left + canvas.scrollLeft, LEFT, canvas.clientWidth - el.offsetWidth - 8);
+    const y = clamp(d.y - d.gy - cr.top + canvas.scrollTop, 8, canvas.clientHeight - el.offsetHeight - 8);
+    el.style.transform = `translate(${x - live.base.left}px, ${y - live.base.top}px)`;
+    if (group) group.els.forEach(o => { o.style.transform = `translate(${x - live.base.left}px, ${y - live.base.top}px)`; });
+  };
+  addEventListener('pointermove', live.move);
+  live.move();
+});
+onDragEnd(() => {
+  if (!live) return;
+  removeEventListener('pointermove', live.move);
+  live.el.classList.remove('live-drag');
+  live.el.style.transform = '';
+  document.body.classList.remove('board-live');
+  live = null;
+});
 
 function freeSpot(tabId) {
   const n = tabCards(tabId).length;

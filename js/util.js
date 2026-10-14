@@ -121,6 +121,13 @@ export const SOFT_COLORS = ['#8E9BC9', '#86AE95', '#C9A46E', '#A796CB', '#C98E8E
 export const colorFor = s => SOFT_COLORS[hashStr(s) % SOFT_COLORS.length];
 
 const EMOJI_RULES = [
+  ['claude|anthropic|chatgpt|openai|llm|gemini|copilot', '✨'],
+  ['figma|dribbble|behance|canva|design|font|colou?rs?|palette', '🎨'],
+  ['gmail|e-?mail|inbox|newsletter|outlook', '✉️'],
+  ['calendar|event|schedule|agenda', '📅'],
+  ['photos?|images?|unsplash|pinterest|gallery|camera', '🖼️'],
+  ['lease|contract|insurance|policy|agreement|legal|warranty|invoice|receipt', '📑'],
+  ['notes?|zettel\\w*|evernote|obsidian|journal|notebook', '📝'],
   ['youtube|youtu\\.be|vimeo|video|film|movie|watch|twitch|netflix', '🎬'],
   ['spotify|music|song|podcast|soundcloud|audio|playlist', '🎵'],
   ['github|gitlab|code|coding|developer|api|stackoverflow|npm|javascript|python|program', '💻'],
@@ -289,10 +296,10 @@ export function editInline(el, { multiline = false, onCommit, selectAll = true }
 // ---------- Icons (1.6px strokes, currentColor) ----------
 const S = (inner, vb = 24) => `<svg viewBox="0 0 ${vb} ${vb}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 export const ICONS = {
-  // A modern atom: three even, thin orbits, a solid nucleus and two electrons.
-  atom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true" class="atom-mark"><ellipse cx="12" cy="12" rx="10.2" ry="4"/><ellipse cx="12" cy="12" rx="10.2" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10.2" ry="4" transform="rotate(-60 12 12)"/><circle cx="12" cy="12" r="2.1" fill="currentColor" stroke="none"/><circle cx="22.2" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="6.9" cy="20.8" r="1.2" fill="currentColor" stroke="none"/></svg>',
-  // Universal Board: one clean spiral and two stars.
-  galaxy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><g class="galaxy-arms"><path d="M12 12c0-1 1.6-1.4 2.3-.4.9 1.3-.2 3.3-2 3.5-2.4.3-4.1-2-3.6-4.3.6-3 4-4.6 6.9-3.6 3.6 1.3 5 5.6 3.4 9"/></g><circle cx="5" cy="17.5" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="5.5" r=".7" fill="currentColor" stroke="none"/></svg>',
+  // Atom: three loops of different lengths and angles around a solid nucleus, with two electrons.
+  atom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" aria-hidden="true" class="atom-mark"><ellipse cx="12" cy="12" rx="11" ry="3.3" transform="rotate(-14 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3" transform="rotate(50 12 12)"/><ellipse cx="12" cy="12" rx="7" ry="2.7" transform="rotate(110 12 12)"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="1.4" cy="14.6" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.4" cy="18.9" r=".95" fill="currentColor" stroke="none"/></svg>',
+  // Universal Board: a four-point star with an orbit passing behind it and a moon riding the orbit (it turns on hover).
+  galaxy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true"><defs><mask id="sedi-uni-mask"><rect width="24" height="24" fill="#fff"/><circle cx="12" cy="11.3" r="5.5" fill="#000"/></mask></defs><g mask="url(#sedi-uni-mask)"><g class="galaxy-arms"><ellipse cx="12" cy="12.4" rx="11" ry="3.4" transform="rotate(-20 12 12)"/><circle cx="22.3" cy="8.6" r="1.2" fill="currentColor" stroke="none"/></g></g><path d="M12 5.2c.55 3.7 2.4 5.55 6.1 6.1-3.7.55-5.55 2.4-6.1 6.1-.55-3.7-2.4-5.55-6.1-6.1 3.7-.55 5.55-2.4 6.1-6.1z" transform="translate(12 11.3) scale(1.25) translate(-12 -11.3)" fill="currentColor" stroke="none"/><circle cx="4.2" cy="5.4" r=".8" fill="currentColor" stroke="none"/></svg>',
   flag: S('<path d="M6 20.5V4.5"/><path d="M6 5h11l-2.5 4L17 13H6"/>'),
   arrowR: S('<path d="M5 12h12M13 7.5 17.5 12 13 16.5"/>'),
   sparkle: S('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M7 17l2-2M15 9l2-2"/>'),
@@ -325,6 +332,9 @@ export const ICONS = {
   minimize: S('<path d="M19.5 4.5l-5.5 5.5M14 5.5V10h4.5M4.5 19.5 10 14M10 18.5V14H5.5"/>'),
   board: S('<rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/>'),
   plus2: S('<path d="M12 6v12M6 12h12"/>'),
+  eraser: S('<path d="M8.5 19.5h11"/><path d="M4.6 14.1 13.8 4.9a2 2 0 0 1 2.8 0l2.5 2.5a2 2 0 0 1 0 2.8l-8.3 8.3H8.6l-4-4a1 1 0 0 1 0-1.4z"/><path d="m9.2 9.5 5.3 5.3"/>'),
+  plane: S('<path d="M10.5 13.5 4 11l1.2-1.6 7 .6 4.3-4.6a1.9 1.9 0 0 1 2.7 2.7l-4.6 4.3.6 7L13.6 20.6 11 14l-3.4 3.2.3 2.3-1.3 1-1.5-3.3L1.8 16l1-1.3 2.3.3z"/>'),
+  people: S('<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="9.5" r="2.4"/><path d="M15.6 14.6c2.6-.3 4.5 1.3 5 4"/>'),
   sun: S('<circle cx="12" cy="12" r="3.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'),
   columns: S('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.2 4.5v15M14.8 4.5v15"/>'),
   grid: S('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.2 4.5v15M14.8 4.5v15"/>'),

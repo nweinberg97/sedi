@@ -6,7 +6,7 @@ import * as store from './store.js';
 import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime } from './util.js';
 import { TOOL_NAMES, typeIcon, byOrder, routeCard, flatten, trashCard } from './cards.js';
 import { navigate, revealCard } from './shell.js';
-import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, askClaudeUrl } from './engines.js';
+import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, rememberAsk, openEnginesPanel } from './engines.js';
 import { summaryFor, ensureSummary, noteText } from './summaries.js';
 import { findCard } from './commands.js';
 import { nextUpItems } from './home.js';
@@ -31,7 +31,9 @@ export function buildAssistant() {
   statusEl = h('span', { class: 'as-status' });
   tray = h('section', { class: 'assistant-tray', 'aria-label': 'Assistant', hidden: true },
     h('div', { class: 'as-head' }, modeBar, statusEl,
+      h('button', { class: 'icon-btn xs', 'aria-label': 'Clear chat', title: 'Clear chat', onclick: clearChat }, icon('eraser')),
       h('button', { class: 'icon-btn xs', 'aria-label': 'Command history', title: 'Command history', onclick: openLog }, icon('archive')),
+      h('button', { class: 'icon-btn xs', 'aria-label': 'Assistant settings', title: 'Settings: AI engines and Ask Claude', onclick: () => { toggle(false); openEnginesPanel(); } }, icon('gear')),
       h('button', { class: 'icon-btn xs', 'aria-label': 'Close assistant', onclick: () => toggle(false) }, icon('x'))),
     output,
     h('form', { class: 'as-form', onsubmit: e => { e.preventDefault(); submit(input.value); } },
@@ -59,18 +61,29 @@ function paintStatus() {
 function setMode(m) {
   mode = m;
   store.setPref('assistantMode', m);
-  modeBar.replaceChildren(...[['chat', 'Chat'], ['voice', 'Voice'], ['command', 'Command']].map(([v, l]) =>
-    h('button', { class: v === m ? 'on' : '', type: 'button', role: 'tab', 'aria-selected': String(v === m), onclick: () => setMode(v) }, l)));
-  input.placeholder = { chat: 'Ask about your tasks, notes or goals', voice: 'Tap the mic and talk', command: 'e.g. add call the dentist to my to do list' }[m];
+  modeBar.replaceChildren(...[['chat', 'Chat', 'Search ideas and find things. You can dictate too.'], ['voice', 'Voice', 'Talk about notes and ideas; it talks back.'], ['command', 'Command', 'Move, create, reschedule and delete things.']].map(([v, l, tip]) =>
+    h('button', { class: v === m ? 'on' : '', type: 'button', role: 'tab', title: tip, 'aria-selected': String(v === m), onclick: () => { const changed = v !== mode; setMode(v); if (changed && (!output.querySelector('.as-msg') || output.querySelector('.as-hint'))) greet(); } }, l)));
+  input.placeholder = { chat: 'Search or ask… (tap the mic to dictate)', voice: 'Tap the mic and talk, or type', command: 'e.g. move renew passport to in progress' }[m];
   tray.dataset.mode = m;
   if (!output.childElementCount) greet();
 }
+const MODE_COPY = {
+  voice: { title: 'Talk it through', text: 'Talk about your notes and ideas. I’ll summarize them and answer out loud, then keep listening until you say “stop”.', tries: ['Summarize my notes', 'What did I write about Lisbon?', 'What’s next today?'] },
+  chat: { title: 'Search and find', text: 'Search ideas and find anything you’ve saved across Sedi. Type, or tap the mic to dictate.', tries: ['Find my notes about books', 'What’s next?', 'Summary'] },
+  command: { title: 'Make changes', text: 'Create, move, reschedule, rename, complete or delete things. You confirm before anything changes.', tries: ['Add buy milk to my to do list', 'Move renew passport to this week’s plan', 'Remind me to call mom tomorrow at 9am'] },
+};
 function greet() {
-  output.replaceChildren(h('p', { class: 'as-hint' }, {
-    chat: 'Ask “what’s next?”, “summary”, or search for anything you’ve saved.',
-    voice: 'Tap the mic, speak, and I’ll answer out loud.',
-    command: 'Say or type a change, like “remind me to call mom tomorrow at 3pm” or “move call the dentist to review”. You’ll confirm before anything happens. Commands also work from Chat and Voice.',
-  }[mode]));
+  const c = MODE_COPY[mode];
+  output.replaceChildren(h('div', { class: 'as-hint' },
+    h('strong', {}, c.title), h('p', {}, c.text),
+    h('div', { class: 'as-tries' }, c.tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => (mode === 'voice' ? submit(t, { fromVoice: true }) : submit(t)) }, t)))));
+}
+function clearChat() {
+  if (pending) cancelPending(true);
+  session?.stop(); stopSpeaking(); convo = false;
+  output.replaceChildren();
+  greet();
+  input.focus();
 }
 
 function toggle(force) {
@@ -135,12 +148,6 @@ const itemList = cards => h('div', { class: 'as-items' }, cards.map(c => h('butt
 }, typeIcon(c.type), h('span', {}, c.title), h('small', {}, TOOL_NAMES[c.tool]))));
 /** Who wrote this answer. */
 const engineTag = label => h('span', { class: 'as-engine' }, label);
-/** Free hand-off to Claude.ai, with the question and related cards typed in. */
-const askClaude = (q, cards) => h('a', {
-  class: 'chip ask-claude', href: askClaudeUrl(q, cards.map(c => ({ title: c.title, where: TOOL_NAMES[c.tool], text: flatten(c) }))), target: '_blank', rel: 'noopener noreferrer',
-  title: 'Opens Claude.ai in a new tab with your question and related Sedi cards typed in. Uses your own Claude plan. Nothing is sent until you press send there.',
-}, 'Ask Claude ↗');
-
 // ---------- Submit ----------
 async function submit(text, { fromVoice = false } = {}) {
   text = (text || '').trim();
@@ -182,9 +189,25 @@ function talkBack(text) {
 
 function toggleMic() {
   if (session) { convo = false; session.stop(); return; }
+  if (mode === 'chat') return dictateToInput();
   // Tapping the mic while I'm talking interrupts me and listens right away.
   convo = mode === 'voice';
   startListening();
+}
+/** Chat mode: the mic types into the box so you can check it before sending. */
+function dictateToInput() {
+  stopSpeaking();
+  const base = input.value ? `${input.value.trimEnd()} ` : '';
+  let said = '';
+  micBtn.classList.add('on'); tray.classList.add('listening');
+  input.placeholder = 'Listening…';
+  session = listen({
+    continuous: false,
+    onInterim: t => { if (t) input.value = base + said + t; },
+    onFinal: t => { if (t) { said += (said ? ' ' : '') + t; input.value = base + said; } },
+    onError: msg => toast(msg),
+    onEnd: () => { session = null; micBtn.classList.remove('on'); tray.classList.remove('listening'); setMode(mode); input.focus(); },
+  });
 }
 function startListening() {
   stopSpeaking();
@@ -296,6 +319,7 @@ async function answer(q) {
     return text.replace(/\*\*/g, '');
   }
   const hits = search(q);
+  rememberAsk(q, hits.map(c => ({ title: c.title, where: TOOL_NAMES[c.tool], text: flatten(c) })));
   // A non-default engine (Claude key, OpenAI-compatible, Ollama) answers with your matching cards as context.
   if (engineConfig().active !== 'local' && engineAvailable()) {
     const bubble = say(h('div', { class: 'as-stream' }, h('span', { class: 'muted' }, `Asking ${engineLabel()}…`)));
@@ -305,7 +329,7 @@ async function answer(q) {
         system: `You are the assistant inside Sedi, the user's personal planner (Taskly tasks, Boardly goals, Timely calendar, Brainly notes). Be brief and practical.${ctx ? `\n\nRelevant items from the user's Sedi:\n${ctx}` : ''}`,
         messages: [{ role: 'user', content: q }],
       });
-      bubble.firstChild.replaceChildren(renderText(r.text), engineTag(r.engine), hits.length ? itemList(hits.slice(0, 3)) : null, askClaude(q, hits));
+      bubble.firstChild.replaceChildren(renderText(r.text), engineTag(r.engine), hits.length ? itemList(hits.slice(0, 3)) : null);
       return r.text;
     } catch (err) {
       bubble.firstChild.replaceChildren(h('span', { class: 'muted' }, `${engineLabel()} couldn’t answer: ${err.message || err}. Showing matches instead.`));
@@ -316,7 +340,7 @@ async function answer(q) {
     try {
       const ctx = hits.slice(0, 4).map(c => ({ title: c.title, where: TOOL_NAMES[c.tool] }));
       const res = await brain.ask(q, ctx, partial => { bubble.firstChild.replaceChildren(renderText(partial)); output.scrollTop = output.scrollHeight; });
-      bubble.firstChild.replaceChildren(renderText(res.text), h('small', { class: 'as-sources' }, `From: ${res.sources.join(', ')}`), engineTag(engineLabel('local')), askClaude(q, hits));
+      bubble.firstChild.replaceChildren(renderText(res.text), h('small', { class: 'as-sources' }, `From: ${res.sources.join(', ')}`), engineTag(engineLabel('local')));
       return res.text;
     } catch (err) {
       bubble.firstChild.replaceChildren(h('span', { class: 'muted' }, `The brain couldn’t answer: ${err.message || err}. Showing matches instead.`));
@@ -324,11 +348,11 @@ async function answer(q) {
   }
   if (hits.length) {
     text = `I found ${hits.length} match${hits.length === 1 ? '' : 'es'}: ${hits.map(c => c.title).join(', ')}.`;
-    say(h('div', {}, h('p', {}, `Found ${hits.length} in your Sedi:`), itemList(hits), engineTag('Searched your Sedi'), askClaude(q, hits)));
+    say(h('div', {}, h('p', {}, `Found ${hits.length} in your Sedi:`), itemList(hits), engineTag('Searched your Sedi')));
     return text;
   }
-  text = brain.isEnabled() ? 'I couldn’t find anything for that.' : 'Nothing in your Sedi matches that. Turn on the Sovereign Brain (menu) for an on-device AI, or ask Claude with your own plan.';
-  say(h('div', {}, h('p', {}, text), askClaude(q, [])));
+  text = brain.isEnabled() ? 'I couldn’t find anything for that.' : 'Nothing in your Sedi matches that. Turn on the on-device AI in Settings for open questions.';
+  say(h('div', {}, h('p', {}, text)));
   return text;
 }
 

@@ -107,8 +107,9 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [] } =
   if (hasNotes(card)) el.title = el.title || 'Has notes';
   el.append(deleteButton(card.id), infoButton(onInfo));
   if (!compact) {
-    // Hover tools slide in at the bottom right, beside Details: tool-specific quick actions plus dictate.
-    el.append(h('div', { class: 'card-tools' }, ...actions, dictateButton(card.id)));
+    // Hover tools slide in at the bottom right, beside Details: tool-specific quick actions.
+    // The mic lives where you type (add fields and the Details description), not on finished cards.
+    if (actions.length) el.append(h('div', { class: 'card-tools' }, ...actions));
   }
   return el;
 }
@@ -263,11 +264,14 @@ export function moveCardTo(id, key) {
   toast(`Moved to ${destinationLabel(key)}`);
   return true;
 }
-const MOVE_ICONS = { Taskly: 'checklist', Boardly: 'board', Timely: 'calendar', Brainly: 'brain', 'Universal Board': 'galaxy' };
+const MOVE_ICONS = { Taskly: 'checklist', Boardly: 'board', Timely: 'calendar', Brainly: 'brain', Links: 'link', 'Universal Board': 'galaxy' };
 /** "Move to…" as a slideable panel: pick a tool, then swipe through its places. Exposes .value like a select. */
 export function moveSelect(card) {
   const cur = currentDestination(card);
-  const groups = moveDestinations().filter(([, list]) => list.length);
+  // Links, PDFs and files only move between link folders.
+  const isLink = card.tool === 'brainly' && card.type === 'link';
+  const groups = moveDestinations().filter(([, list]) => list.length)
+    .map(([g, list]) => (isLink ? (g === 'Brainly' ? ['Links', list.filter(([v]) => v.startsWith('brainly:links:'))] : null) : [g, list])).filter(Boolean);
   let value = cur;
   let group = (groups.find(([, list]) => list.some(([v]) => v === cur)) || groups[0])[0];
   const tabs = h('div', { class: 'mp-tabs', role: 'tablist', 'aria-label': 'Move to tool' });
@@ -302,7 +306,7 @@ export function openMoveDialog(id, after) {
   const sel = moveSelect(card);
   modal({
     title: 'Move to…',
-    body: h('div', { class: 'editor' }, h('p', { class: 'muted small' }, 'Moves the card the same way dragging it through the Universal Board would.'), sel),
+    body: h('div', { class: 'editor' }, h('p', { class: 'muted small' }, card.type === 'link' ? 'Pick the link folder it belongs in.' : 'Moves the card the same way dragging it through the Universal Board would.'), sel),
     actions: [{ label: 'Cancel', kind: 'ghost' }, { label: 'Move', kind: 'primary', onClick: () => { if (sel.value !== currentDestination(store.getCard(id))) { moveCardTo(id, sel.value); after?.(); } } }],
   });
 }
