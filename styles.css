@@ -2245,3 +2245,164 @@ body.board-live, body.board-live * { cursor: grabbing !important; }
   .month-cell .span-bar { height: 5px; font-size: 0; padding: 0; }
   .week-cell .cell-n { font-size: 13px; }
 }
+
+/* ---------- Floating buttons, round 6 ---------- */
+/* Assistant: a frosted orb with a soft blue glow that breathes */
+.assistant-token {
+  background: radial-gradient(circle at 34% 28%, #ffffff 0%, #f5f8fd 55%, #e8eef8 100%);
+  box-shadow: inset 0 1px 1px #fff, inset 0 -8px 14px rgba(40, 80, 160, 0.08), 0 0 0 1px rgba(90, 140, 230, 0.28), 0 10px 24px -12px rgba(40, 80, 180, 0.55);
+}
+.assistant-token::before {
+  inset: -6px; background: radial-gradient(circle, rgba(70, 140, 255, 0.55) 0%, rgba(70, 140, 255, 0.18) 52%, transparent 72%);
+  filter: blur(4px); opacity: 0.75; animation: orbBreathe 4.2s ease-in-out infinite;
+}
+.assistant-token::after { display: none; }
+.assistant-token:hover::before { opacity: 1; }
+.assistant-token:hover { box-shadow: inset 0 1px 1px #fff, inset 0 -8px 14px rgba(40, 80, 160, 0.08), 0 0 0 1px rgba(90, 140, 230, 0.45), 0 14px 30px -12px rgba(40, 90, 220, 0.7); }
+.assistant-token[aria-expanded="true"] { background: radial-gradient(circle at 34% 28%, #2b3550 0%, #121828 60%, #090c14 100%); color: #fff; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(110, 160, 255, 0.5), 0 12px 28px -10px rgba(40, 90, 220, 0.8); }
+.assistant-token[aria-expanded="true"]::before { opacity: 1; animation-duration: 2.6s; }
+.assistant-tray.listening ~ .assistant-token::before { animation-duration: 1.4s; opacity: 1; }
+@keyframes orbBreathe { 0%, 100% { transform: scale(0.92); opacity: 0.55; } 50% { transform: scale(1.12); opacity: 0.95; } }
+.assistant-token svg { width: 28px; height: 28px; }
+@media (prefers-reduced-motion: reduce) { .assistant-token::before { animation: none; } }
+/* Universal Board: the swoosh draws a soft light, the star twinkles on hover */
+.universal-trigger svg { width: 25px; height: 25px; filter: drop-shadow(0 0 3px rgba(150, 175, 255, 0.65)); }
+.universal-trigger .uni-star { transform-origin: 19.6px 4.2px; transform-box: view-box; transition: transform 0.4s cubic-bezier(.34, 1.56, .64, 1); }
+.universal-trigger:hover .uni-star, .universal.open .uni-star { transform: scale(1.35) rotate(45deg); }
+.universal-trigger .uni-swoosh { transition: transform 0.4s var(--ease); transform-origin: 12px 12px; transform-box: view-box; }
+.universal-trigger:hover .uni-swoosh { transform: translate(0.6px, -0.6px); }
+.galaxy-arms { animation: none !important; }
+/* The brand atom turns gently on hover */
+.atom-mark { transform-origin: 50% 50%; }
+.assistant-token { background: transparent; }
+.assistant-token::after {
+  display: block; content: ""; position: absolute; inset: 0; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle at 34% 28%, #ffffff 0%, #f6f9fd 55%, #e9eff8 100%);
+  box-shadow: inset 0 1px 1px #fff, inset 0 -8px 14px rgba(40, 80, 160, 0.08);
+}
+.assistant-token[aria-expanded="true"] { background: transparent; }
+.assistant-token[aria-expanded="true"]::after { background: radial-gradient(circle at 34% 28%, #2b3550 0%, #121828 60%, #090c14 100%); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15); }
+
+/* ---------- Boardly, round 6: white boards, the pattern carries the category colour ---------- */
+.boardly .board-canvas {
+  background-color: #ffffff; border: 1.5px solid color-mix(in srgb, var(--tc) 45%, #e6e8ec);
+  background-image:
+    radial-gradient(circle, color-mix(in srgb, var(--tc) 78%, white) 1.5px, transparent 2px),
+    radial-gradient(90% 75% at 0% 0%, color-mix(in srgb, var(--tc) 12%, transparent), transparent 62%),
+    radial-gradient(70% 60% at 100% 100%, color-mix(in srgb, var(--tc) 8%, transparent), transparent 65%);
+  background-size: 26px 26px, 100% 100%, 100% 100%;
+  background-position: 13px 13px, 0 0, 0 0;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 40px -30px color-mix(in srgb, var(--tc) 70%, black);
+}
+.boardly .tile { border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); box-shadow: 0 1px 2px rgba(17, 17, 17, 0.06), 0 10px 22px -12px color-mix(in srgb, var(--tc) 55%, rgba(17, 17, 17, 0.5)); }
+.boardly .canvas-empty, .boardly .sel-hint { color: var(--muted); }
+.boardly .vtools { background: rgba(255, 255, 255, 0.96); box-shadow: 0 0 0 1px var(--line), 0 18px 36px -14px rgba(17, 17, 17, 0.35); }
+.boardly .vt-head { color: var(--faint); }
+.boardly .vt-label { color: var(--ink-2); }
+.boardly .vtool:hover, .boardly .vtool:focus-visible { background: var(--well); }
+/* Tags: the active one wears its board's colour */
+.boardly-tabs .tab.active { background: color-mix(in srgb, var(--tab-color) 16%, white); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--tab-color); }
+.boardly-tabs .tab.active .tab-dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tab-color) 30%, transparent); }
+.boardly-tabs .tab.active .tab-x { color: var(--muted); }
+
+/* ---------- Timely, round 6: the date title is centred over its calendar ---------- */
+.cal-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.cal-head .cal-title { grid-column: 2; grid-row: 1; flex-direction: column; align-items: center; gap: 0; text-align: center; }
+.cal-head .cal-title h2 { font-size: 20px; }
+.cal-head .cal-sub { font-size: 12px; }
+.cal-head .cal-nav { display: contents; }
+.cal-head .cal-arrow[aria-label="Previous"] { grid-column: 1; grid-row: 1; justify-self: end; }
+.cal-head .cal-arrow[aria-label="Next"] { grid-column: 3; grid-row: 1; justify-self: start; }
+.cal-head .cal-today { grid-column: 3; grid-row: 1; justify-self: end; }
+@media (max-width: 700px) {
+  .cal-head { grid-template-columns: auto 1fr auto; }
+  .cal-head .cal-title { flex: none; }
+  .cal-head .cal-arrow[aria-label="Previous"] { grid-column: 1; justify-self: start; }
+  .cal-head .cal-arrow[aria-label="Next"] { grid-column: 3; justify-self: end; }
+  .cal-head .cal-today { grid-column: 2; grid-row: 2; justify-self: center; }
+}
+
+/* ---------- Reminders, round 6: a real pinboard, in the same frame as the other views ---------- */
+.reminders .cork {
+  border: 1.5px solid var(--ink); border-radius: 20px; padding: 22px; gap: 22px 26px;
+  background-color: #d9b98f;
+  background-image:
+    radial-gradient(rgba(110, 70, 30, 0.22) 1px, transparent 1.5px),
+    radial-gradient(rgba(255, 245, 225, 0.35) 1px, transparent 1.6px),
+    radial-gradient(120% 90% at 20% 0%, rgba(255, 240, 215, 0.45), transparent 60%),
+    radial-gradient(90% 80% at 100% 100%, rgba(90, 55, 20, 0.18), transparent 60%);
+  background-size: 7px 7px, 11px 11px, 100% 100%, 100% 100%;
+  background-position: 0 0, 3px 5px, 0 0, 0 0;
+  box-shadow: inset 0 0 0 6px #fff, inset 0 0 0 7px rgba(17, 17, 17, 0.12), inset 0 10px 30px rgba(80, 45, 10, 0.18), 3px 3px 0 color-mix(in srgb, var(--timely) 55%, white);
+}
+.reminders .cork.drop-over { box-shadow: inset 0 0 0 6px #fff, inset 0 0 0 8px var(--timely), inset 0 10px 30px rgba(80, 45, 10, 0.18); }
+/* Lane labels: a strip of paper tape */
+.reminders .lane-tag {
+  width: auto; align-self: flex-start; border: 0; border-radius: 2px; padding: 4px 10px; transform: rotate(-1.5deg);
+  background: rgba(255, 252, 240, 0.86); color: #5b4a33; box-shadow: 0 2px 4px -2px rgba(60, 35, 10, 0.4); font-size: 11px; letter-spacing: 0.08em;
+}
+.reminders .lane-overdue .lane-tag { background: #ffe1db; color: #a1281b; }
+.reminders .lane-routines .lane-tag { background: #e3effa; color: #1f4e79; }
+.reminders .lane-n { background: rgba(0, 0, 0, 0.08); color: inherit; }
+/* Notes: paper squares with a pushpin, a little tilt, a soft lift */
+.reminders .sticky {
+  --tilt: 0deg; transform: rotate(var(--tilt)); border: 0; border-radius: 2px 2px 12px 2px; padding: 24px 14px 34px; min-height: 118px; color: #2b2a26;
+  background: var(--sticky); box-shadow: 0 1px 1px rgba(60, 35, 10, 0.15), 0 14px 18px -12px rgba(60, 35, 10, 0.55);
+}
+.reminders .sticky:hover { transform: rotate(0deg) translateY(-2px) scale(1.02); box-shadow: 0 2px 2px rgba(60, 35, 10, 0.15), 0 22px 26px -14px rgba(60, 35, 10, 0.6); }
+.reminders .sticky.overdue { box-shadow: 0 0 0 2px rgba(200, 50, 40, 0.55), 0 14px 18px -12px rgba(60, 35, 10, 0.55); }
+.reminders .sticky-pin {
+  display: block; position: absolute; top: 7px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; z-index: 2;
+  background: radial-gradient(circle at 35% 30%, #ff9a8f 0%, #e0352a 45%, #9e1a12 100%);
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.35), 1px 4px 4px -1px rgba(0, 0, 0, 0.25);
+}
+.reminders .sticky-pin::after { content: ""; position: absolute; left: 4px; top: 3px; width: 4px; height: 3px; border-radius: 50%; background: rgba(255, 255, 255, 0.7); }
+.reminders .composer {
+  --sticky: #fffdf6; border: 0; border-radius: 3px 3px 14px 3px; padding: 24px 14px 12px; transform: none; width: 340px;
+  box-shadow: 0 1px 1px rgba(60, 35, 10, 0.15), 0 16px 22px -12px rgba(60, 35, 10, 0.55);
+}
+.reminders .composer .sticky-pin { background: radial-gradient(circle at 35% 30%, #9cc4ff 0%, #2f6fd6 45%, #173f86 100%); }
+/* Pinning: the note drops onto the board, the pin is pushed in, the paper settles */
+.reminders .sticky.pin-drop { animation: pinNote 0.7s cubic-bezier(.2, .9, .3, 1.15); }
+.reminders .sticky.pin-drop .sticky-pin { animation: pinPush 0.55s 0.3s cubic-bezier(.3, 1.6, .5, 1) both; }
+.reminders .sticky.pin-drop::after {
+  display: block; content: ""; position: absolute; top: 14px; left: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
+  border: 2px solid rgba(224, 53, 42, 0.55); animation: pinRing 0.6s 0.42s ease-out both; pointer-events: none;
+}
+@keyframes pinNote {
+  0% { transform: translateY(-60px) rotate(-10deg) scale(1.1); opacity: 0; box-shadow: 0 40px 40px -16px rgba(60, 35, 10, 0.35); }
+  50% { transform: translateY(4px) rotate(var(--tilt)) scale(0.98); opacity: 1; }
+  70% { transform: translateY(-2px) rotate(var(--tilt)); }
+  100% { transform: rotate(var(--tilt)); }
+}
+@keyframes pinPush {
+  0% { transform: translateY(-18px) scale(1.7); box-shadow: 0 12px 10px rgba(0, 0, 0, 0.25); opacity: 0; }
+  60% { transform: translateY(1px) scale(0.85); opacity: 1; }
+  100% { transform: none; }
+}
+.composer.pinning .sticky-pin { animation: pinPress 0.25s ease; }
+@keyframes pinPress { 50% { transform: scale(0.8); } }
+.reminders .pad-pin { background: #0f1115; color: #fff; }
+
+/* ---------- Brainly, round 6: folders read as folders ---------- */
+/* Column squares get a folder tab and a tint, so they never look like a link or a PDF */
+.lf-tile { margin-top: 8px; border-top-left-radius: 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--fc) 14%, white), #fff 46%); border-color: color-mix(in srgb, var(--fc) 40%, var(--line)); }
+.lf-tile::before { content: ""; position: absolute; top: -8px; left: -1px; width: 46%; height: 12px; border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--fc) 30%, white); border: 1px solid color-mix(in srgb, var(--fc) 40%, var(--line)); border-bottom: 0; }
+.lf-tile .lf-emoji { background: color-mix(in srgb, var(--fc) 18%, white); }
+/* Glass view: a Folders row and a Links & files row */
+.glass-scroll { position: relative; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.glass-scroll > .glass-section > .glass-grid { overflow: visible; min-height: 0; }
+.glass-section { display: flex; flex-direction: column; gap: 2px; }
+.glass-section + .glass-section { border-top: 1px solid rgba(255, 255, 255, 0.7); padding-top: 6px; }
+.glass-section-label { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); opacity: 0.7; padding: 0 8px; }
+.glass-section-label svg { width: 13px; height: 13px; }
+.glass-folders { padding-bottom: 6px; }
+.folder-shape {
+  position: relative; width: 66px; height: 52px; margin-top: 8px; border-radius: 6px 12px 12px 12px; display: grid; place-items: center;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fc) 70%, white), var(--fc));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 10px 18px -10px color-mix(in srgb, var(--fc) 80%, black);
+}
+.folder-shape::before { content: ""; position: absolute; top: -7px; left: 0; width: 30px; height: 10px; border-radius: 6px 8px 0 0; background: color-mix(in srgb, var(--fc) 80%, white); }
+.folder-emoji { font-size: 22px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15)); }
+.folder-badge { position: absolute; right: -6px; top: -10px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: #0f1115; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
+.glass-sub:hover .folder-shape { transform: translateY(-1px); }

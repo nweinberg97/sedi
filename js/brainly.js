@@ -182,13 +182,15 @@ const lfMatches = (f, q) => !q || f.name.toLowerCase().includes(q) || links(f.id
 const lfEmoji = f => f.emoji || mostCommonEmoji(links(f.id).map(c => `${c.meta?.url || ''} ${c.title}`), '🔗');
 const lfCount = f => { const n = links(f.id).length, k = lfChildren(f.id).length; return [n ? `${n} item${n === 1 ? '' : 's'}` : '', k ? `${k} folder${k === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || 'Empty'; };
 
+const FOLDER_TINTS = ['#7FA7D9', '#86AE95', '#C9A46E', '#A796CB', '#C98E8E', '#7FAEBE'];
+const folderTint = f => f.color || FOLDER_TINTS[hashStr(f.id) % FOLDER_TINTS.length];
 function linkFolderEl(f) {
   const all = links(f.id);
   const subs = lfChildren(f.id);
   const name = h('span', { class: 'lf-name', title: 'Double-click to rename' }, f.name);
   name.addEventListener('dblclick', e => { e.stopPropagation(); editInline(name, { onCommit: v => saveLinkFolder(f.id, { name: v }) }); });
   const tile = h('section', {
-    class: 'lf-tile', tabindex: 0, role: 'button', 'aria-label': `${f.name}, ${lfCount(f)}. Open folder`,
+    class: 'lf-tile', tabindex: 0, role: 'button', 'aria-label': `${f.name}, ${lfCount(f)}. Open folder`, style: { '--fc': folderTint(f) },
     dataset: { drag: 'lfolder', id: f.id, lfolder: f.id, drop: 'lf-into', accept: 'card lfolder', into: f.id },
   },
   h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, lfEmoji(f)),
@@ -222,16 +224,19 @@ function openLinkFolder(fid, fromEl) {
     title.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') title.blur(); if (e.key === 'Escape') { title.value = f.name; title.blur(); } });
     title.addEventListener('change', () => { const v = title.value.trim(); if (v && v !== f.name) saveLinkFolder(f.id, { name: v }); });
     const subs = lfChildren(f.id), items = links(f.id);
-    const grid = h('div', { class: 'glass-grid', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': '' },
-      subs.map(x => {
-        const peek = links(x.id).slice(0, 4);
-        const t = h('div', { class: 'glass-item glass-sub', tabindex: 0, dataset: { drag: 'lfolder', id: x.id, drop: 'lf-into', accept: 'card lfolder', into: x.id } },
-          h('span', { class: 'glass-icon glass-mini' }, peek.length ? peek.map(c => h('i', {}, favicon(c))) : h('b', {}, lfEmoji(x))),
+    // Folders and files sit in their own labelled rows, and folders look like folders (tab, colour, count).
+    const folderRow = subs.length ? h('div', { class: 'glass-section' },
+      h('span', { class: 'glass-section-label' }, icon('folder'), `Folders · ${subs.length}`),
+      h('div', { class: 'glass-grid glass-folders' }, subs.map(x => {
+        const n = links(x.id).length + lfChildren(x.id).length;
+        const t = h('div', { class: 'glass-item glass-sub', tabindex: 0, title: `${x.name}: ${lfCount(x)}`, dataset: { drag: 'lfolder', id: x.id, drop: 'lf-into', accept: 'card lfolder', into: x.id } },
+          h('span', { class: 'folder-shape', style: { '--fc': folderTint(x) } }, h('span', { class: 'folder-emoji' }, lfEmoji(x)), n ? h('span', { class: 'folder-badge' }, n) : null),
           h('span', { class: 'glass-label' }, x.name));
         t.addEventListener('click', () => { glass.fid = x.id; paint(); });
         t.addEventListener('keydown', e => { if (e.key === 'Enter') { glass.fid = x.id; paint(); } });
         return t;
-      }),
+      }))) : null;
+    const grid = h('div', { class: 'glass-grid', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': '' },
       items.map(c => {
         const t = h('div', { class: 'glass-item', tabindex: 0, dataset: { drag: 'card', id: c.id }, title: c.meta?.url || c.title },
           h('span', { class: 'glass-icon' }, favicon(c)), h('span', { class: 'glass-label' }, c.title));
@@ -239,14 +244,15 @@ function openLinkFolder(fid, fromEl) {
         t.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(t, c.id); });
         return t;
       }));
-    if (!subs.length && !items.length) grid.append(h('p', { class: 'glass-empty' }, 'Empty. Drop links or files here, upload something, or make a folder inside.'));
+    if (!items.length) grid.append(h('p', { class: 'glass-empty' }, subs.length ? 'No links or files here yet. Drop some in, or upload.' : 'Empty. Drop links or files here, upload something, or make a folder inside.'));
+    const fileRow = h('div', { class: 'glass-section glass-files' }, subs.length ? h('span', { class: 'glass-section-label' }, icon('link'), `Links & files · ${items.length}`) : null, grid);
     panel.replaceChildren(
       h('div', { class: 'glass-top' },
         parent ? h('button', { class: 'glass-back', type: 'button', onclick: () => { glass.fid = parent.id; paint(); } }, icon('chevL'), parent.name) : h('span'),
         h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Close folder', onclick: () => closeGlass() }, icon('x'))),
       title,
       h('p', { class: 'glass-sub-line' }, `${lfCount(f)}${parent ? ` · in ${lfPath(parent)}` : ''}`),
-      grid,
+      h('div', { class: 'glass-scroll' }, folderRow, fileRow),
       h('div', { class: 'glass-actions' },
         h('button', { class: 'glass-btn', type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Upload'),
         h('button', { class: 'glass-btn', type: 'button', onclick: () => addLinkFolder(f.id) }, icon('folder'), 'New folder'),
