@@ -9,7 +9,7 @@
 <title>Sedi</title>
 <meta name="description" content="Sedi is a calm, focused place to think: your tasks, goals, time and notes in order, in one place. Free forever on the web.">
 <meta property="og:title" content="Sedi">
-<meta property="og:description" content="A place to sit with your life.">
+<meta property="og:description" content="Everything in its place.">
 <meta name="color-scheme" content="light">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -218,6 +218,18 @@ p { margin: 0; text-wrap: pretty; }
 .layer.now { background: linear-gradient(180deg, #eaf6fc, #fff); border-color: #cfe5f4; }
 .layer.now .n { color: var(--accent); }
 
+/* Features: a bento of real screens */
+.bento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 52px; }
+.tile { margin: 0; display: grid; grid-template-rows: 1fr auto; border-radius: 24px; overflow: hidden; background: #fff; border: 1px solid var(--line); }
+.tile.wide { grid-column: span 2; }
+.tile img { width: 100%; height: 320px; padding: 18px; object-fit: contain; background: linear-gradient(180deg, #eef6fc, #f7fafc); border-bottom: 1px solid var(--line); }
+.tile figcaption { padding: 20px 22px 22px; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.tile figcaption b { display: block; margin-bottom: 4px; font-size: 17px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); }
+.more { list-style: none; margin: 34px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.more li { padding: 8px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-size: 14px; color: var(--ink-2); }
+@media (max-width: 980px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .bento { grid-template-columns: minmax(0, 1fr); } .tile.wide { grid-column: auto; } .tile img { height: 240px; } }
+
 /* FAQ */
 .faq { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 64px; }
 .qa { border-top: 1px solid var(--line); }
@@ -278,7 +290,7 @@ footer .end { margin-left: auto; }
     <nav aria-label="Sections">
       <a href="#idea">The idea</a>
       <a href="#tour">Inside Sedi</a>
-      <a href="#name">The name</a>
+      <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
       <a href="#questions">Questions</a>
     </nav>
@@ -290,8 +302,8 @@ footer .end { margin-left: auto; }
   <section class="hero" aria-labelledby="hero-title">
     <div class="wrap hero-copy">
       <span class="label" style="color:#1d5f93">Your personal operating system</span>
-      <h1 id="hero-title" style="margin-top:22px">A place to sit with your life.</h1>
-      <p class="lede">Sedi is a calm, focused place to think. Your tasks, goals, time and notes, put in order and kept in one place, so you can see what matters and act on it.</p>
+      <h1 id="hero-title" style="margin-top:22px">Everything in its place.</h1>
+      <p class="lede">Sedi is a calm, focused place to think. Your tasks, goals, calendar and notes live together in one workspace, and work with the tools you already use.</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="../">Open Sedi <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         <a class="btn btn-soft" href="#idea">See how it works</a>
@@ -408,11 +420,30 @@ footer .end { margin-left: auto; }
     </div>
   </section>
 
-  <section class="band mist" id="name" aria-labelledby="name-title">
+  <section class="band mist" id="features" aria-labelledby="feat-title">
+    <div class="wrap">
+      <div class="head"><span class="label">What you can do</span><h2 id="feat-title">Small tools that do one thing well.</h2>
+        <p class="lede">A closer look at the details that make Sedi feel calm to use every day.</p></div>
+      <div class="bento">
+        <figure class="tile wide"><img src="img/f-reminders.webp" width="1600" height="706" alt="The Reminders board: paper notes pinned to a cork board, sorted into Today, Tomorrow, This week and Routines." loading="lazy"><figcaption><b>Pin a reminder.</b> Write it on the blank note, pick “Tonight” or “Saturday,” and pin it to the board. Send it to Apple Reminders when you want a nudge on your phone.</figcaption></figure>
+        <figure class="tile"><img src="img/f-assistant.webp" width="960" height="892" alt="The assistant answering “When am I calling the dentist?” with four matching cards from Taskly and Timely." loading="lazy"><figcaption><b>Talk to your notes.</b> Ask a question and Sedi finds the answer in your own cards, wherever they live.</figcaption></figure>
+        <figure class="tile"><img src="img/f-glass.webp" width="1280" height="814" alt="A link folder named Reading opened as a frosted panel, showing its links and buttons to upload or add a folder." loading="lazy"><figcaption><b>Folders inside folders.</b> Keep links, PDFs and any file in folders that open in place, like a folder on your phone.</figcaption></figure>
+        <figure class="tile"><img src="img/f-linkpeek.webp" width="776" height="768" alt="A saved link's preview with Open link, Move to and a Make a task button that would add “Read article from Lisbon food guide.”" loading="lazy"><figcaption><b>Links become tasks.</b> One click turns a saved article into “Read article from…” in your To do list. PDFs become “Review…”.</figcaption></figure>
+        <figure class="tile"><img src="img/f-note.webp" width="1472" height="1258" alt="A note called Book ideas for winter open for editing, with formatting, a dictation button and Open as Google Doc." loading="lazy"><figcaption><b>Write, or just speak.</b> Dictate into any note, then open it as a Google Doc when it’s ready to share.</figcaption></figure>
+        <figure class="tile"><img src="img/f-universal.webp" width="1488" height="1036" alt="The Universal Board open beside Taskly, holding two captured notes waiting to be dragged into a tool." loading="lazy"><figcaption><b>The Universal Board.</b> Capture anything in the corner. Drag it into any tool later and it becomes that tool’s kind of card.</figcaption></figure>
+        <figure class="tile wide"><img src="img/f-planning.webp" width="1600" height="906" alt="Timely's Planning view: project boards named Ideas, In motion, Wrapping up and Garden, each with a few tasks." loading="lazy"><figcaption><b>Plan projects and goals.</b> Break a project into boards and tasks, or a life goal into smaller goals. Drag the next step onto your calendar when it’s time.</figcaption></figure>
+      </div>
+      <ul class="more" aria-label="More things Sedi does">
+        <li>Day, week and month views</li><li>Routines and repeating events</li><li>Trips and conferences across days</li><li>Send events to your calendar</li><li>Send tasks to Apple Reminders</li><li>SMART goal templates</li><li>Drag to delete, with Undo</li><li>Search across everything</li><li>Works offline</li><li>Download all your data</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band" id="name" aria-labelledby="name-title">
     <div class="wrap name">
       <div class="head">
         <span class="label">The name</span>
-        <h2 id="name-title">Order, and a place to sit with it.</h2>
+        <h2 id="name-title">Named for order.</h2>
         <p class="lede">Sedi comes from two old roots. Together they describe what the app is for.</p>
       </div>
       <div>
@@ -420,12 +451,12 @@ footer .end { margin-left: auto; }
           <div class="root"><span class="w">Seder <span class="he" lang="he">סֵדֶר</span><small>Hebrew</small></span><p>Order. Things arranged in a meaningful sequence, each one in its proper place.</p></div>
           <div class="root"><span class="w">Sedēre<small>Latin</small></span><p>To sit. To settle, and to take your place. The same root gives us <em>seat</em> and <em>session</em>.</p></div>
         </div>
-        <p class="name-close">First, everything finds its place. Then you can sit down with your life and see it clearly: what matters, what you’re working toward and what needs you today.</p>
+        <p class="name-close">Put the two together and you have the idea behind Sedi. First, everything finds its place. Then you can settle in and see clearly what matters, what you’re working toward and what needs you today.</p>
       </div>
     </div>
   </section>
 
-  <section class="band" id="principles" aria-labelledby="pr-title">
+  <section class="band mist" id="principles" aria-labelledby="pr-title">
     <div class="wrap">
       <div class="head"><span class="label">Principles</span><h2 id="pr-title">How Sedi is made.</h2></div>
       <div class="principles">
@@ -439,7 +470,7 @@ footer .end { margin-left: auto; }
     </div>
   </section>
 
-  <section class="band mist" id="private" aria-labelledby="pv-title">
+  <section class="band" id="private" aria-labelledby="pv-title">
     <div class="wrap private">
       <div>
         <div class="head"><span class="label">Private by design</span><h2 id="pv-title">A quiet room that belongs to you.</h2>
@@ -451,22 +482,22 @@ footer .end { margin-left: auto; }
         </div>
       </div>
       <div class="brain">
-        <span class="label">Sovereign Brain · optional</span>
-        <h3>A coach that runs on your own computer.</h3>
-        <p>When you’re stuck, ask. Sovereign Brain answers from a library of habit, focus and communication frameworks, using a small AI model that runs inside your browser. What you tell it never leaves your device.</p>
+        <span class="label">Talk to your notes</span>
+        <h3>Ask about anything you’ve saved.</h3>
+        <p>Type or speak a question: what’s due this week, what you wrote about a trip, where you put that link. Sedi looks through your own cards and answers. Ask it to create or move something and it checks with you first.</p>
         <ul>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>One download, then fully offline</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>Picks one framework and gives you the first step</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>Works in airplane mode</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>Chat, voice, or spoken commands</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>Optional on-device AI, so your words never leave your computer</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>A built-in library on habits, focus and communication to learn from</li>
         </ul>
       </div>
     </div>
   </section>
 
-  <section class="band" id="pricing" aria-labelledby="price-title">
+  <section class="band mist" id="pricing" aria-labelledby="price-title">
     <div class="wrap">
       <div class="head"><span class="label">Pricing</span><h2 id="price-title">Free on the web, forever.</h2>
-        <p class="lede">The Sedi web app is free with no time limit. Native apps for Mac and iPhone are on the way, connected to everything you already have in Sedi. Early members get them for one payment.</p></div>
+        <p class="lede">The Sedi web app is free with no time limit. Native apps for Mac and iPhone are being built now. Early members get them for one payment, as they arrive.</p></div>
       <div class="plans">
         <article class="plan" aria-labelledby="plan-free">
           <div class="plan-top"><span class="plan-name" id="plan-free">Sedi for the web</span></div>
@@ -476,7 +507,7 @@ footer .end { margin-left: auto; }
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Taskly, Boardly, Timely and Brainly</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Calendar integrations</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Universal Board, assistant and voice</span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Sovereign Brain, on your device</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Talk to your notes, with on-device AI</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Works offline, exports everything</span></li>
           </ul>
           <a class="btn btn-soft" href="../">Open Sedi</a>
@@ -484,12 +515,12 @@ footer .end { margin-left: auto; }
         <article class="plan feature" aria-labelledby="plan-life">
           <div class="plan-top"><span class="plan-name" id="plan-life">Lifetime Membership</span><span class="chip">Early bird</span></div>
           <div class="price"><b>$39</b><s>$49</s><span>one payment</span></div>
-          <p class="plan-sub">Sedi on every device you use, connected.</p>
+          <p class="plan-sub">Sedi on your Mac and iPhone, as they arrive.</p>
           <ul>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Everything in Sedi for the web</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Sedi for Mac <small>In development</small></span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Sedi for iPhone <small>In development</small></span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Sync between all your devices</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Sync between your devices <small>In development</small></span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg><span>Every future update, no subscription</span></li>
           </ul>
           <div>
@@ -502,7 +533,7 @@ footer .end { margin-left: auto; }
     </div>
   </section>
 
-  <section class="band mist" id="purpose" aria-labelledby="purpose-title">
+  <section class="band" id="purpose" aria-labelledby="purpose-title">
     <div class="wrap purpose">
       <span class="label">Purpose</span>
       <h2 id="purpose-title">Close the gap between what you value and what you actually do.</h2>
@@ -516,26 +547,26 @@ footer .end { margin-left: auto; }
     </div>
   </section>
 
-  <section class="band" id="questions" aria-labelledby="faq-title">
+  <section class="band mist" id="questions" aria-labelledby="faq-title">
     <div class="wrap faq">
       <div class="head" style="align-content:start"><span class="label">Questions</span><h2 id="faq-title">Plain answers.</h2></div>
       <div class="qa">
-        <details open><summary>Is Sedi really free?</summary><p>Yes. The web app is free forever, with no time limit and no credit card. Lifetime Membership is for people who want Sedi on their Mac and iPhone, synced.</p></details>
+        <details open><summary>Is Sedi really free?</summary><p>Yes. The web app is free forever, with no time limit and no credit card. Lifetime Membership is for people who want the Mac and iPhone apps when they arrive.</p></details>
         <details><summary>Does Sedi replace my notes app or calendar?</summary><p>No. Sedi is where you think and decide in focus. It works with the tools you already use: it adds events to your calendar, opens notes in Google Docs and sends tasks to Apple Reminders.</p></details>
         <details><summary>Where is my data stored?</summary><p>In your browser’s storage, on your own computer. Nothing is sent to a server. Menu → Download data saves everything as a file, and Import data brings it back.</p></details>
         <details><summary>Do I need an account?</summary><p>No. Open the link and start.</p></details>
         <details><summary>Does it work offline?</summary><p>Yes. After your first visit, Sedi opens and runs with no connection. Only weather and services you connect yourself need the internet.</p></details>
-        <details><summary>Is there a Mac or iPhone app?</summary><p>They’re being built now, and they’ll stay connected to Sedi on the web. Lifetime members get both.</p></details>
+        <details><summary>Is there a Mac or iPhone app?</summary><p>They’re being built now, along with sync between your devices. Lifetime members get both apps as they ship.</p></details>
         <details><summary>Why do the columns stop scrolling?</summary><p>Limits make you choose. When a column is full, you finish, move or let go of something instead of letting a list grow forever.</p></details>
-        <details><summary>What does the AI do?</summary><p>The assistant searches and summarizes your own cards, and can create or move them after you confirm. Sovereign Brain is an optional coach that runs on your computer. You can also connect your own AI provider in settings.</p></details>
+        <details><summary>What does the AI do?</summary><p>It lets you talk to your notes. Ask about anything you’ve saved, by typing or speaking, and Sedi answers from your own cards. It can also create or move cards after you confirm. You can run a small AI model entirely on your computer, or connect your own AI provider in settings.</p></details>
       </div>
     </div>
   </section>
 
   <section class="close" aria-labelledby="close-title">
     <div class="wrap">
-      <span class="label" style="color:#1d5f93">Begin</span>
-      <h2 id="close-title">Everything in its place.</h2>
+      <span class="label" style="color:#1d5f93">Start today</span>
+      <h2 id="close-title">Before you optimize your life, organize it.</h2>
       <p>Open Sedi in your browser. One click, nothing to sign up for.</p>
       <a class="btn btn-primary" href="../">Open Sedi <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
