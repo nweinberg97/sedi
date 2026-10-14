@@ -2285,23 +2285,23 @@ body.board-live, body.board-live * { cursor: grabbing !important; }
 
 /* ---------- Boardly, round 6: white boards, the pattern carries the category colour ---------- */
 .boardly .board-canvas {
-  background-color: #ffffff; border: 1.5px solid color-mix(in srgb, var(--tc) 45%, #e6e8ec);
+  background-color: #ffffff; border: 1px solid color-mix(in srgb, var(--tc) 22%, #e9ebee);
   background-image:
-    radial-gradient(circle, color-mix(in srgb, var(--tc) 78%, white) 1.5px, transparent 2px),
-    radial-gradient(90% 75% at 0% 0%, color-mix(in srgb, var(--tc) 12%, transparent), transparent 62%),
-    radial-gradient(70% 60% at 100% 100%, color-mix(in srgb, var(--tc) 8%, transparent), transparent 65%);
+    radial-gradient(circle, color-mix(in srgb, var(--tc) 34%, white) 1.3px, transparent 1.8px),
+    radial-gradient(90% 75% at 0% 0%, color-mix(in srgb, var(--tc) 6%, transparent), transparent 62%),
+    radial-gradient(70% 60% at 100% 100%, color-mix(in srgb, var(--tc) 4%, transparent), transparent 65%);
   background-size: 26px 26px, 100% 100%, 100% 100%;
   background-position: 13px 13px, 0 0, 0 0;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 40px -30px color-mix(in srgb, var(--tc) 70%, black);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 18px 40px -32px color-mix(in srgb, var(--tc) 40%, rgba(17, 17, 17, 0.4));
 }
-.boardly .tile { border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); box-shadow: 0 1px 2px rgba(17, 17, 17, 0.06), 0 10px 22px -12px color-mix(in srgb, var(--tc) 55%, rgba(17, 17, 17, 0.5)); }
+.boardly .tile { border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); box-shadow: 0 1px 2px rgba(17, 17, 17, 0.06), 0 10px 22px -12px color-mix(in srgb, var(--tc) 30%, rgba(17, 17, 17, 0.45)); }
 .boardly .canvas-empty, .boardly .sel-hint { color: var(--muted); }
 .boardly .vtools { background: rgba(255, 255, 255, 0.96); box-shadow: 0 0 0 1px var(--line), 0 18px 36px -14px rgba(17, 17, 17, 0.35); }
 .boardly .vt-head { color: var(--faint); }
 .boardly .vt-label { color: var(--ink-2); }
 .boardly .vtool:hover, .boardly .vtool:focus-visible { background: var(--well); }
 /* Tags: the active one wears its board's colour */
-.boardly-tabs .tab.active { background: color-mix(in srgb, var(--tab-color) 16%, white); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--tab-color); }
+.boardly-tabs .tab.active { background: color-mix(in srgb, var(--tab-color) 10%, white); color: var(--ink); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tab-color) 55%, white); }
 .boardly-tabs .tab.active .tab-dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tab-color) 30%, transparent); }
 .boardly-tabs .tab.active .tab-x { color: var(--muted); }
 
@@ -2406,3 +2406,27 @@ body.board-live, body.board-live * { cursor: grabbing !important; }
 .folder-emoji { font-size: 22px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15)); }
 .folder-badge { position: absolute; right: -6px; top: -10px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: #0f1115; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
 .glass-sub:hover .folder-shape { transform: translateY(-1px); }
+
+/* ---------- Brainly, round 7: moving things around and out of folders ---------- */
+/* Grid lists mark the neighbour instead of inserting a line */
+.drop-before, .drop-after { position: relative; }
+.drop-before::after, .drop-after::after { content: ""; position: absolute; top: 6%; bottom: 6%; width: 3px; border-radius: 3px; background: var(--ink); pointer-events: none; z-index: 3; }
+.drop-before::after { left: -7px; }
+.drop-after::after { right: -7px; }
+/* A folder being dropped into lights up, so nesting is never a surprise */
+.lf-tile.drop-over, .glass-sub.drop-over .folder-shape { outline: 2px solid var(--ink); outline-offset: 3px; }
+.lf-tile.drop-over { transform: scale(1.03); }
+/* "Move out" strip in the glass folder: only there while you drag */
+.glass-out { display: none; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 14px; border: 1.5px dashed color-mix(in srgb, var(--ink) 35%, transparent); color: var(--ink-2); font-weight: 600; font-size: 13px; background: rgba(255, 255, 255, 0.55); }
+.glass-out svg { width: 16px; height: 16px; }
+body.is-dragging .glass-out { display: flex; animation: outIn .18s var(--ease, ease) both; }
+.glass-out.drop-over { border-style: solid; border-color: var(--ink); background: #fff; color: var(--ink); }
+@keyframes outIn { from { opacity: 0; transform: translateY(-4px); } }
+/* Make a task: a quiet button on each row, and a line in the preview */
+.link-card .link-task { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); background: #fff; border: 1px solid var(--line); opacity: 0; transition: opacity .15s; }
+.link-card .link-task svg { width: 14px; height: 14px; }
+.link-card:hover .link-task, .link-card:focus-within .link-task { opacity: 1; }
+.link-card .link-task:hover { color: var(--ink); border-color: var(--ink); }
+@media (hover: none) { .link-card .link-task { opacity: 1; } }
+.peek-task { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line); }
+.peek-task .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }

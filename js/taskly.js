@@ -154,6 +154,13 @@ export function completeTask(id) {
   routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'completed', order: colCards('completed').length, ...columnMeta(c, 'completed') }, log: 'Completed' });
   makeRoomInCompleted(id);
 }
+/** Add a To do card made from something else (a Brainly link, PDF or file). Returns the card, or null when To do is full. */
+export function addTaskFrom({ title, description = '', meta = {} }) {
+  if (colCards('todo').length >= capOf('todo')) { toast('To do is full. Finish, move or delete a task first.'); return null; }
+  const card = store.createCard({ type: 'task', tool: 'taskly', title, description, meta: { ...meta, columnId: 'todo', order: -1, ...columnMeta(null, 'todo') } });
+  reorder(colCards('todo'), card.id, 0);
+  return card;
+}
 export const todoCards = () => colCards('todo');
 export const todoCapacity = () => capOf('todo');
 

@@ -13,6 +13,7 @@ import { listen, canListen } from './speech.js';
 import { crunch } from './sound.js';
 import { summaryFor, ensureSummary, noteText } from './summaries.js';
 import * as google from './google.js';
+import { addTaskFrom } from './taskly.js';
 
 let root, canvas, dash, searchInput, results, peekEl = null, hovered = null;
 const NOTE = 118, FOLDER_W = 150, FOLDER_H = 112;
@@ -140,7 +141,7 @@ function renderDash() {
   const looseItems = links(null).filter(c => matches(c, q));
   const loose = h('div', { class: 'link-list loose', dataset: { drop: 'link-list', accept: 'card', lfolder: '' }, 'data-list': '' }, looseItems.map(linkEl));
   if (!looseItems.length && !q) loose.append(h('p', { class: 'empty-hint' }, 'Paste a link, or drop a PDF or text file here.'));
-  const stack = h('div', { class: 'lf-stack', dataset: { drop: 'lfolder-stack', accept: 'lfolder' }, 'data-list': '' },
+  const stack = h('div', { class: 'lf-stack', dataset: { drop: 'lfolder-stack', accept: 'lfolder', parent: '' }, 'data-list': 'grid' },
     lfChildren(null).filter(f => lfMatches(f, q)).map(linkFolderEl));
   dash.replaceChildren(
     h('div', { class: 'dash-head' }, h('h2', {}, 'My links'),
@@ -160,7 +161,8 @@ function linkEl(c) {
   // SD-F4 / SD-L3: a click previews; the preview has the Open button.
   el.addEventListener('click', e => { if (!e.target.closest('button')) previewItem(el, c.id); });
   el.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(el, c.id); });
-  el.append(h('button', { class: 'card-del', 'aria-label': 'Delete', title: 'Delete (you can Undo)', onclick: e => { e.stopPropagation(); trashCard(c.id); } }, icon('x')));
+  el.append(h('button', { class: 'link-task', 'aria-label': `Make a task: ${taskTitleFor(c)}`, title: `Make a task: “${taskTitleFor(c)}”`, onclick: e => { e.stopPropagation(); makeTaskFrom(c); } }, icon('checklist')),
+    h('button', { class: 'card-del', 'aria-label': 'Delete', title: 'Delete (you can Undo)', onclick: e => { e.stopPropagation(); trashCard(c.id); } }, icon('x')));
   return el;
 }
 
@@ -227,7 +229,7 @@ function openLinkFolder(fid, fromEl) {
     // Folders and files sit in their own labelled rows, and folders look like folders (tab, colour, count).
     const folderRow = subs.length ? h('div', { class: 'glass-section' },
       h('span', { class: 'glass-section-label' }, icon('folder'), `Folders · ${subs.length}`),
-      h('div', { class: 'glass-grid glass-folders' }, subs.map(x => {
+      h('div', { class: 'glass-grid glass-folders', dataset: { drop: 'lfolder-stack', accept: 'lfolder', parent: f.id }, 'data-list': 'grid' }, subs.map(x => {
         const n = links(x.id).length + lfChildren(x.id).length;
         const t = h('div', { class: 'glass-item glass-sub', tabindex: 0, title: `${x.name}: ${lfCount(x)}`, dataset: { drag: 'lfolder', id: x.id, drop: 'lf-into', accept: 'card lfolder', into: x.id } },
           h('span', { class: 'folder-shape', style: { '--fc': folderTint(x) } }, h('span', { class: 'folder-emoji' }, lfEmoji(x)), n ? h('span', { class: 'folder-badge' }, n) : null),
@@ -236,7 +238,7 @@ function openLinkFolder(fid, fromEl) {
         t.addEventListener('keydown', e => { if (e.key === 'Enter') { glass.fid = x.id; paint(); } });
         return t;
       }))) : null;
-    const grid = h('div', { class: 'glass-grid', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': '' },
+    const grid = h('div', { class: 'glass-grid', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': 'grid' },
       items.map(c => {
         const t = h('div', { class: 'glass-item', tabindex: 0, dataset: { drag: 'card', id: c.id }, title: c.meta?.url || c.title },
           h('span', { class: 'glass-icon' }, favicon(c)), h('span', { class: 'glass-label' }, c.title));
@@ -252,11 +254,15 @@ function openLinkFolder(fid, fromEl) {
         h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Close folder', onclick: () => closeGlass() }, icon('x'))),
       title,
       h('p', { class: 'glass-sub-line' }, `${lfCount(f)}${parent ? ` · in ${lfPath(parent)}` : ''}`),
+      // While something is being dragged, this strip takes it back out a level.
+      h('div', { class: 'glass-out', dataset: { drop: 'lf-out', accept: 'card lfolder', to: f.parentId && parent ? parent.id : '' } },
+        icon('chevL'), `Drop here to move out to ${parent ? parent.name : 'My links'}`),
       h('div', { class: 'glass-scroll' }, folderRow, fileRow),
       h('div', { class: 'glass-actions' },
         h('button', { class: 'glass-btn', type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Upload'),
         h('button', { class: 'glass-btn', type: 'button', onclick: () => addLinkFolder(f.id) }, icon('folder'), 'New folder'),
         h('button', { class: 'glass-btn', type: 'button', onclick: e => pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })) }, h('span', {}, lfEmoji(f)), 'Icon'),
+        parent ? h('button', { class: 'glass-btn', type: 'button', title: `Move this folder out of ${parent.name}`, onclick: () => { const to = lfById(parent.parentId) ? parent.parentId : null; saveLinkFolder(f.id, { parentId: to }); toast(`Moved ${f.name} to ${to ? lfById(to).name : 'My links'}`); } }, icon('chevL'), 'Move out') : null,
         h('button', { class: 'glass-btn danger', type: 'button', onclick: () => { const ff = lfById(glass.fid); closeGlass(); if (ff) deleteLinkFolder(ff); } }, icon('trash'), 'Delete')),
       fileIn);
   };
@@ -291,6 +297,7 @@ function moveIntoLinkFolder(id, lfid, index) {
 registerDrop('link-list', ({ id, data, index }) => moveIntoLinkFolder(id, data.lfolder || null, index));
 // Drop a link on a folder to file it; drop a folder on a folder to nest it.
 registerDrop('lf-into', {
+  hit: ({ kind, x, y, rect }) => kind !== 'lfolder' || (x > rect.left + rect.width * 0.22 && x < rect.right - rect.width * 0.22 && y > rect.top + rect.height * 0.2 && y < rect.bottom - rect.height * 0.2),
   accepts: ({ kind, id, data }) => kind !== 'lfolder' || (id !== data.into && !lfDescendants(id).includes(data.into)),
   drop: ({ kind, id, data }) => {
     if (kind === 'lfolder') { saveLinkFolder(id, { parentId: data.into }); toast(`Moved into ${lfById(data.into)?.name}`); return; }
@@ -298,18 +305,29 @@ registerDrop('lf-into', {
     toast(`Filed in ${lfById(data.into)?.name}`);
   },
 });
-// SD-F5: top-level folders reorder by drag (dropping here also takes a folder back to the top level).
-registerDrop('lfolder-stack', ({ kind, id, index }) => {
+// SD-F5: folders reorder by drag, in the column and inside a glass folder. Dropping in the column's
+// folder grid also takes a folder back to the top level.
+registerDrop('lfolder-stack', ({ kind, id, data, index }) => {
   if (kind !== 'lfolder') return false;
+  const parentId = data.parent || null;
+  if (parentId && (parentId === id || lfDescendants(id).includes(parentId))) return false;
   const list = linkFolders();
   const moving = list.find(f => f.id === id);
   if (!moving) return false;
   const rest = list.filter(f => f.id !== id);
-  const tops = rest.filter(f => !f.parentId);
-  const before = tops[index ?? tops.length];
-  const at = before ? rest.indexOf(before) : rest.length;
-  rest.splice(at, 0, { ...moving, parentId: null });
+  const sibs = rest.filter(f => (f.parentId && lfById(f.parentId) ? f.parentId : null) === parentId);
+  const before = sibs[index ?? sibs.length];
+  const at = before ? rest.indexOf(before) : (sibs.length ? rest.indexOf(sibs.at(-1)) + 1 : rest.length);
+  rest.splice(at, 0, { ...moving, parentId });
   store.set('linkFolders', rest);
+  if ((moving.parentId || null) !== parentId) toast(`Moved ${moving.name} to ${parentId ? lfById(parentId)?.name : 'My links'}`);
+});
+// Out of a folder, one level up (the strip at the top of the glass folder).
+registerDrop('lf-out', ({ kind, id, data }) => {
+  const to = data.to || null;
+  if (kind === 'lfolder') saveLinkFolder(id, { parentId: to });
+  else moveIntoLinkFolder(id, to, null);
+  toast(`Moved out to ${to ? lfById(to)?.name : 'My links'}`);
 });
 
 function addLink(raw) {
@@ -410,6 +428,7 @@ function previewItem(anchor, id) {
     rows.push(h('div', { class: 'muted small' }, `${m.pdf.name} · ${fmtSize(m.pdf.size || 0)} · saved on this device`),
       h('div', { class: 'peek-actions' },
         h('button', { class: 'btn sm primary', onclick: () => openPdf(m.pdf) }, icon('external'), 'Open PDF'),
+        h('button', { class: 'chip', onclick: () => { closePopovers(); openMoveDialog(id); } }, icon('move'), 'Move to…'),
         m.driveUrl ? h('a', { class: 'chip', href: m.driveUrl, target: '_blank', rel: 'noopener noreferrer' }, icon('external'), 'Open in Drive')
           : h('button', { class: 'chip', onclick: async () => {
             status.textContent = 'Uploading to Google Drive…';
@@ -429,9 +448,27 @@ function previewItem(anchor, id) {
         h('button', { class: 'chip', onclick: () => { closePopovers(); openMoveDialog(id); } }, icon('move'), 'Move to…')));
   } else {
     rows.push(h('div', { class: 'peek-text' }, (c.description || '').slice(0, 700) || 'Empty file.'),
-      h('div', { class: 'peek-actions' }, h('button', { class: 'chip', onclick: () => { closePopovers(); openEditor(id, { title: 'Text file' }); } }, icon('pencil'), 'Open')));
+      h('div', { class: 'peek-actions' }, h('button', { class: 'chip', onclick: () => { closePopovers(); openEditor(id, { title: 'Text file' }); } }, icon('pencil'), 'Open'),
+        h('button', { class: 'chip', onclick: () => { closePopovers(); openMoveDialog(id); } }, icon('move'), 'Move to…')));
   }
+  const taskName = taskTitleFor(c);
+  rows.push(h('div', { class: 'peek-task' },
+    h('button', { class: 'chip task-chip', title: `Adds “${taskName}” to To do in Taskly`, onclick: () => { closePopovers(); makeTaskFrom(c); } }, icon('checklist'), 'Make a task'),
+    h('span', { class: 'muted small' }, `“${taskName}”`)));
   popover(anchor, h('div', { class: 'item-peek' }, h('div', { class: 'item-peek-head' }, favicon(c), title), ...rows), { className: 'item-peek-pop' });
+}
+/** A task named for the thing: PDFs and files get reviewed, links get read. */
+function taskTitleFor(c) {
+  const kind = kindOf(c);
+  const name = (c.title || c.meta?.host || 'this').trim();
+  return kind === 'link' ? `Read article from ${name}` : `Review ${name}`;
+}
+function makeTaskFrom(c) {
+  const m = c.meta || {};
+  const description = m.url || (m.pdf ? `PDF in Brainly: ${m.pdf.name}` : m.upload ? `File in Brainly: ${m.upload.name}` : `From Brainly: ${c.title}`);
+  const t = addTaskFrom({ title: taskTitleFor(c), description, meta: { fromCardId: c.id, ...(m.url ? { url: m.url } : {}) } });
+  if (!t) return;
+  toast(`Added to Taskly: ${t.title}`, { action: 'Show', onAction: () => revealCard(t.id) });
 }
 async function openPdf(pdf) {
   const blob = await store.getFile(pdf.fileId);
