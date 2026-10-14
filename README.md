@@ -11,9 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://nweinberg97.github.io/sedi/"><b>Open Sedi</b></a>
-  &nbsp;·&nbsp;
-  <a href="https://nweinberg97.github.io/sedi/welcome/">About Sedi</a>
+  <b>Open Sedi</b> → <a href="https://nweinberg97.github.io/sedi/">nweinberg97.github.io/sedi</a><br>
+  <b>About Sedi</b> → <a href="https://nweinberg97.github.io/sedi/welcome/">nweinberg97.github.io/sedi/welcome</a>
 </p>
 
 <p align="center">
@@ -70,6 +69,11 @@ The name comes from Hebrew *seder* (order) and Latin *sedēre* (to sit, to settl
 | **Apple Reminders** | Send any card to Reminders through an Apple Shortcut. |
 | **Clear-outs** | Drag a card to the trash, with Undo. Past one-off events archive themselves after 30 days. |
 | **Your data** | Menu → Download data saves everything, files included, as one `.json` file. Import brings it back. |
+
+## Links
+
+- **The app:** https://nweinberg97.github.io/sedi/
+- **The landing page:** https://nweinberg97.github.io/sedi/welcome/
 
 ## Pricing
 
