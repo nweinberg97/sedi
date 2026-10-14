@@ -230,245 +230,397 @@ p { margin: 0; text-wrap: pretty; }
 @media (max-width: 980px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .bento { grid-template-columns: minmax(0, 1fr); } .tile.wide { grid-column: auto; } .tile img { height: 240px; } }
 
-/* ---------- Animated scenes: small, faithful re-creations of Sedi, sized to their frame ---------- */
-.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #fff; container-type: inline-size; box-shadow: 0 0 0 1px rgba(17, 17, 17, .06), 0 50px 90px -46px rgba(22, 66, 110, .5), 0 22px 40px -32px rgba(22, 66, 110, .35); }
+/* ---------- Animated scenes: Sedi's real interface, redrawn small and sized to the frame ---------- */
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: #fff; container-type: inline-size; box-shadow: 0 0 0 1px rgba(17, 17, 17, .07), 0 50px 90px -46px rgba(22, 66, 110, .5), 0 22px 40px -32px rgba(22, 66, 110, .35); }
 .stage[hidden] { display: none; }
-.fx { position: absolute; inset: 0; font-size: 1.5cqw; line-height: 1.35; color: var(--ink); --T: 9s; }
-.fx b { font-weight: 500; }
-.fx small { color: var(--muted); font-size: .82em; }
+.fx { position: absolute; inset: 0; font-size: 1.4cqw; line-height: 1.35; color: var(--ink); --T: 10s; }
 .fx * { animation-fill-mode: both; }
-.m-bar { position: absolute; left: 0; right: 0; top: 0; height: 3.4em; display: flex; align-items: center; gap: .7em; padding: 0 2em; border-bottom: 1px solid var(--line); }
-.m-logo svg { width: 1.5em; height: 1.5em; display: block; }
-.m-bar b { font-size: 1.2em; font-weight: 600; letter-spacing: -.01em; }
-.m-dot { width: .55em; height: .55em; border-radius: 50%; background: var(--c); }
-.m-soft { margin-left: .6em; color: var(--muted); font-size: .85em; }
-.m-card { display: flex; align-items: center; gap: .65em; padding: .7em .85em; background: #fff; border: 1px solid var(--line); border-radius: .7em; box-shadow: 0 .3em .8em -.5em rgba(22, 66, 110, .3); min-width: 0; }
-.m-card > span { display: grid; min-width: 0; }
-.m-card b, .m-card small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.m-ck { flex: none; width: 1.15em; height: 1.15em; border-radius: 50%; border: 1.5px solid #c3ccd6; display: grid; place-items: center; color: #fff; background: #fff; }
-.m-ck svg { width: .8em; height: .8em; opacity: 0; }
-.m-ck.on { background: var(--ink); border-color: var(--ink); }
-.m-ck.on svg { opacity: 1; }
-.m-card.done b { text-decoration: line-through; color: var(--muted); }
-.m-cal, .m-list, .m-note { flex: none; width: 1em; height: 1em; border: 1.5px solid var(--muted); border-radius: .25em; }
-.m-cal { border-top-width: .3em; }
-.m-list { border-radius: .15em; border-width: 1.5px 0; height: .8em; }
-.m-note { border-radius: .2em .5em .2em .2em; }
-.m-goal { flex: none; width: 1.15em; height: 1.15em; border-radius: 50%; border: 2px solid #86ae95; box-shadow: inset 0 0 0 .18em #fff, inset 0 0 0 .5em #86ae95; }
-.m-badge { flex: none; width: 1.9em; height: 1.9em; border-radius: .45em; display: grid; place-items: center; color: #fff; font-style: normal; font-size: .85em; font-weight: 600; background: var(--c); }
-.m-badge.pdf { background: #d9534f; font-size: .55em; width: 2.95em; height: 2.95em; }
-@keyframes ckOn { 0%, 55% { background: #fff; border-color: #c3ccd6; } 60%, 92% { background: var(--ink); border-color: var(--ink); } 97%, 100% { background: #fff; border-color: #c3ccd6; } }
-@keyframes ckSvg { 0%, 55% { opacity: 0; } 60%, 92% { opacity: 1; } 97%, 100% { opacity: 0; } }
-@keyframes strike { 0%, 55% { text-decoration-color: transparent; color: var(--ink); } 60%, 92% { text-decoration-color: currentColor; color: var(--muted); } 97%, 100% { text-decoration-color: transparent; color: var(--ink); } }
+.fx b { font-weight: 500; }
+.fx em { font-style: italic; color: var(--muted); }
+.fx small { color: var(--muted); }
+.fx .i { width: 1em; height: 1em; display: block; flex: none; }
+.fx .k { grid-area: 1 / 1; }
+.ck { flex: none; width: 1.2em; height: 1.2em; border-radius: 50%; border: 1.5px solid #c3ccd6; display: grid; place-items: center; background: #fff; color: #fff; }
+.ck .i { width: .75em; height: .75em; opacity: 0; stroke-width: 2.6; }
+.ck.on { background: var(--ink); border-color: var(--ink); }
+.ck.on .i { opacity: 1; }
+.dots { display: flex; gap: .15em; flex: none; } .dots b { width: .22em; height: .22em; border-radius: 50%; background: var(--muted); }
+.cur { position: absolute; z-index: 5; width: 1.15em; height: 1.45em; background: var(--ink); clip-path: polygon(0 0, 0 82%, 26% 64%, 44% 100%, 58% 94%, 41% 59%, 72% 59%); filter: drop-shadow(0 0 1px #fff); pointer-events: none; opacity: 0; }
+
+/* app chrome */
+.atop { position: absolute; left: 0; right: 0; top: 0; height: 3em; padding: 0 1.4em; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.atop .abrand { display: flex; align-items: center; gap: .5em; } .atop .abrand .i { width: 1.45em; height: 1.45em; } .atop .abrand b { font-size: 1.05em; font-weight: 600; }
+.atop .menu { width: 1.2em; height: 1.2em; }
+.vt { position: absolute; left: 1.4em; top: 3.75em; display: flex; align-items: center; gap: .7em; white-space: nowrap; }
+.vt .vd { width: .45em; height: .45em; border-radius: 50%; background: var(--c); }
+.vt > b { font-size: 1.45em; font-weight: 600; letter-spacing: -.01em; }
+.vt small { font-size: .75em; }
+.rail { position: absolute; right: .75em; top: 54%; translate: 0 -50%; display: flex; flex-direction: column; gap: .45em; }
+.rl { width: 2em; height: 2em; border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; box-shadow: 0 .2em .5em -.3em rgba(22, 66, 110, .4); }
+.rl .i { width: .95em; height: .95em; }
+.rl.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.tri { position: absolute; right: -.7em; top: 50%; margin-top: -.45em; border: .45em solid transparent; border-left: .55em solid #9aa3ad; border-right: 0; }
+.uni { position: absolute; right: .85em; top: 3.5em; width: 2.3em; height: 2.3em; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #2b3f7a, #0b1230 75%); color: #fff; display: grid; place-items: center; box-shadow: 0 .4em .8em -.3em rgba(11, 18, 48, .6); }
+.uni .i { width: 1.25em; height: 1.25em; }
+.orb { position: absolute; left: 50%; bottom: .6em; translate: -50% 0; width: 2.3em; height: 2.3em; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 0 0 1px rgba(143, 198, 242, .6), 0 0 1.1em .2em rgba(89, 178, 236, .45); }
+.orb .i { width: 1.3em; height: 1.3em; }
+.bin { position: absolute; right: .85em; bottom: .6em; width: 2.1em; height: 2.1em; border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; }
+.bin .i { width: .95em; height: .95em; }
+
+/* shared column + card pieces */
+.tcol, .ucol, .pcol { border: 1px solid color-mix(in srgb, var(--c, #c9b9a0) 45%, #fff); border-radius: .9em; background: #fff; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.th { height: 2.6em; padding: 0 .65em; display: flex; align-items: center; gap: .5em; background: color-mix(in srgb, var(--c) 10%, #fff); border-bottom: 1px solid color-mix(in srgb, var(--c) 25%, #fff); }
+.th .tic { width: 1.5em; height: 1.5em; border-radius: .35em; background: var(--c); color: #fff; display: grid; place-items: center; } .th .tic .i { width: .85em; height: .85em; }
+.th > b { font-size: .92em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.th .n { flex: none; margin-left: auto; display: inline-grid; font-size: .72em; font-weight: 600; padding: .05em .5em; border: 1.5px solid var(--ink); border-radius: 1em; }
+.tb { padding: .55em; display: flex; flex-direction: column; gap: .5em; }
+.add { height: 2em; flex: none; border: 1.5px solid var(--ink); border-radius: .55em; display: flex; align-items: center; gap: .45em; padding: 0 .6em; font-size: .82em; font-weight: 600; }
+.add .i { width: 1.2em; height: 1.2em; padding: .15em; border-radius: 50%; background: var(--ink); color: #fff; }
+.tc { position: relative; height: 3em; flex: none; display: flex; align-items: center; gap: .55em; padding: 0 1.2em 0 .6em; border: 1px solid var(--line); border-radius: .6em; background: #fff; box-shadow: 0 .25em .6em -.45em rgba(22, 66, 110, .35); min-width: 0; }
+.tc > span { display: grid; min-width: 0; }
+.tc b { font-size: .85em; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc em { font-size: .7em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc .x { position: absolute; top: .15em; right: .4em; font-style: normal; font-size: .75em; color: #b8c0c9; }
+.tc > .i { width: .95em; height: .95em; color: var(--muted); }
+.tc.done b { text-decoration: line-through; color: var(--muted); }
+.bdg { font-style: normal; font-size: .62em; font-weight: 600; padding: .15em .55em; border-radius: 1em; margin-top: .15em; justify-self: start; }
+.bdg.red { background: #fde3e3; color: #c0392b; } .bdg.pur { background: #ece6f8; color: #6b4fb0; }
+.typed { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: bottom; max-width: 22em; }
+.ph { position: absolute; left: inherit; color: var(--muted); opacity: 0; }
 
 /* Home */
-.d-home { background: linear-gradient(#59b2ec, #aadefa 55%, #eaf6fc); }
-.d-home .m-bar { border-color: transparent; }
-.h-clock { position: absolute; left: 50%; top: 11%; translate: -50% 0; padding: .1em .7em; border-radius: .35em; background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .85); font-size: 6.4em; font-weight: 300; letter-spacing: -.04em; line-height: 1.15; white-space: nowrap; }
-.h-clock small { font-size: .26em; margin-left: .25em; color: var(--ink-2); letter-spacing: 0; }
-.h-date { position: absolute; left: 0; right: 0; top: 45%; text-align: center; font-size: 1.15em; color: #2b3542; }
-.h-list { position: absolute; left: 50%; top: 54%; width: 50%; translate: -50% 0; background: #fff; border-radius: 1em; padding: .9em; box-shadow: 0 1em 2em -1.2em rgba(22, 66, 110, .45); }
-.h-tabs { display: flex; gap: .3em; margin-bottom: .3em; }
-.h-tabs span { padding: .35em .8em; border-radius: .5em; color: var(--muted); font-size: .9em; }
-.h-tabs .on { background: var(--ink); color: #fff; }
-.h-row { display: flex; align-items: center; gap: .7em; padding: .6em .4em; animation: rowIn var(--T) var(--ease) infinite; }
-.h-row b { flex: 1; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: line-through; text-decoration-color: transparent; }
-.h-row small { flex: none; }
-.h-row.r2 { animation-delay: .25s; } .h-row.r3 { animation-delay: .5s; }
-.h-row.r1 .m-ck { animation: ckOn var(--T) infinite; }
-.h-row.r1 b { animation: strike var(--T) infinite; }
-@keyframes rowIn { 0% { opacity: .15; transform: translateY(.5em); } 8%, 100% { opacity: 1; transform: none; } }
+.sc-home { background: linear-gradient(#59b2ec, #aadefa 55%, #eaf6fc); }
+.sc-home .atop { border-color: transparent; }
+.sc-home .clock { position: absolute; left: 50%; top: 14%; translate: -50% 0; padding: .05em .55em; border-radius: .3em; background: rgba(234, 246, 252, .62); border: 1px solid rgba(255, 255, 255, .9); font-size: 6em; font-weight: 500; letter-spacing: -.03em; line-height: 1.12; white-space: nowrap; }
+.sc-home .clock small { font-size: .24em; font-weight: 400; margin-left: .2em; color: var(--ink-2); letter-spacing: 0; }
+.sc-home .date { position: absolute; left: 0; right: 0; top: 47%; text-align: center; font-size: 1.2em; font-weight: 500; color: #2b3542; }
+.sc-home .wx { position: absolute; left: 0; right: 0; top: 53%; text-align: center; font-size: 1em; color: #3c4855; }
+.hl { position: absolute; left: 50%; top: 60%; width: 44%; translate: -50% 0; background: #fff; border-radius: 1.1em; padding: .8em .9em; box-shadow: 0 1em 2em -1.2em rgba(22, 66, 110, .45); }
+.hl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .2em; }
+.hl-head small { font-size: .78em; color: var(--ink); }
+.seg { display: flex; background: #f1f4f7; border-radius: .6em; padding: .2em; font-size: .85em; }
+.seg > span { padding: .3em .75em; border-radius: .45em; color: var(--muted); }
+.seg .s1 { animation: segA var(--T) infinite; } .seg .s2 { animation: segB var(--T) infinite; }
+.seg .pill { display: none; }
+@keyframes segA { 0%, 46%, 94%, 100% { background: var(--ink); color: #fff; } 50%, 90% { background: transparent; color: var(--muted); } }
+@keyframes segB { 0%, 46%, 94%, 100% { background: transparent; color: var(--muted); } 50%, 90% { background: var(--ink); color: #fff; } }
+.hl-lists { display: grid; }
+.hl-list { grid-area: 1 / 1; }
+.hl { display: grid; } .hl .hl-list { grid-row: 2; grid-column: 1; }
+.hl-list.next { animation: lA var(--T) infinite; } .hl-list.recent { opacity: 0; animation: lB var(--T) infinite; }
+@keyframes lA { 0%, 46% { opacity: 1; } 50%, 90% { opacity: 0; } 94%, 100% { opacity: 1; } }
+@keyframes lB { 0%, 46% { opacity: 0; } 50%, 90% { opacity: 1; } 94%, 100% { opacity: 0; } }
+.hr { display: flex; align-items: center; gap: .75em; padding: .5em .25em; }
+.hr > .i { color: var(--muted); width: .95em; height: .95em; }
+.hr > span { flex: 1; display: grid; min-width: 0; }
+.hr b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr em { font-size: .78em; }
+.hr small { font-size: .78em; white-space: nowrap; }
 
 /* Taskly */
-.t-cols { position: absolute; left: 3%; right: 3%; top: 5em; bottom: 5%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4em; }
-.t-col { background: #f7fafc; border: 1px solid var(--line); border-top: .3em solid var(--c); border-radius: .8em; padding: .8em; display: flex; flex-direction: column; gap: .6em; min-width: 0; }
-.t-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: .95em; height: 1.7em; }
-.t-n { font-weight: 500; font-size: .85em; padding: .1em .55em; border-radius: 1em; border: 1px solid var(--line); background: #fff; color: var(--ink-2); display: inline-grid; }
-.t-n > span { grid-area: 1 / 1; }
-.t-n .a { animation: cA var(--T) infinite; } .t-n .b { animation: cB var(--T) infinite; }
-@keyframes cA { 0%, 22% { opacity: 1; } 26%, 92% { opacity: 0; } 96%, 100% { opacity: 1; } }
-@keyframes cB { 0%, 22% { opacity: 0; } 26%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
-.t-move { --col: calc((100% + 1.4em) / 3); position: absolute; width: calc(var(--col) - 1.4em - 1.6em - 2px); left: calc(.8em + 1px); top: calc(3.35em + 2 * 3.42em); animation: tMove var(--T) var(--ease) infinite; z-index: 2; }
-.t-move .m-ck { animation: ckOn var(--T) infinite; }
-.t-move .m-ck svg { animation: ckSvg var(--T) infinite; }
-.t-move b { text-decoration: line-through; animation: strike var(--T) infinite; }
-@keyframes tMove {
-  0%, 14% { left: calc(.8em + 1px); top: calc(3.35em + 2 * 3.42em); transform: none; opacity: 1; box-shadow: 0 .3em .8em -.5em rgba(22, 66, 110, .3); }
-  20% { transform: scale(1.05) rotate(-1.2deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
-  28%, 46% { left: calc(var(--col) + .8em + 1px); top: calc(3.35em + 3.42em); transform: none; box-shadow: 0 .3em .8em -.5em rgba(22, 66, 110, .3); }
-  52% { transform: scale(1.05) rotate(1deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
-  58%, 91% { left: calc(2 * var(--col) + .8em + 1px); top: calc(3.35em + 3.42em); transform: none; opacity: 1; box-shadow: 0 .3em .8em -.5em rgba(22, 66, 110, .3); }
-  95% { left: calc(2 * var(--col) + .8em + 1px); top: calc(3.35em + 3.42em); opacity: 0; }
-  96% { left: calc(.8em + 1px); top: calc(3.35em + 2 * 3.42em); opacity: 0; }
-  100% { left: calc(.8em + 1px); top: calc(3.35em + 2 * 3.42em); opacity: 1; }
-}
+.tcols { position: absolute; left: 1.4em; right: 4.4em; top: 6.4em; bottom: 3.6em; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .7em; }
+.mv { position: absolute; z-index: 3; --cw: calc((100% + .7em) / 5); width: calc(var(--cw) - .7em - 1.1em - 2px); }
+.mvA { left: calc(.55em + 1px); top: calc(5.65em + 1px + 2 * 3.5em); animation: mA var(--T) var(--ease) infinite; }
+.mvB { left: calc(.55em + 1px); top: calc(5.65em + 1px + 3.5em); animation: mB var(--T) var(--ease) infinite; }
+.mvA .cur { right: 18%; bottom: -.8em; animation: curA var(--T) infinite; }
+.mvB .ck { animation: ckOn var(--T) infinite; } .mvB .ck .i { animation: ckSvg var(--T) infinite; }
+.mvB b { text-decoration: line-through; animation: strike var(--T) infinite; }
+@keyframes mA {
+  0%, 10% { left: calc(.55em + 1px); top: calc(5.65em + 1px + 2 * 3.5em); transform: none; opacity: 1; }
+  15% { transform: scale(1.05) rotate(-1.5deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
+  32% { left: calc(var(--cw) + .55em + 1px); top: calc(5.65em + 1px + 3.5em); transform: scale(1.05) rotate(-1.5deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
+  36%, 90% { left: calc(var(--cw) + .55em + 1px); top: calc(5.65em + 1px + 3.5em); transform: none; opacity: 1; box-shadow: 0 .25em .6em -.45em rgba(22, 66, 110, .35); }
+  94% { left: calc(var(--cw) + .55em + 1px); top: calc(5.65em + 1px + 3.5em); opacity: 0; }
+  95% { left: calc(.55em + 1px); top: calc(5.65em + 1px + 2 * 3.5em); opacity: 0; }
+  100% { left: calc(.55em + 1px); top: calc(5.65em + 1px + 2 * 3.5em); opacity: 1; } }
+@keyframes mB {
+  0%, 56% { left: calc(.55em + 1px); top: calc(5.65em + 1px + 3.5em); transform: none; opacity: 1; }
+  60% { transform: translateY(-.25em) scale(1.03); }
+  68%, 90% { left: calc(3 * var(--cw) + .55em + 1px); top: calc(5.65em + 1px + 2 * 3.5em); transform: none; opacity: 1; }
+  94% { left: calc(3 * var(--cw) + .55em + 1px); top: calc(5.65em + 1px + 2 * 3.5em); opacity: 0; }
+  95% { left: calc(.55em + 1px); top: calc(5.65em + 1px + 3.5em); opacity: 0; }
+  100% { left: calc(.55em + 1px); top: calc(5.65em + 1px + 3.5em); opacity: 1; } }
+@keyframes curA { 0%, 6% { opacity: 0; } 9%, 34% { opacity: 1; } 38%, 100% { opacity: 0; } }
+@keyframes ckOn { 0%, 50% { background: #fff; border-color: #c3ccd6; } 53%, 92% { background: var(--ink); border-color: var(--ink); } 96%, 100% { background: #fff; border-color: #c3ccd6; } }
+@keyframes ckSvg { 0%, 50% { opacity: 0; transform: scale(.4); } 53% { opacity: 1; transform: scale(1.25); } 56%, 92% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; } }
+@keyframes strike { 0%, 64% { text-decoration-color: transparent; color: var(--ink); } 68%, 92% { text-decoration-color: currentColor; color: var(--muted); } 96%, 100% { text-decoration-color: transparent; color: var(--ink); } }
+.sc-taskly .k1 { animation: kA var(--T) infinite; } .sc-taskly .k2 { animation: kB var(--T) infinite; } .sc-taskly .k3 { animation: kC var(--T) infinite; }
+.sc-taskly .k2b { animation: kBC var(--T) infinite; }
+.sc-taskly .k1c { animation: kAB var(--T) infinite; } .sc-taskly .k3c { animation: kCC var(--T) infinite; }
+@keyframes kA { 0%, 35% { opacity: 1; } 36%, 94% { opacity: 0; } 95%, 100% { opacity: 1; } }
+@keyframes kB { 0%, 35% { opacity: 0; } 36%, 66% { opacity: 1; } 67%, 100% { opacity: 0; } }
+@keyframes kC { 0%, 66% { opacity: 0; } 67%, 94% { opacity: 1; } 95%, 100% { opacity: 0; } }
+@keyframes kBC { 0%, 35% { opacity: 0; } 36%, 94% { opacity: 1; } 95%, 100% { opacity: 0; } }
+@keyframes kAB { 0%, 66% { opacity: 1; } 67%, 94% { opacity: 0; } 95%, 100% { opacity: 1; } }
+@keyframes kCC { 0%, 66% { opacity: 0; } 67%, 94% { opacity: 1; } 95%, 100% { opacity: 0; } }
+.sc-taskly .k2, .sc-taskly .k3, .sc-taskly .k2b, .sc-taskly .k3c { opacity: 0; }
 
 /* Boardly */
-.b-tabs { position: absolute; top: 4.4em; left: 3%; display: flex; gap: .5em; }
-.b-tabs span { padding: .4em .9em; border-radius: 2em; border: 1px solid var(--line); font-size: .9em; display: flex; align-items: center; gap: .45em; color: var(--ink-2); }
-.b-tabs span::before { content: ""; width: .5em; height: .5em; border-radius: 50%; background: var(--c); }
-.b-tabs .on { background: color-mix(in srgb, var(--c) 12%, #fff); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 55%, #fff); border-color: transparent; color: var(--ink); }
-.b-canvas { position: absolute; left: 3%; right: 3%; top: 7.6em; bottom: 5%; border-radius: 1em; border: 1px solid color-mix(in srgb, #86ae95 24%, #e9ebee); background: #fff radial-gradient(circle, color-mix(in srgb, #86ae95 38%, #fff) 1.2px, transparent 1.8px) 0 0 / 1.8em 1.8em; }
-.b-canvas .m-card { position: absolute; width: 28%; }
-.b-t1 { left: 6%; top: 10%; width: 32% !important; }
-.b-t2 { left: 48%; top: 8%; background: #fdf6d8; border-color: #f1e4a6; }
-.b-t3 { left: 60%; top: 60%; }
-.b-move { left: 8%; top: 62%; z-index: 2; animation: bDrag var(--T) var(--ease) infinite; }
-.cursor { position: absolute; right: 12%; bottom: -.7em; width: 1.3em; height: 1.6em; background: var(--ink); clip-path: polygon(0 0, 0 82%, 26% 64%, 44% 100%, 58% 94%, 41% 59%, 72% 59%); animation: cur var(--T) infinite; }
-@keyframes bDrag { 0%, 12% { transform: none; box-shadow: 0 .3em .8em -.5em rgba(22, 66, 110, .3); } 18% { transform: translateY(-.3em) scale(1.05) rotate(-1.5deg); box-shadow: 0 1.4em 2.2em -1em rgba(22, 66, 110, .5); } 44% { transform: translate(12em, -6.5em) scale(1.05) rotate(-1.5deg); box-shadow: 0 1.4em 2.2em -1em rgba(22, 66, 110, .5); } 50%, 82% { transform: translate(12em, -6.5em); box-shadow: 0 .3em .8em -.5em rgba(22, 66, 110, .3); } 88% { transform: translate(12em, -6.5em) scale(1.05); } 100% { transform: none; } }
-@keyframes cur { 0%, 8% { opacity: 0; } 12%, 52% { opacity: 1; } 58%, 84% { opacity: 0; } 88%, 98% { opacity: 1; } 100% { opacity: 0; } }
+.btabs { position: absolute; left: 1.4em; top: 6.2em; display: flex; align-items: center; gap: .45em; }
+.btabs span { display: flex; align-items: center; gap: .45em; padding: .35em .9em; border: 1px solid var(--line); border-radius: 2em; font-size: .85em; color: var(--ink-2); }
+.btabs span::before { content: ""; width: .5em; height: .5em; border-radius: 50%; background: var(--c); }
+.btabs .on { background: color-mix(in srgb, var(--c) 10%, #fff); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 55%, #fff); border-color: transparent; color: var(--ink); font-weight: 600; }
+.btabs > i { margin-left: .3em; color: var(--muted); } .btabs > i .i { width: 1em; height: 1em; }
+.bcanvas { position: absolute; left: 1.4em; right: 4.4em; top: 8.9em; bottom: 3.6em; border-radius: 1em; border: 1px solid color-mix(in srgb, #86ae95 24%, #e9ebee); background: #fff radial-gradient(circle, color-mix(in srgb, #86ae95 36%, #fff) 1.2px, transparent 1.8px) 0 0 / 1.8em 1.8em; }
+.tools { position: absolute; left: 1em; top: 14%; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: .5em; padding: .55em .45em; background: #fff; border-radius: 1em; box-shadow: 0 .5em 1.2em -.6em rgba(22, 66, 110, .5), 0 0 0 1px var(--line); }
+.tools small { font-size: .6em; font-weight: 700; letter-spacing: .1em; }
+.tl { display: grid; justify-items: center; gap: .15em; font-size: .7em; font-weight: 500; }
+.tl > i { width: 2.6em; height: 2.6em; border-radius: .7em; background: var(--c); color: #fff; display: grid; place-items: center; } .tl > i .i { width: 1.35em; height: 1.35em; }
+.tl.t1 > i { animation: press var(--T) infinite; }
+@keyframes press { 0%, 11%, 18%, 100% { transform: none; box-shadow: none; } 13%, 16% { transform: scale(.9); box-shadow: 0 0 0 .3em color-mix(in srgb, #4f9a72 30%, transparent); } }
+.bt { position: absolute; display: flex; align-items: center; gap: .6em; width: 15em; padding: .6em .8em; border: 1px solid var(--line); border-radius: .7em; background: #fff; box-shadow: 0 .3em .8em -.5em rgba(22, 66, 110, .35); }
+.bt > span { display: grid; min-width: 0; } .bt b { font-size: .88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .bt em { font-size: .7em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt .tg { width: 1.2em; height: 1.2em; color: #4f9a72; }
+.bt.note { background: #fff7d1; border-color: #f0e3a2; } .bt.note > .i { color: #b58a22; }
+.g1 { left: 14%; top: 9%; } .n1 { left: 42%; top: 9%; } .k1 { left: 44%; top: 58%; width: 13em; }
+.g2 { left: 70%; top: 32%; width: 14em; animation: pop var(--T) var(--ease) infinite; }
+@keyframes pop { 0%, 16% { transform: scale(.6); opacity: 0; } 22%, 90% { transform: none; opacity: 1; } 95%, 100% { transform: none; opacity: 0; } }
+.mvS { left: 14%; top: 62%; width: 13em; z-index: 3; animation: drag var(--T) var(--ease) infinite; }
+.mvS .cur { right: 15%; bottom: -.8em; animation: curS var(--T) infinite; }
+@keyframes drag { 0%, 30% { transform: none; opacity: 1; } 35% { transform: translateY(-.3em) scale(1.05) rotate(-1.5deg); box-shadow: 0 1.4em 2.2em -1em rgba(22, 66, 110, .5); } 58% { transform: translate(.6em, -7.4em) scale(1.05) rotate(-1.5deg); box-shadow: 0 1.4em 2.2em -1em rgba(22, 66, 110, .5); } 62%, 90% { transform: translate(.6em, -7.4em); opacity: 1; } 94% { transform: translate(.6em, -7.4em); opacity: 0; } 95% { transform: none; opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes curS { 0%, 27% { opacity: 0; } 30%, 60% { opacity: 1; } 64%, 100% { opacity: 0; } }
 
 /* Timely */
-.m-seg { margin-left: 1em; display: flex; background: #f1f5f8; border-radius: .6em; padding: .2em; font-size: .85em; }
-.m-seg span { padding: .25em .7em; border-radius: .45em; color: var(--muted); }
-.m-seg .on { background: var(--ink); color: #fff; }
-.m-head { position: absolute; top: 4.2em; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 1em; font-size: 1.2em; }
-.m-head .arr { font-style: normal; width: 1.5em; height: 1.5em; border: 1px solid var(--line); border-radius: 50%; display: grid; place-items: center; font-size: .8em; color: var(--muted); }
-.m-week { position: absolute; top: 8.1em; left: 3%; right: 3%; display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; color: var(--muted); font-size: .85em; }
-.m-grid { position: absolute; top: 9.8em; left: 3%; right: 3%; bottom: 4%; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: .35em; }
-.m-spans { pointer-events: none; }
-.m-grid .c { border: 1px solid var(--line); border-radius: .5em; padding: .3em .45em; display: flex; flex-direction: column; justify-content: space-between; font-size: .85em; min-width: 0; }
-.m-grid .c.out { opacity: .4; }
-.m-grid .c.today { background: #faf5ec; border-color: #c9a46e; }
-.m-grid .c.today span { background: #c9a46e; color: #fff; border-radius: 50%; width: 1.6em; height: 1.6em; display: grid; place-items: center; }
-.m-grid .c em { display: flex; gap: .22em; }
-.m-grid .c em i { width: .5em; height: .5em; border-radius: 50%; border: 1.5px solid var(--taskly); animation: dotPop var(--T) var(--ease) infinite; animation-delay: calc(var(--k) * .12s); }
-@keyframes dotPop { 0% { transform: scale(.2); opacity: .2; } 6%, 100% { transform: none; opacity: 1; } }
-.span { align-self: center; height: 1.6em; margin-top: .4em; border-radius: .4em; font-size: .8em; display: flex; align-items: center; padding: 0 .6em; font-weight: 500; white-space: nowrap; overflow: hidden; transform-origin: left center; }
-.span.design { background: #f5ead8; color: #8a6a34; }
-.span.trip { background: #d8eef0; color: #1f6b70; animation: grow var(--T) var(--ease) infinite; }
-@keyframes grow { 0%, 12% { transform: scaleX(.12); opacity: .35; } 28%, 100% { transform: none; opacity: 1; } }
+.tseg { display: flex; background: #f1f4f7; border-radius: .55em; padding: .15em; font-size: .78em; margin-left: .3em; }
+.tseg span { padding: .25em .7em; border-radius: .45em; color: var(--muted); } .tseg .on { background: var(--ink); color: #fff; }
+.ttabs { position: absolute; left: 1.4em; right: 4.4em; top: 6.4em; display: flex; gap: 1.6em; border-bottom: 1px solid var(--line); }
+.ttabs span { display: flex; align-items: center; gap: .4em; padding: .45em .1em; font-size: .85em; color: var(--muted); margin-bottom: -1px; }
+.ttabs .on { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--ink); }
+.adds { position: absolute; left: 1.4em; right: 4.4em; top: 9.2em; display: flex; align-items: center; gap: .45em; }
+.ad { display: flex; align-items: center; gap: .4em; padding: .2em .75em .2em .25em; border: 1px solid var(--line); border-radius: 2em; font-size: .8em; font-weight: 500; }
+.ad > i { width: 1.6em; height: 1.6em; border-radius: 50%; background: color-mix(in srgb, var(--c) 18%, #fff); color: var(--c); display: grid; place-items: center; } .ad > i .i { width: .9em; height: .9em; }
+.ad.trip { animation: pressT var(--T) infinite; }
+@keyframes pressT { 0%, 11%, 18%, 100% { transform: none; box-shadow: none; } 13%, 16% { transform: scale(.94); box-shadow: 0 0 0 .3em rgba(90, 164, 176, .3); } }
+.adds small { margin-left: auto; font-size: .68em; }
+.mh { position: absolute; left: 1.4em; right: 19.6em; top: 11.9em; display: flex; align-items: center; justify-content: center; gap: .7em; }
+.mh b { font-size: 1.1em; font-weight: 600; } .mh i { width: 1.6em; height: 1.6em; border: 1px solid var(--line); border-radius: 50%; display: grid; place-items: center; color: var(--muted); } .mh i .i { width: .85em; height: .85em; }
+.mh span { position: absolute; right: 0; font-size: .75em; color: var(--muted); padding: .25em .7em; border: 1px solid var(--line); border-radius: 1em; }
+.mw { position: absolute; left: 1.4em; right: 19.6em; top: 14.3em; display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; color: var(--muted); } .mw span { font-size: .72em; }
+.mg { position: absolute; left: 1.4em; right: 19.6em; top: 15.6em; bottom: 3.6em; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: .3em; }
+.mg.spans { pointer-events: none; }
+.mg .c { border: 1px solid var(--line); border-radius: .5em; padding: .2em .35em; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+.mg .c > span { font-size: .72em; font-weight: 500; }
+.mg .c.out { opacity: .4; }
+.mg .c.today { background: #faf4ea; border: 1.5px solid #c9a46e; }
+.mg .c.today > span { background: #c9a46e; color: #fff; border-radius: 50%; width: 1.55em; height: 1.55em; display: grid; place-items: center; }
+.mg .c em { display: flex; align-items: center; gap: .18em; font-style: normal; }
+.mg .c em u { text-decoration: none; font-size: .68em; font-weight: 600; color: var(--ink); margin-right: .15em; }
+.mg .c em i { width: .38em; height: .38em; border-radius: 50%; border: 1.2px solid #5b8fd6; }
+.sp { align-self: start; margin-top: 1.25em; height: 1.2em; border-radius: .35em; font-size: .62em; font-weight: 600; padding: 0 .55em; display: flex; align-items: center; white-space: nowrap; overflow: hidden; }
+.sp.design { background: #f6ead6; color: #8a6a34; border-left: .3em solid #c9a46e; }
+.sp.lisbon { background: #dff0f1; color: #1f6b70; border-left: .3em solid #5aa4b0; animation: grow var(--T) var(--ease) infinite; }
+@keyframes grow { 0%, 17% { clip-path: inset(0 100% 0 0); } 30%, 92% { clip-path: inset(0 0 0 0); } 96%, 100% { clip-path: inset(0 100% 0 0); } }
+.mplan { position: absolute; right: 4.4em; top: 11.6em; width: 14.4em; bottom: 3.6em; border: 1.5px solid var(--ink); border-radius: .9em; overflow: hidden; background: #fff; }
+.mp-h { position: relative; padding: .6em .7em; background: #f6f0e6; border-bottom: 1px solid var(--line); display: grid; }
+.mp-h b { font-size: .85em; font-weight: 600; } .mp-h small { font-size: .62em; }
+.mp-h i { position: absolute; right: .6em; top: .75em; font-style: normal; font-size: .62em; font-weight: 600; border: 1.5px solid var(--ink); border-radius: 1em; padding: .05em .45em; }
+.mp-b { padding: .55em; display: flex; flex-direction: column; gap: .45em; }
+.mp-b .tc { height: 2.5em; } .mp-in { border: 1px solid var(--line); border-radius: .5em; padding: .5em .6em; font-size: .68em; color: var(--muted); }
 
-/* Brainly */
-.m-search { margin: 0 auto; padding: .35em 1.4em; border: 1px solid var(--line); border-radius: 2em; color: var(--muted); font-size: .85em; }
-.br-links { position: absolute; left: 3%; top: 5em; width: 42%; bottom: 5%; background: #f5f7fa; border-radius: 1em; padding: 1em; display: flex; flex-direction: column; gap: .7em; }
-.br-h { font-weight: 600; }
-.m-task { margin-left: auto; flex: none; width: 1.8em; height: 1.8em; border-radius: .45em; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; color: var(--muted); font-style: normal; }
-.m-task::before { content: "✓"; font-size: .85em; }
-.l1 .m-task { animation: press1 10s infinite; }
-.l2 .m-task { animation: press2 10s infinite; }
-@keyframes press1 { 0%, 10%, 22%, 100% { background: #fff; color: var(--muted); border-color: var(--line); transform: none; } 13%, 18% { background: var(--ink); color: #fff; border-color: var(--ink); transform: scale(1.12); } }
-@keyframes press2 { 0%, 48%, 60%, 100% { background: #fff; color: var(--muted); border-color: var(--line); transform: none; } 51%, 56% { background: var(--ink); color: #fff; border-color: var(--ink); transform: scale(1.12); } }
-.br-folder { margin-top: .6em; width: 62%; position: relative; padding: 1em .9em .8em; border-radius: .4em .8em .8em .8em; background: linear-gradient(#ece6f6, #fff 60%); border: 1px solid #d9d1ea; display: grid; gap: .2em; }
-.ftab { position: absolute; top: -.62em; left: -1px; width: 45%; height: .75em; border-radius: .5em .6em 0 0; background: #e6def3; border: 1px solid #d9d1ea; border-bottom: 0; }
-.br-arrow { position: absolute; left: 47.5%; top: 46%; font-size: 2em; color: #c3ccd6; }
-.br-todo { position: absolute; right: 3%; top: 5em; width: 44%; bottom: 5%; }
-.br-stack { display: flex; flex-direction: column; gap: .6em; }
-.br-new { overflow: hidden; }
-.br-new.n1 { animation: in1 10s var(--ease) infinite; }
-.br-new.n2 { animation: in2 10s var(--ease) infinite; }
-@keyframes in1 { 0%, 17% { max-height: 0; opacity: 0; padding-block: 0; margin-top: -.6em; border-width: 0; background: #eaf6fc; } 24% { max-height: 4em; opacity: 1; padding-block: .7em; margin-top: 0; border-width: 1px; background: #eaf6fc; } 36%, 92% { max-height: 4em; opacity: 1; padding-block: .7em; margin-top: 0; border-width: 1px; background: #fff; } 97%, 100% { max-height: 0; opacity: 0; padding-block: 0; margin-top: -.6em; border-width: 0; } }
-@keyframes in2 { 0%, 55% { max-height: 0; opacity: 0; padding-block: 0; margin-top: -.6em; border-width: 0; background: #eaf6fc; } 62% { max-height: 4em; opacity: 1; padding-block: .7em; margin-top: 0; border-width: 1px; background: #eaf6fc; } 74%, 92% { max-height: 4em; opacity: 1; padding-block: .7em; margin-top: 0; border-width: 1px; background: #fff; } 97%, 100% { max-height: 0; opacity: 0; padding-block: 0; margin-top: -.6em; border-width: 0; } }
+/* Brainly + links column (shared) */
+.bsearch { position: absolute; left: 50%; top: 4.68em; translate: -50% 0; width: 30%; height: 2.1em; border: 1px solid var(--line); border-radius: 2em; display: flex; align-items: center; gap: .5em; padding: 0 .9em; font-size: .78em; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.bsearch .i { width: 1em; height: 1em; }
+.bbtns { position: absolute; right: 4.4em; top: 3.75em; display: flex; gap: .4em; }
+.bbtns span { display: flex; align-items: center; gap: .35em; height: 2em; padding: 0 .8em; border: 1px solid var(--line); border-radius: .6em; font-size: .78em; font-weight: 500; }
+.bbtns .dark { background: var(--ink); color: #fff; border-color: var(--ink); } .bbtns .i { width: .95em; height: .95em; }
+.links { background: #f4f6f9; border-radius: 1em; padding: .85em; display: flex; flex-direction: column; gap: .55em; }
+.lh { display: flex; align-items: center; gap: .35em; } .lh b { font-weight: 600; margin-right: auto; }
+.lh span { display: flex; align-items: center; gap: .3em; background: #fff; border: 1px solid var(--line); border-radius: 1em; padding: .2em .6em; font-size: .7em; } .lh .i { width: .9em; height: .9em; }
+.lin { background: #fff; border: 1px solid var(--line); border-radius: .5em; padding: .45em .7em; font-size: .75em; color: var(--muted); }
+.lk { position: relative; background: #fff; border: 1px solid var(--line); border-radius: .65em; padding: .5em .6em; display: flex; align-items: center; gap: .6em; }
+.lk > span { display: grid; min-width: 0; } .lk b { font-size: .85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .lk em { font-size: .68em; font-style: normal; }
+.lk .bdg { margin: 0; flex: none; width: 2em; height: 2em; border-radius: .45em; display: grid; place-items: center; padding: 0; font-size: .85em; }
+.lk .bdg.doc { background: #dfe7ef; } .lk .bdg.pdf { background: #d9534f; color: #fff; font-size: .5em; font-weight: 700; width: 4em; height: 4em; }
+.lk .tk { margin-left: auto; flex: none; width: 1.8em; height: 1.8em; border-radius: .45em; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; color: var(--muted); opacity: 0; } .lk .tk .i { width: .9em; height: .9em; }
+.l1 .tk { animation: tk1 var(--T) infinite; } .l2 .tk { animation: tk2 var(--T) infinite; }
+.l1 .cur { right: .2em; bottom: -.6em; animation: cu1 var(--T) infinite; } .l2 .cur { right: .2em; bottom: -.6em; animation: cu2 var(--T) infinite; }
+@keyframes tk1 { 0%, 8% { opacity: 0; } 11%, 40% { opacity: 1; background: #fff; color: var(--muted); transform: none; } 17%, 20% { background: var(--ink); color: #fff; transform: scale(1.12); } 44%, 100% { opacity: 0; } }
+@keyframes tk2 { 0%, 50% { opacity: 0; } 53%, 82% { opacity: 1; background: #fff; color: var(--muted); transform: none; } 59%, 62% { background: var(--ink); color: #fff; transform: scale(1.12); } 86%, 100% { opacity: 0; } }
+@keyframes cu1 { 0%, 8% { opacity: 0; } 11%, 26% { opacity: 1; } 30%, 100% { opacity: 0; } }
+@keyframes cu2 { 0%, 50% { opacity: 0; } 53%, 68% { opacity: 1; } 72%, 100% { opacity: 0; } }
+.lfs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7em; margin-top: .6em; }
+.lf { position: relative; background: linear-gradient(180deg, color-mix(in srgb, var(--fc) 14%, #fff), #fff 46%); border: 1px solid color-mix(in srgb, var(--fc) 40%, var(--line)); border-radius: .35em .8em .8em .8em; padding: .85em .7em .6em; display: grid; gap: .1em; min-width: 0; }
+.ftab { position: absolute; top: -.55em; left: -1px; width: 46%; height: .65em; border-radius: .45em .55em 0 0; background: color-mix(in srgb, var(--fc) 30%, #fff); border: 1px solid color-mix(in srgb, var(--fc) 40%, var(--line)); border-bottom: 0; }
+.lf .le { width: 1.9em; height: 1.9em; border-radius: .5em; background: color-mix(in srgb, var(--fc) 18%, #fff); display: grid; place-items: center; margin-bottom: .3em; }
+.lf b { font-size: .85em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .lf em { font-size: .65em; font-style: normal; }
+.sc-brainly .links { position: absolute; left: 1.4em; top: 6.6em; width: 24em; bottom: 3.6em; }
+.bnotes { position: absolute; left: 26.6em; right: 4.4em; top: 6.6em; bottom: 3.6em; border: 1px solid var(--line); border-radius: 1em; background: #fff radial-gradient(circle, #e6ebf0 1px, transparent 1.6px) 0 0 / 1.6em 1.6em; padding: 1.2em; display: flex; flex-wrap: wrap; align-content: start; gap: .9em; }
+.bn { position: relative; width: 7.6em; height: 7.6em; border-radius: 1em; background: var(--n); padding: .75em; display: grid; align-content: start; gap: .35em; font-size: .9em; box-shadow: 0 .4em .9em -.6em rgba(22, 66, 110, .4); }
+.bn b { font-weight: 600; font-size: .9em; line-height: 1.25; } .bn em { font-size: .7em; font-style: normal; }
+.bn.fold { --fc: #c9a46e; border-radius: .35em 1em 1em 1em; }
+.toast { position: absolute; left: 50%; bottom: 3.5em; translate: -50% 0; display: flex; align-items: center; gap: 1em; padding: .65em .7em .65em 1em; border-radius: .7em; background: var(--ink); color: #fff; font-size: .82em; white-space: nowrap; opacity: 0; }
+.toast b { padding: .25em .6em; border-radius: .4em; background: rgba(255, 255, 255, .16); font-weight: 600; }
+.toast.t1 { animation: toast1 var(--T) var(--ease) infinite; } .toast.t2 { animation: toast2 var(--T) var(--ease) infinite; }
+@keyframes toast1 { 0%, 20% { opacity: 0; transform: translateY(.8em); } 23%, 42% { opacity: 1; transform: none; } 46%, 100% { opacity: 0; transform: none; } }
+@keyframes toast2 { 0%, 62% { opacity: 0; transform: translateY(.8em); } 65%, 86% { opacity: 1; transform: none; } 90%, 100% { opacity: 0; transform: none; } }
 
-/* Feature tiles use a 4:3 frame and larger type */
-.tile .stage { aspect-ratio: 4 / 3; border-radius: 0; box-shadow: none; border-bottom: 1px solid var(--line); }
-.tile .fx { font-size: 3cqw; }
+/* Feature tiles: a 4:3 frame and larger type */
+.tile-f, .bento .stage { aspect-ratio: 4 / 3; border-radius: 0; box-shadow: none; border-bottom: 1px solid var(--line); }
+.bento .fx { font-size: 2.55cqw; }
 
 /* Talk to your notes */
-.d-talk { background: linear-gradient(#59b2ec, #aadefa 60%, #eaf6fc); }
-.tk-tray { position: absolute; left: 6%; right: 6%; top: 8%; bottom: 8%; background: #fff; border-radius: 1em; padding: 1em; display: flex; flex-direction: column; gap: .55em; box-shadow: 0 1.2em 2.4em -1.2em rgba(22, 66, 110, .5); }
-.tk-tabs { display: flex; gap: .2em; }
-.tk-tabs span { padding: .3em .7em; border-radius: .5em; color: var(--muted); font-size: .85em; }
-.tk-tabs .on { background: var(--ink); color: #fff; }
-.tk-q { align-self: flex-end; background: #f1f5f8; border-radius: 1em; padding: .45em .8em; }
-.tk-q span { display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom; max-width: 20em; animation: type var(--T) steps(30) infinite; }
-@keyframes type { 0% { max-width: 0; } 22%, 100% { max-width: 20em; } }
-.tk-found { font-size: .9em; color: var(--ink-2); animation: rIn var(--T) var(--ease) infinite; animation-delay: 2.3s; }
-.tk-r { display: flex; align-items: center; gap: .6em; padding: .5em .7em; border: 1px solid var(--line); border-radius: .6em; animation: rIn var(--T) var(--ease) infinite; }
-.tk-r b { flex: 1; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tk-r small { flex: none; }
-.tk-r.r1 { animation-delay: 2.6s; } .tk-r.r2 { animation-delay: 2.9s; } .tk-r.r3 { animation-delay: 3.2s; }
-@keyframes rIn { 0% { opacity: 0; transform: translateY(.4em); } 5%, 70% { opacity: 1; transform: none; } 74%, 100% { opacity: 0; } }
+.sc-talk { background: linear-gradient(#59b2ec, #aadefa 60%, #eaf6fc); }
+.tray { position: absolute; left: 5%; right: 5%; top: 6%; bottom: 6%; background: #fff; border-radius: 1.1em; box-shadow: 0 1.2em 2.4em -1.2em rgba(22, 66, 110, .5); display: flex; flex-direction: column; overflow: hidden; }
+.trh { display: flex; align-items: center; gap: .5em; padding: .65em .8em; }
+.seg3 { display: flex; background: #f1f4f7; border-radius: .55em; padding: .15em; font-size: .78em; } .seg3 span { padding: .25em .65em; border-radius: .45em; color: var(--muted); } .seg3 .on { background: var(--ink); color: #fff; }
+.trh small { margin-left: auto; font-size: .7em; } .trh > i { color: var(--muted); } .trh > i .i { width: .9em; height: .9em; }
+.tro { position: relative; flex: 1; padding: .2em .9em; display: flex; flex-direction: column; gap: .5em; min-height: 0; }
+.me { align-self: flex-end; background: #eef2f6; border-radius: 1em; padding: .45em .8em; font-size: .85em; opacity: 0; animation: me var(--T) var(--ease) infinite; }
+@keyframes me { 0%, 17% { opacity: 0; transform: translateY(.5em); } 20%, 92% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; } }
+.think { position: absolute; left: 1.15em; top: 2.9em; font-size: .78em; font-style: italic; color: var(--muted); opacity: 0; animation: think var(--T) infinite; }
+@keyframes think { 0%, 21% { opacity: 0; } 23%, 29% { opacity: 1; } 31%, 100% { opacity: 0; } }
+.ans { font-size: .85em; }
+.ans p { margin: 0; line-height: 1.45; }
+.ans .w1 { animation: w1 var(--T) infinite; } .ans .w2 { animation: w2 var(--T) infinite; }
+@keyframes w1 { 0%, 31% { opacity: 0; } 35%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+@keyframes w2 { 0%, 38% { opacity: 0; } 42%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+.src { display: flex; align-items: center; gap: .5em; margin-top: .55em; padding: .45em .6em; border: 1px solid var(--line); border-radius: .6em; animation: w3 var(--T) infinite; }
+.src .i { color: var(--muted); width: .95em; height: .95em; } .src b { flex: 1; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .src small { font-size: .78em; }
+.eng { display: inline-block; margin-top: .45em; font-style: normal; font-size: .65em; color: var(--muted); padding: .15em .55em; border-radius: 1em; background: #f1f4f7; animation: w3 var(--T) infinite; }
+@keyframes w3 { 0%, 45% { opacity: 0; } 49%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+.trf { display: flex; align-items: center; gap: .45em; padding: .6em .8em .75em; }
+.inp { position: relative; flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: .7em; padding: .5em .7em; font-size: .78em; white-space: nowrap; overflow: hidden; }
+.inp .ph { left: .7em; top: .5em; }
+.inp .typed { animation: typeQ var(--T) steps(30) infinite; } .inp .ph { animation: phQ var(--T) infinite; }
+@keyframes typeQ { 0%, 2% { max-width: 0; opacity: 1; } 16%, 18% { max-width: 22em; opacity: 1; } 19%, 100% { max-width: 22em; opacity: 0; } }
+@keyframes phQ { 0%, 1% { opacity: 1; } 2%, 18% { opacity: 0; } 19%, 100% { opacity: 1; } }
+.trf .mic, .trf .send { width: 2em; height: 2em; border-radius: 50%; display: grid; place-items: center; flex: none; } .trf .mic { color: var(--muted); } .trf .send { background: var(--ink); color: #fff; animation: sendP var(--T) infinite; }
+.trf .i { width: .95em; height: .95em; }
+@keyframes sendP { 0%, 16%, 21%, 100% { transform: none; } 18% { transform: scale(.85); } }
 
-/* Universal Board */
-.u-zone { position: absolute; border-radius: .9em; border: 1.5px dashed #d3dce6; background: #f8fafc; }
-.u-zone span { position: absolute; left: .8em; top: .6em; font-size: .7em; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.u-zone.z1 { left: 5%; top: 6%; width: 42%; height: 38%; border-color: color-mix(in srgb, #86ae95 50%, #fff); background: color-mix(in srgb, #86ae95 6%, #fff); }
-.u-zone.z2 { right: 5%; top: 6%; width: 42%; height: 38%; border-style: solid; background: #fff; }
-.u-zone.z3 { left: 5%; right: 5%; top: 52%; height: 36%; border-style: solid; border-top: .25em solid var(--taskly); background: #f7fafc; }
-.u-card { position: absolute; width: 36%; left: 8%; top: 20%; z-index: 2; padding-left: 2.2em; animation: uMove var(--T) var(--ease) infinite; }
-.u-ic { position: absolute; left: .75em; top: 50%; margin-top: -.6em; width: 1.15em; height: 1.15em; }
-.u-ic.goal { border-radius: 50%; border: 2px solid #86ae95; box-shadow: inset 0 0 0 .18em #fff, inset 0 0 0 .5em #86ae95; animation: icA var(--T) infinite; }
-.u-ic.plain { border-block: 1.5px solid var(--muted); height: .75em; margin-top: -.38em; animation: icB var(--T) infinite; }
-.u-ic.task { border-radius: 50%; border: 1.5px solid #c3ccd6; animation: icC var(--T) infinite; }
-.u-label { position: absolute; left: 0; right: 0; bottom: 3%; display: grid; justify-items: center; font-size: .8em; color: var(--ink-2); font-weight: 500; }
-.u-label span { grid-area: 1 / 1; }
-.u-label .a { animation: icA var(--T) infinite; } .u-label .b { animation: icB var(--T) infinite; } .u-label .c { animation: icC var(--T) infinite; }
-@keyframes uMove { 0%, 16% { left: 8%; top: 20%; opacity: 1; border-color: color-mix(in srgb, #86ae95 60%, #fff); } 28%, 50% { left: 56%; top: 20%; border-color: var(--line); } 62%, 91% { left: 32%; top: 64%; opacity: 1; border-color: var(--line); } 95% { left: 32%; top: 64%; opacity: 0; } 96% { left: 8%; top: 20%; opacity: 0; } 100% { left: 8%; top: 20%; opacity: 1; border-color: color-mix(in srgb, #86ae95 60%, #fff); } }
-@keyframes icA { 0%, 22% { opacity: 1; } 25%, 96% { opacity: 0; } 100% { opacity: 1; } }
-@keyframes icB { 0%, 22% { opacity: 0; } 25%, 56% { opacity: 1; } 59%, 100% { opacity: 0; } }
-@keyframes icC { 0%, 56% { opacity: 0; } 59%, 92% { opacity: 1; } 95%, 100% { opacity: 0; } }
+/* Capture now, sort later */
+.sc-uni .ucol { --c: #6e7fc4; position: absolute; left: 4%; width: 44%; top: 6%; bottom: 6%; }
+.sc-uni .v1 { animation: vA var(--T) infinite; } .sc-uni .v2 { opacity: 0; animation: vB var(--T) infinite; }
+@keyframes vA { 0%, 59% { opacity: 1; } 60%, 94% { opacity: 0; } 95%, 100% { opacity: 1; } }
+@keyframes vB { 0%, 59% { opacity: 0; } 60%, 94% { opacity: 1; } 95%, 100% { opacity: 0; } }
+.upanel { position: absolute; right: 4%; width: 44%; top: 6%; bottom: 6%; background: #fff; border: 1px solid var(--line); border-radius: .9em; box-shadow: 0 1em 2em -1.2em rgba(22, 66, 110, .45); padding: .8em; display: flex; flex-direction: column; gap: .55em; }
+.uph { display: flex; align-items: center; height: 1.3em; } .uph b { font-size: .92em; font-weight: 600; } .uph small { margin-left: auto; display: inline-grid; font-size: .72em; }
+.uph .u1 { animation: uA var(--T) infinite; } .uph .u2 { opacity: 0; animation: uB var(--T) infinite; }
+@keyframes uA { 0%, 19% { opacity: 1; } 20%, 59% { opacity: 0; } 60%, 100% { opacity: 1; } }
+@keyframes uB { 0%, 19% { opacity: 0; } 20%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.ucap { position: relative; border: 1px solid var(--line); border-radius: .5em; padding: .5em .6em; font-size: .78em; height: 2.15em; white-space: nowrap; overflow: hidden; }
+.ucap .ph { left: .6em; top: .5em; animation: phU var(--T) infinite; } .ucap .typed { animation: typeU var(--T) steps(30) infinite; }
+@keyframes typeU { 0%, 3% { max-width: 0; opacity: 1; } 17%, 19% { max-width: 22em; opacity: 1; } 20%, 100% { opacity: 0; } }
+@keyframes phU { 0%, 2% { opacity: 1; } 3%, 19% { opacity: 0; } 20%, 100% { opacity: 1; } }
+.uitem { display: flex; align-items: center; gap: .5em; height: 2.1em; padding: 0 .55em; border: 1px solid var(--line); border-radius: .55em; font-size: .78em; flex: none; }
+.uitem .i { color: var(--muted); width: .95em; height: .95em; } .uitem b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uhint { margin-top: auto; font-size: .62em; }
+.umove { position: absolute; z-index: 3; left: calc(52% + .8em + 1px); top: calc(6% + 7.4em); width: calc(44% - 1.6em - 2px); height: 2.6em; animation: uMove var(--T) var(--ease) infinite; }
+.umove .uic { display: grid; flex: none; } .umove .uic.pen { color: var(--muted); animation: icP var(--T) infinite; } .umove .uic.box { width: 0; overflow: hidden; animation: icX var(--T) infinite; }
+.umove .uic .i { width: .95em; height: .95em; }
+.umove .cur { right: 20%; bottom: -.8em; animation: curU var(--T) infinite; }
+@keyframes uMove {
+  0%, 19% { left: calc(52% + .8em + 1px); top: calc(6% + 7.4em); width: calc(44% - 1.6em - 2px); opacity: 0; transform: none; }
+  22%, 30% { left: calc(52% + .8em + 1px); top: calc(6% + 7.4em); width: calc(44% - 1.6em - 2px); opacity: 1; transform: none; }
+  34% { transform: scale(1.05) rotate(-1.5deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
+  56% { left: calc(4% + .55em + 1px); top: calc(6% + 13.1em + 1px); width: calc(44% - 1.1em - 2px); transform: scale(1.05) rotate(-1.5deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
+  60%, 91% { left: calc(4% + .55em + 1px); top: calc(6% + 13.1em + 1px); width: calc(44% - 1.1em - 2px); opacity: 1; transform: none; box-shadow: 0 .25em .6em -.45em rgba(22, 66, 110, .35); }
+  95%, 100% { left: calc(4% + .55em + 1px); top: calc(6% + 13.1em + 1px); width: calc(44% - 1.1em - 2px); opacity: 0; } }
+@keyframes icP { 0%, 58% { width: .95em; opacity: 1; } 60%, 100% { width: 0; opacity: 0; } }
+@keyframes icX { 0%, 58% { width: 0; opacity: 0; } 60%, 100% { width: 1.2em; opacity: 1; } }
+@keyframes curU { 0%, 27% { opacity: 0; } 30%, 58% { opacity: 1; } 62%, 100% { opacity: 0; } }
 
-/* Reminders */
-.cork { position: absolute; inset: 6%; border-radius: .8em; border: .35em solid #111; box-shadow: inset 0 0 0 .25em #fff; background: radial-gradient(rgba(0, 0, 0, .09) 1px, transparent 1.5px) 0 0 / .6em .6em, radial-gradient(rgba(255, 255, 255, .14) 1px, transparent 1.5px) .3em .3em / .6em .6em, #c9a571; }
-.pn { position: absolute; width: 40%; padding: 1em .8em .8em; border-radius: .2em; box-shadow: 0 .6em 1em -.6em rgba(0, 0, 0, .45); display: grid; gap: .25em; }
-.pn small { font-size: .62em; letter-spacing: .1em; font-weight: 600; color: rgba(0, 0, 0, .45); }
-.pn b { font-size: .92em; }
-.pn.p1 { left: 7%; top: 9%; background: #e5dbf5; rotate: -2deg; }
-.pn.p2 { left: 53%; top: 7%; background: #fbd8cd; rotate: 2deg; }
-.pn.p3 { left: 8%; top: 54%; background: #cfe6f7; rotate: 1.5deg; }
-.pn.p4 { left: 54%; top: 52%; background: #fbefa6; rotate: -1.5deg; animation: drop 7s var(--ease) infinite; }
-.pin { position: absolute; top: -.35em; left: 50%; width: .9em; height: .9em; margin-left: -.45em; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8a80, #d32f2f 60%, #8e1b1b); box-shadow: 0 .15em .2em rgba(0, 0, 0, .35); }
-.p4 .pin { animation: pinPush 7s var(--ease) infinite; }
-@keyframes drop { 0%, 8% { transform: translateY(-150%) rotate(-10deg); opacity: 0; } 20% { transform: translateY(5%) rotate(2deg); opacity: 1; } 26%, 88% { transform: none; opacity: 1; } 96%, 100% { transform: none; opacity: 0; } }
-@keyframes pinPush { 0%, 24% { transform: translateY(-.6em) scale(1.7); opacity: 0; } 30% { transform: scale(.8); opacity: 1; } 34%, 100% { transform: none; opacity: 1; } }
+/* Pin a reminder */
+.cork { position: absolute; inset: 4%; border-radius: .8em; border: .3em solid #111; box-shadow: inset 0 0 0 .22em #fff; background: radial-gradient(rgba(0, 0, 0, .08) 1px, transparent 1.5px) 0 0 / .55em .55em, radial-gradient(rgba(255, 255, 255, .13) 1px, transparent 1.5px) .27em .27em / .55em .55em, #c9a571; }
+.comp { position: absolute; left: 4%; top: 7%; width: 54%; background: #fffdf6; border-radius: .5em; box-shadow: 0 .6em 1.2em -.7em rgba(0, 0, 0, .5); padding: 1em .8em .7em; display: grid; gap: .45em; }
+.comp > small { font-size: .58em; font-weight: 700; letter-spacing: .1em; color: var(--ink); }
+.bpin, .rpin { position: absolute; top: -.35em; left: 50%; width: .85em; height: .85em; margin-left: -.42em; border-radius: 50%; box-shadow: 0 .15em .2em rgba(0, 0, 0, .35); }
+.bpin { background: radial-gradient(circle at 35% 35%, #8ab4ff, #2f63d6 60%, #183a86); }
+.rpin { background: radial-gradient(circle at 35% 35%, #ff8a80, #d32f2f 60%, #8e1b1b); }
+.rin { position: relative; border-bottom: 1px solid var(--line); padding: .15em 0 .45em; font-size: .85em; white-space: nowrap; overflow: hidden; height: 1.9em; }
+.rin .ph { left: 0; top: .15em; animation: phR var(--T) infinite; } .rin .typed { animation: typeR var(--T) steps(24) infinite; }
+@keyframes typeR { 0%, 4% { max-width: 0; opacity: 1; } 20%, 33% { max-width: 22em; opacity: 1; } 34%, 100% { opacity: 0; } }
+@keyframes phR { 0%, 3% { opacity: 1; } 4%, 33% { opacity: 0; } 34%, 100% { opacity: 1; } }
+.chips { display: flex; flex-wrap: wrap; gap: .3em; } .chips span { font-size: .64em; background: #f1efe9; border-radius: 1em; padding: .3em .6em; }
+.chips .tn { animation: chipOn var(--T) infinite; }
+@keyframes chipOn { 0%, 24% { background: #f1efe9; color: var(--ink); } 26%, 33% { background: var(--ink); color: #fff; } 35%, 100% { background: #f1efe9; color: var(--ink); } }
+.cf { display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed var(--line); padding-top: .45em; font-size: .66em; }
+.cf > span { display: inline-grid; grid-template-columns: auto auto; align-items: center; gap: .3em; } .cf > span > span { grid-area: 1 / 2; } .cf .i { width: 1em; height: 1em; }
+.cf .t0 { animation: phR var(--T) infinite; } .cf .t1 { opacity: 0; animation: tOn var(--T) infinite; }
+@keyframes tOn { 0%, 25% { opacity: 0; } 26%, 33% { opacity: 1; } 34%, 100% { opacity: 0; } }
+.pinit { display: flex; align-items: center; gap: .3em; font-style: normal; background: var(--ink); color: #fff; border-radius: 1em; padding: .35em .8em; font-weight: 600; animation: pinP var(--T) infinite; }
+@keyframes pinP { 0%, 29%, 34%, 100% { transform: none; } 31% { transform: scale(.88); } }
+.lane { position: absolute; right: 4%; top: 7%; width: 34%; display: flex; flex-direction: column; gap: .75em; }
+.tape { align-self: flex-start; display: flex; align-items: center; gap: .4em; background: #fbf6ea; padding: .3em .7em; font-size: .62em; font-weight: 700; letter-spacing: .08em; box-shadow: 0 .15em .3em rgba(0, 0, 0, .2); rotate: -1deg; }
+.tape i { font-style: normal; display: inline-grid; background: #ece7db; border-radius: 1em; padding: 0 .45em; }
+.tape .r1 { animation: rA var(--T) infinite; } .tape .r2 { opacity: 0; animation: rB var(--T) infinite; }
+@keyframes rA { 0%, 37% { opacity: 1; } 38%, 94% { opacity: 0; } 95%, 100% { opacity: 1; } }
+@keyframes rB { 0%, 37% { opacity: 0; } 38%, 94% { opacity: 1; } 95%, 100% { opacity: 0; } }
+.sn { position: relative; background: var(--n); padding: .85em .7em .55em; border-radius: .2em; box-shadow: 0 .5em .9em -.5em rgba(0, 0, 0, .45); display: grid; gap: .3em; }
+.sn b { font-size: .82em; font-weight: 600; } .sn em { display: flex; align-items: center; gap: .3em; font-size: .64em; font-style: normal; color: #5b5346; }
+.sn small { display: flex; align-items: center; gap: .3em; font-size: .6em; color: #5b5346; } .sn .i { width: 1em; height: 1em; }
+.sn.new { animation: dropIn var(--T) var(--ease) infinite; } .sn.new .rpin { animation: pinIn var(--T) var(--ease) infinite; }
+@keyframes dropIn { 0%, 33% { opacity: 0; transform: translateY(-160%) rotate(-8deg); } 41% { opacity: 1; transform: translateY(4%) rotate(1.5deg); } 45%, 92% { opacity: 1; transform: rotate(-1deg); } 96%, 100% { opacity: 0; } }
+@keyframes pinIn { 0%, 43% { opacity: 0; transform: translateY(-.6em) scale(1.7); } 47% { opacity: 1; transform: scale(.8); } 50%, 100% { opacity: 1; transform: none; } }
 
-/* Folders */
-.fd-col { position: absolute; left: 6%; top: 8%; width: 54%; bottom: 8%; background: #f5f7fa; border-radius: .9em; padding: .9em; display: flex; flex-direction: column; gap: 1.2em; }
-.fd-tile { position: relative; width: 82%; padding: 1em .9em .8em; border-radius: .4em .8em .8em .8em; background: linear-gradient(#ece6f6, #fff 60%); border: 1px solid #d9d1ea; display: grid; gap: .2em; animation: tap 8s infinite; }
-@keyframes tap { 0%, 14%, 24%, 100% { transform: none; } 18% { transform: scale(.95); } }
-.fd-glass { position: absolute; left: 28%; right: 5%; top: 14%; bottom: 14%; border-radius: 1.2em; background: rgba(255, 255, 255, .9); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid #fff; box-shadow: 0 1.2em 2.4em -1em rgba(22, 66, 110, .45); padding: 1.2em 1em; display: grid; align-content: start; justify-items: center; gap: 1em; transform-origin: 10% 75%; animation: gOpen 8s var(--ease) infinite; }
-@keyframes gOpen { 0%, 20% { transform: scale(.2); opacity: 0; } 30%, 84% { transform: none; opacity: 1; } 92%, 100% { transform: scale(.2); opacity: 0; } }
-.fd-title { font-size: 1.3em; font-weight: 600 !important; }
-.fd-row { display: flex; gap: .8em; justify-content: center; }
-.fd-it { display: grid; justify-items: center; gap: .35em; width: 4.4em; text-align: center; }
-.fd-it small { font-size: .62em; color: var(--ink-2); }
-.fshape { position: relative; width: 2.8em; height: 2.2em; margin-top: .3em; border-radius: .3em .6em .6em .6em; background: linear-gradient(#a7c5ec, #7fa7d9); display: grid; place-items: center; }
-.fshape i { position: absolute; top: -.35em; left: 0; width: 45%; height: .5em; border-radius: .3em .4em 0 0; background: #a7c5ec; }
-.fd-ic { width: 2.5em; height: 2.5em; border-radius: .6em; background: #f3eee6; display: grid; place-items: center; }
+/* Folders inside folders */
+.sc-fold .links { position: absolute; left: 6%; top: 7%; width: 60%; bottom: 7%; }
+.sc-fold .tapme { animation: tap var(--T) infinite; }
+@keyframes tap { 0%, 16%, 22%, 100% { transform: none; } 19% { transform: scale(.94); } }
+.glass { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(236, 244, 250, .55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: gBack var(--T) infinite; }
+@keyframes gBack { 0%, 22% { opacity: 0; } 26%, 86% { opacity: 1; } 92%, 100% { opacity: 0; } }
+.gp { width: 74%; background: rgba(255, 255, 255, .94); border-radius: 1.4em; padding: 1em 1.1em 1.1em; box-shadow: 0 1.2em 2.6em -1em rgba(22, 66, 110, .5); display: grid; justify-items: center; gap: .4em; transform-origin: 30% 80%; animation: gOpen var(--T) var(--ease) infinite; }
+@keyframes gOpen { 0%, 22% { transform: scale(.3); } 30%, 86% { transform: none; } 92%, 100% { transform: scale(.3); } }
+.gt { font-size: 1.25em; font-weight: 600 !important; } .gp > small { font-size: .68em; margin-top: -.3em; }
+.gl { justify-self: start; display: flex; align-items: center; gap: .35em; font-size: .58em; font-weight: 700; letter-spacing: .1em; color: var(--muted); margin-top: .3em; } .gl .i { width: 1.1em; height: 1.1em; }
+.gr { justify-self: start; display: flex; gap: .8em; }
+.gi { display: grid; justify-items: center; gap: .3em; width: 5.6em; text-align: center; } .gi small { font-size: .58em; color: var(--ink-2); line-height: 1.25; }
+.fsh { position: relative; width: 3.2em; height: 2.5em; margin-top: .35em; border-radius: .3em .7em .7em .7em; background: linear-gradient(#a7c5ec, #7fa7d9); display: grid; place-items: center; }
+.fsh .ftab { --fc: #7fa7d9; top: -.45em; left: 0; height: .55em; border: 0; background: #a7c5ec; }
+.fsh .badge { position: absolute; top: -.55em; right: -.6em; font-style: normal; font-size: .6em; font-weight: 700; color: #fff; background: var(--ink); border-radius: 1em; padding: .1em .45em; box-shadow: 0 0 0 .15em #fff; }
+.gic { width: 2.9em; height: 2.9em; border-radius: .75em; background: var(--t); display: grid; place-items: center; font-size: 1.05em; }
 
-/* Write, or speak */
-.d-speak { background: #f4f8fb; }
-.sp-card { position: absolute; inset: 7%; background: #fff; border-radius: 1em; border: 1px solid var(--line); box-shadow: 0 1em 2em -1.4em rgba(22, 66, 110, .45); padding: 1em; display: flex; flex-direction: column; gap: .7em; }
-.sp-top { display: flex; align-items: center; justify-content: space-between; gap: .6em; }
-.sp-mic { position: relative; width: 1.9em; height: 1.9em; border-radius: 50%; background: #e5484d; display: grid; place-items: center; flex: none; animation: micOn var(--T) infinite; }
-.sp-mic i { width: .45em; height: .75em; border-radius: .3em; background: #fff; }
-.sp-mic::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #e5484d; animation: ring 1.4s ease-out infinite; }
-@keyframes ring { from { transform: scale(1); opacity: .7; } to { transform: scale(1.8); opacity: 0; } }
-@keyframes micOn { 0%, 62% { filter: none; } 66%, 100% { filter: grayscale(1) opacity(.45); } }
-.sp-wave { display: flex; gap: .22em; align-items: center; height: 1.4em; animation: waveOn var(--T) infinite; }
-.sp-wave i { width: .22em; height: 30%; border-radius: .2em; background: #e5484d; animation: wave 1.1s ease-in-out infinite; animation-delay: calc(var(--k) * -.09s); }
-@keyframes wave { 50% { height: 100%; } }
-@keyframes waveOn { 0%, 62% { opacity: 1; } 66%, 100% { opacity: .15; } }
-.sp-lines { display: grid; gap: .45em; font-size: .92em; color: var(--ink-2); }
-.sp-lines span { display: block; overflow: hidden; white-space: nowrap; max-width: 22em; }
-.sp-lines .l1 { animation: tA var(--T) steps(24) infinite; } .sp-lines .l2 { animation: tB var(--T) steps(24) infinite; } .sp-lines .l3 { animation: tC var(--T) steps(24) infinite; }
-@keyframes tA { 0%, 4% { max-width: 0; } 20%, 95% { max-width: 22em; } 100% { max-width: 0; } }
-@keyframes tB { 0%, 22% { max-width: 0; } 38%, 95% { max-width: 22em; } 100% { max-width: 0; } }
-@keyframes tC { 0%, 40% { max-width: 0; } 58%, 95% { max-width: 22em; } 100% { max-width: 0; } }
-.sp-foot { margin-top: auto; display: flex; justify-content: flex-end; }
-.sp-doc { padding: .45em .9em; border-radius: .5em; background: var(--ink); color: #fff; font-size: .8em; animation: docOn var(--T) infinite; }
-@keyframes docOn { 0%, 64% { box-shadow: none; transform: none; } 70%, 90% { box-shadow: 0 0 0 .35em rgba(89, 178, 236, .35); transform: scale(1.05); } 96%, 100% { box-shadow: none; transform: none; } }
+/* Write, or just speak */
+.sc-speak { background: #eef3f7; }
+.ed { position: absolute; inset: 5%; background: #fff; border-radius: 1em; border: 1px solid var(--line); box-shadow: 0 1em 2em -1.4em rgba(22, 66, 110, .45); padding: .85em 1em; display: flex; flex-direction: column; gap: .55em; }
+.eh { display: flex; align-items: center; justify-content: space-between; gap: .6em; } .eh b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cols { display: flex; gap: .28em; flex: none; } .cols i { width: .95em; height: .95em; border-radius: 50%; background: var(--d); border: 1px solid var(--line); } .cols .on { border: 2px solid var(--ink); }
+.tbar { display: flex; align-items: center; gap: .35em; background: #f4f6f8; border-radius: .5em; padding: .25em .35em; }
+.tbar > i { width: 1.7em; height: 1.7em; border-radius: .35em; display: grid; place-items: center; color: var(--ink-2); } .tbar .i { width: .85em; height: .85em; }
+.tbar .mic { animation: micL var(--T) infinite; }
+@keyframes micL { 0%, 9%, 60%, 100% { background: transparent; color: var(--ink-2); } 11%, 58% { background: #fde3e3; color: #d93a3a; } }
+.tbar .lis { font-size: .66em; color: #d93a3a; animation: lisL var(--T) infinite; }
+@keyframes lisL { 0%, 10% { opacity: 0; } 12%, 58% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.body { flex: 1; display: grid; align-content: start; gap: .35em; font-size: .8em; color: var(--ink-2); }
+.body span { display: block; white-space: nowrap; overflow: hidden; max-width: 24em; }
+.body .l1 { animation: bl1 var(--T) steps(24) infinite; } .body .l2 { animation: bl2 var(--T) steps(24) infinite; } .body .l3 { animation: bl3 var(--T) steps(24) infinite; }
+@keyframes bl1 { 0%, 14% { max-width: 0; } 26%, 94% { max-width: 24em; } 98%, 100% { max-width: 0; } }
+@keyframes bl2 { 0%, 28% { max-width: 0; } 40%, 94% { max-width: 24em; } 98%, 100% { max-width: 0; } }
+@keyframes bl3 { 0%, 42% { max-width: 0; } 56%, 94% { max-width: 24em; } 98%, 100% { max-width: 0; } }
+.docs { display: flex; align-items: center; gap: .6em; border-top: 1px solid var(--line); padding-top: .55em; }
+.docs > b { font-size: .75em; font-weight: 600; margin-right: auto; }
+.gdoc { font-size: .68em; background: var(--ink); color: #fff; border-radius: .45em; padding: .4em .7em; animation: gd var(--T) infinite; }
+@keyframes gd { 0%, 63%, 69%, 100% { transform: none; box-shadow: none; } 65%, 67% { transform: scale(.92); box-shadow: 0 0 0 .3em rgba(89, 178, 236, .35); } }
+.att { display: flex; align-items: center; gap: .3em; font-size: .66em; color: var(--muted); } .att .i { width: .9em; height: .9em; }
+.dstat { font-size: .62em; color: var(--muted); animation: ds var(--T) infinite; }
+@keyframes ds { 0%, 67% { opacity: 0; } 70%, 94% { opacity: 1; } 98%, 100% { opacity: 0; } }
+.ef { display: flex; justify-content: flex-end; gap: .4em; } .ef span { font-size: .66em; border: 1px solid var(--line); border-radius: .45em; padding: .35em .7em; } .ef .dark { background: var(--ink); color: #fff; border-color: var(--ink); }
 
-/* Planning */
-.tile .fx.d-plan { font-size: 2.6cqw; }
-.pl-head { position: absolute; left: 5%; right: 5%; top: 6%; display: flex; align-items: center; gap: 1em; }
-.pl-head b { font-size: 1.15em; font-weight: 600; }
-.pl-meter { flex: 1; height: .55em; background: #eef2f6; border-radius: 1em; overflow: hidden; }
-.pl-meter i { display: block; height: 100%; width: 33%; background: var(--ink); border-radius: 1em; animation: meter var(--T) var(--ease) infinite; }
-@keyframes meter { 0%, 26% { width: 33%; } 34%, 56% { width: 50%; } 64%, 92% { width: 75%; } 100% { width: 33%; } }
-.pl-cols { position: absolute; left: 5%; right: 5%; top: 17%; bottom: 7%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8em; }
-.d-plan .t-col { padding: .6em; gap: .5em; }
-.pl-move { --col: calc((100% + .8em) / 3); position: absolute; width: calc(var(--col) - .8em - 1.2em - 2px); left: calc(.6em + 1px); top: calc(3.05em + 3.32em); z-index: 2; animation: pMove var(--T) var(--ease) infinite; }
-.pl-move .m-ck { animation: ckOn var(--T) infinite; }
-.pl-move .m-ck svg { animation: ckSvg var(--T) infinite; }
-.pl-move b { text-decoration: line-through; animation: strike var(--T) infinite; }
-@keyframes pMove { 0%, 18% { left: calc(.6em + 1px); opacity: 1; transform: none; } 24% { transform: scale(1.05) rotate(-1deg); } 32%, 46% { left: calc(var(--col) + .6em + 1px); transform: none; } 52% { transform: scale(1.05) rotate(1deg); } 60%, 91% { left: calc(2 * var(--col) + .6em + 1px); opacity: 1; transform: none; } 95% { left: calc(2 * var(--col) + .6em + 1px); opacity: 0; } 96% { left: calc(.6em + 1px); opacity: 0; } 100% { left: calc(.6em + 1px); opacity: 1; } }
+/* Plan projects */
+.pt { position: absolute; left: 4%; right: 4%; top: 6%; display: flex; align-items: center; gap: .6em; }
+.ptabs { display: flex; gap: 1em; font-size: .8em; } .ptabs span { display: flex; align-items: center; gap: .3em; padding: .3em 0; color: var(--muted); } .ptabs .on { color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--ink); } .ptabs .i { width: .95em; height: .95em; }
+.pnav { margin-left: auto; display: flex; align-items: center; gap: .35em; font-size: .72em; } .pnav i { width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; } .pnav .i { width: .8em; height: .8em; }
+.padd { display: flex; align-items: center; gap: .3em; font-size: .7em; background: var(--ink); color: #fff; border-radius: .5em; padding: .35em .7em; } .padd .i { width: .9em; height: .9em; }
+.pcols { position: absolute; left: 4%; right: 4%; top: 19%; bottom: 6%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7em; }
+.pcol { --c: #c9a46e; border: 1.5px solid #cdb994; }
+.pch { height: 2.3em; display: flex; align-items: center; justify-content: space-between; padding: 0 .65em; background: #faf6ee; border-bottom: 1px solid #ece2cf; }
+.pch b { font-size: .85em; font-weight: 600; } .pch .cnt { font-style: normal; display: inline-grid; place-items: center; width: 1.55em; height: 1.55em; border: 1.5px solid var(--ink); border-radius: 50%; font-size: .68em; font-weight: 700; }
+.pch .p1 { animation: pA var(--T) infinite; } .pch .p2 { opacity: 0; animation: pB var(--T) infinite; }
+@keyframes pA { 0%, 43% { opacity: 1; } 44%, 94% { opacity: 0; } 95%, 100% { opacity: 1; } }
+@keyframes pB { 0%, 43% { opacity: 0; } 44%, 94% { opacity: 1; } 95%, 100% { opacity: 0; } }
+.pmove { position: absolute; z-index: 3; --cw: calc((100% + .7em) / 3); left: calc(.55em + 1.5px); top: calc(2.3em + 1px + 1.5px + .55em + 2em + .5em + 3.5em); width: calc(var(--cw) - .7em - 1.1em - 3px); animation: pMove var(--T) var(--ease) infinite; }
+.pmove .cur { right: 18%; bottom: -.8em; animation: curP var(--T) infinite; }
+@keyframes pMove {
+  0%, 16% { left: calc(.55em + 1.5px); transform: none; opacity: 1; }
+  20% { transform: scale(1.05) rotate(-1.5deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
+  40% { left: calc(var(--cw) + .55em + 1.5px); transform: scale(1.05) rotate(-1.5deg); box-shadow: 0 1.2em 2em -1em rgba(22, 66, 110, .5); }
+  44%, 90% { left: calc(var(--cw) + .55em + 1.5px); transform: none; opacity: 1; box-shadow: 0 .25em .6em -.45em rgba(22, 66, 110, .35); }
+  94% { left: calc(var(--cw) + .55em + 1.5px); opacity: 0; } 95% { left: calc(.55em + 1.5px); opacity: 0; } 100% { left: calc(.55em + 1.5px); opacity: 1; } }
+@keyframes curP { 0%, 12% { opacity: 0; } 15%, 42% { opacity: 1; } 46%, 100% { opacity: 0; } }
 
 @media (max-width: 700px) {
-  .tour .stage { aspect-ratio: 4 / 3.4; }
-  .tour .fx { font-size: 2.3cqw; }
-  .tour .d-home .h-list { width: 78%; }
+  .tour .stage { aspect-ratio: 4 / 3; }
+  .tour .fx { font-size: 1.85cqw; }
 }
 @media (prefers-reduced-motion: reduce) { .fx *, .fx *::before, .fx *::after { animation: none !important; } }
 
@@ -654,57 +806,64 @@ footer .end { margin-left: auto; }
           <p id="tour-text">Your morning view: the time, the weather and the three things that come next. Nothing else competes for your attention.</p>
           <p class="small" id="tour-note">Next up pulls the top task and today’s events from every tool.</p>
         </div>
-        <div class="stage-wrap" id="tour-stages"><div class="stage" data-k="home" role="img" aria-label="Home: a clock, today’s date and weather, and the three things that come next."><div class="fx d-home">
-  <div class="m-bar"><span class="m-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><i class="m-dot" style="--c:var(--sky-1)"></i><b>Home</b></div>
-  <div class="h-clock">9:41<small>am</small></div>
-  <div class="h-date">Tuesday, October 13 · 17°C, mostly sunny</div>
-  <div class="h-list">
-    <div class="h-tabs"><span class="on">Next up</span><span>Recent activity</span></div>
-    <div class="h-row r1"><i class="m-ck"></i><b>Call the dentist about the cleaning</b><small>Top task</small></div>
-    <div class="h-row r2"><i class="m-cal"></i><b>Morning run</b><small>7am · routine</small></div>
-    <div class="h-row r3"><i class="m-cal"></i><b>Take vitamins</b><small>Reminder 8am</small></div>
-  </div>
-</div></div><div class="stage" data-k="taskly" role="img" aria-label="Taskly: a task card moves from To do to In progress, then into Completed with a check." hidden><div class="fx d-taskly">
-  <div class="m-bar"><span class="m-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><i class="m-dot" style="--c:var(--taskly)"></i><b>Taskly</b><span class="m-soft">Columns never scroll</span></div>
-  <div class="t-cols">
-    <div class="t-col" style="--c:var(--taskly)"><div class="t-head">To do <span class="t-n"><span class="a">3/3</span><span class="b">2/3</span></span></div>
-      <div class="m-card "><i class="m-ck"></i><span><b>Call the dentist</b></span></div><div class="m-card "><i class="m-ck"></i><span><b>Renew passport</b></span></div></div>
-    <div class="t-col" style="--c:#c9a46e"><div class="t-head">In progress <span class="t-n">1/3</span></div><div class="m-card "><i class="m-ck"></i><span><b>Write the onboarding guide</b></span></div></div>
-    <div class="t-col" style="--c:#86ae95"><div class="t-head">Completed <span class="t-n">1/9</span></div><div class="m-card done"><i class="m-ck on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg></i><span><b>Paid rent</b></span></div></div>
-    <div class="m-card t-move"><i class="m-ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg></i><span><b>Draft the Q4 budget</b></span></div>
-  </div>
-</div></div><div class="stage" data-k="boardly" role="img" aria-label="Boardly: goal, task and note cards on the Health board; a task is dragged to a new spot." hidden><div class="fx d-boardly">
-  <div class="m-bar"><span class="m-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><i class="m-dot" style="--c:var(--boardly)"></i><b>Boardly</b></div>
-  <div class="b-tabs"><span class="on" style="--c:var(--boardly)">Health</span><span style="--c:#c98e8e">Relationships</span><span style="--c:var(--taskly)">Work</span><span style="--c:var(--timely)">Chores</span></div>
-  <div class="b-canvas">
-    <div class="m-card b-t1"><i class="m-goal"></i><span><b>Run a 10K by May</b><small>Specific · Measurable · Time-bound</small></span></div>
-    <div class="m-card b-t2 note"><span><b>Stretch after every run</b><small>Hips, calves, hamstrings</small></span></div>
-    <div class="m-card b-t3"><i class="m-ck"></i><span><b>Book a physio check</b></span></div>
-    <div class="m-card b-move"><i class="m-ck"></i><span><b>Buy running shoes</b></span><i class="cursor"></i></div>
-  </div>
-</div></div><div class="stage" data-k="timely" role="img" aria-label="Timely: the October month view; planned items appear as dots and a Lisbon trip spans four days." hidden><div class="fx d-timely">
-  <div class="m-bar"><span class="m-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><i class="m-dot" style="--c:var(--timely)"></i><b>Timely</b><span class="m-seg"><span class="on">Scheduling</span><span>Planning</span></span></div>
-  <div class="m-head"><i class="arr">‹</i><b>October 2026</b><i class="arr">›</i></div>
-  <div class="m-week"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
-  <div class="m-grid"><div class="c out"><span>28</span><em></em></div><div class="c out"><span>29</span><em></em></div><div class="c out"><span>30</span><em></em></div><div class="c"><span>1</span><em></em></div><div class="c"><span>2</span><em></em></div><div class="c"><span>3</span><em></em></div><div class="c"><span>4</span><em></em></div><div class="c"><span>5</span><em></em></div><div class="c"><span>6</span><em></em></div><div class="c"><span>7</span><em></em></div><div class="c"><span>8</span><em></em></div><div class="c"><span>9</span><em></em></div><div class="c"><span>10</span><em></em></div><div class="c"><span>11</span><em></em></div><div class="c"><span>12</span><em></em></div><div class="c today"><span>13</span><em><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i><i style="--k:3"></i></em></div><div class="c"><span>14</span><em><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></em></div><div class="c"><span>15</span><em><i style="--k:0"></i><i style="--k:1"></i></em></div><div class="c"><span>16</span><em><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></em></div><div class="c"><span>17</span><em></em></div><div class="c"><span>18</span><em></em></div><div class="c"><span>19</span><em><i style="--k:0"></i><i style="--k:1"></i></em></div><div class="c"><span>20</span><em><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></em></div><div class="c"><span>21</span><em><i style="--k:0"></i></em></div><div class="c"><span>22</span><em><i style="--k:0"></i><i style="--k:1"></i></em></div><div class="c"><span>23</span><em><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></em></div><div class="c"><span>24</span><em></em></div><div class="c"><span>25</span><em></em></div><div class="c"><span>26</span><em><i style="--k:0"></i><i style="--k:1"></i></em></div><div class="c"><span>27</span><em><i style="--k:0"></i></em></div><div class="c"><span>28</span><em><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></em></div><div class="c"><span>29</span><em><i style="--k:0"></i><i style="--k:1"></i></em></div><div class="c"><span>30</span><em><i style="--k:0"></i></em></div><div class="c"><span>31</span><em></em></div><div class="c out"><span>1</span><em></em></div>
-  </div>
-  <div class="m-grid m-spans"><div class="span design" style="grid-row:3;grid-column:4 / span 2">Design week</div><div class="span trip" style="grid-row:4;grid-column:4 / span 4">✈︎ Lisbon</div></div>
-</div></div><div class="stage" data-k="brainly" role="img" aria-label="Brainly: saved links turn into tasks, “Read article from Lisbon food guide” and “Review Lease agreement.”" hidden><div class="fx d-brainly">
-  <div class="m-bar"><span class="m-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><i class="m-dot" style="--c:var(--brainly)"></i><b>Brainly</b><span class="m-search">Search Brainly and the rest of Sedi</span></div>
-  <div class="br-links">
-    <div class="br-h">My links</div>
-    <div class="m-card br-l l1"><i class="m-badge" style="--c:#7fa7d9">E</i><span><b>Lisbon food guide</b><small>eater.com</small></span><i class="m-task"></i></div>
-    <div class="m-card br-l l2"><i class="m-badge pdf">PDF</i><span><b>Lease agreement</b><small>PDF · 1 MB</small></span><i class="m-task"></i></div>
-    <div class="br-folder"><i class="ftab"></i><b>📚 Reading</b><small>2 items · 1 folder</small></div>
-  </div>
-  <div class="br-arrow">→</div>
-  <div class="t-col br-todo" style="--c:var(--taskly)"><div class="t-head">To do</div>
-    <div class="br-stack">
-      <div class="m-card br-new n2"><i class="m-ck"></i><span><b>Review Lease agreement</b></span></div>
-      <div class="m-card br-new n1"><i class="m-ck"></i><span><b>Read article from Lisbon food guide</b></span></div>
-      <div class="m-card br-old"><i class="m-ck"></i><span><b>Renew passport</b></span></div>
+        <div class="stage-wrap" id="tour-stages"><div class="stage" data-k="home" role="img" aria-label="Sedi Home: the clock, date and weather, and a Next up list that switches to Recent activity."><div class="fx sc-home"><div class="atop"><span class="abrand"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg><b>Sedi</b></span><svg class="i menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></div><div class="rail"><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/></svg></span><span class="rl on"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6.5 17 3 3 0 0 0 12 18.5V6a1.6 1.6 0 0 0-3-1.5z"/><path d="M15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2 3 3 0 0 1-2.5 4.3A3 3 0 0 1 12 18.5"/></svg></span><i class="tri"></i></div><span class="uni"><svg class="i " viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="uni-swoosh" d="M2.2 17.4C7.6 9.6 14.4 5.6 22.2 4.6c-6.9 2.2-12.6 6.6-16.7 13.3-1.3.4-2.4.3-3.3-.5z"/><path class="uni-star" d="M19.6 2.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z"/></svg></span><span class="orb"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><span class="bin"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l.9 12.2h9.2l.9-12.2"/><path d="M10.2 10.5v5.5M13.8 10.5v5.5"/></svg></span>
+  <div class="clock">9:41<small>am</small></div>
+  <div class="date">Tuesday, October 13, 2026</div>
+  <div class="wx">⛅ 17°C Mostly sunny</div>
+  <div class="hl">
+    <div class="hl-head"><span class="seg"><span class="s1">Next up</span><span class="s2">Recent activity</span><i class="pill"></i></span><small>See all</small></div>
+    <div class="hl-list next">
+      <div class="hr"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg><span><b>Call the dentist about the cleaning</b><em>Ask if Thursday afternoon works.</em></span><small>Top task</small><i class="dots"><b></b><b></b><b></b></i></div>
+      <div class="hr"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg><span><b>Morning run</b></span><small>7am · routine</small><i class="dots"><b></b><b></b><b></b></i></div>
+      <div class="hr"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg><span><b>Take vitamins</b></span><small>Reminder 8am · routine</small><i class="dots"><b></b><b></b><b></b></i></div>
+    </div>
+    <div class="hl-list recent">
+      <div class="hr"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5l4 4L8.5 19.5H4.5v-4z"/><path d="M13.5 6.5l4 4"/></svg><span><b>Book ideas for winter</b></span><small>just now</small><i class="dots"><b></b><b></b><b></b></i></div>
+      <div class="hr"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg><span><b>Write the onboarding guide</b></span><small>12m ago</small><i class="dots"><b></b><b></b><b></b></i></div>
+      <div class="hr"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg><span><b>Trip to Lisbon</b></span><small>1h ago</small><i class="dots"><b></b><b></b><b></b></i></div>
     </div>
   </div>
+</div></div><div class="stage" data-k="taskly" role="img" aria-label="Taskly: “Draft the Q4 budget” is dragged from To do to In progress, then “Call the dentist” is ticked and moves to Completed." hidden><div class="fx sc-taskly"><div class="atop"><span class="abrand"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg><b>Sedi</b></span><svg class="i menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></div><div class="vt"><i class="vd" style="--c:#6e7fc4"></i><b>Taskly</b><small>Columns never scroll. When one fills up, finish, move or delete something.</small></div><div class="rail"><span class="rl on"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6.5 17 3 3 0 0 0 12 18.5V6a1.6 1.6 0 0 0-3-1.5z"/><path d="M15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2 3 3 0 0 1-2.5 4.3A3 3 0 0 1 12 18.5"/></svg></span><i class="tri"></i></div><span class="uni"><svg class="i " viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="uni-swoosh" d="M2.2 17.4C7.6 9.6 14.4 5.6 22.2 4.6c-6.9 2.2-12.6 6.6-16.7 13.3-1.3.4-2.4.3-3.3-.5z"/><path class="uni-star" d="M19.6 2.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z"/></svg></span><span class="orb"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><span class="bin"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l.9 12.2h9.2l.9-12.2"/><path d="M10.2 10.5v5.5M13.8 10.5v5.5"/></svg></span>
+  <div class="tcols"><div class="tcol" style="--c:#6e7fc4"><div class="th"><i class="tic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></i><b>To do</b><span class="n"><span class="k k1">3/9</span><span class="k k2">2/9</span><span class="k k3">1/9</span></span></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Renew passport</b></span><i class="x">×</i></div></div></div><div class="tcol" style="--c:#d39a4f"><div class="th"><i class="tic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5l10 6.5-10 6.5z"/></svg></i><b>In progress</b><span class="n"><span class="k k1">1/9</span><span class="k k2b">2/9</span></span></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><span><b>Write the onboarding guide</b><em>Sections 2 to 4 left.</em></span><i class="x">×</i></div></div></div><div class="tcol" style="--c:#9a7fd1"><div class="th"><i class="tic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></i><b>Review</b><span class="n">2/9</span></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><span><b>Sam’s feedback on the deck</b><i class="bdg red">Back now: check on it</i></span><i class="x">×</i></div><div class="tc"><span><b>Landlord: lease renewal</b><i class="bdg pur">Back in 2d 3h</i></span><i class="x">×</i></div></div></div><div class="tcol" style="--c:#4f9a72"><div class="th"><i class="tic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><b>Completed</b><span class="n"><span class="k k1c">2/9</span><span class="k k3c">3/9</span></span></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc done"><span><b>Paid rent</b></span><i class="x">×</i></div><div class="tc done"><span><b>Booked flights to Lisbon</b></span><i class="x">×</i></div></div></div><div class="tcol" style="--c:#8a929c"><div class="th"><i class="tic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13.5l2.5-8h11l2.5 8v5h-16z"/><path d="M4 13.5h5l1 2h4l1-2h5"/></svg></i><b>Backlog</b><span class="n">1/9</span></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><span><b>Learn piano basics</b><em>Try Simply Piano for two weeks.</em></span><i class="x">×</i></div></div></div>
+    <div class="tc mv mvA"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Draft the Q4 budget</b></span><i class="x">×</i><i class="cur"></i></div>
+    <div class="tc mv mvB"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Call the dentist</b><em>Ask if Thursday works.</em></span><i class="x">×</i></div>
+  </div>
+</div></div><div class="stage" data-k="boardly" role="img" aria-label="Boardly: a new goal, “Sleep 8 hours a night,” is added to the Health board, and “Buy running shoes” is dragged next to “Run a 10K by May.”" hidden><div class="fx sc-boardly"><div class="atop"><span class="abrand"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg><b>Sedi</b></span><svg class="i menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></div><div class="vt"><i class="vd" style="--c:#86ae95"></i><b>Boardly</b><small>Shift-click or drag a box to select several, then drag them together.</small></div><div class="rail"><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></span><span class="rl on"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6.5 17 3 3 0 0 0 12 18.5V6a1.6 1.6 0 0 0-3-1.5z"/><path d="M15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2 3 3 0 0 1-2.5 4.3A3 3 0 0 1 12 18.5"/></svg></span><i class="tri"></i></div><span class="uni"><svg class="i " viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="uni-swoosh" d="M2.2 17.4C7.6 9.6 14.4 5.6 22.2 4.6c-6.9 2.2-12.6 6.6-16.7 13.3-1.3.4-2.4.3-3.3-.5z"/><path class="uni-star" d="M19.6 2.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z"/></svg></span><span class="orb"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><span class="bin"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l.9 12.2h9.2l.9-12.2"/><path d="M10.2 10.5v5.5M13.8 10.5v5.5"/></svg></span>
+  <div class="btabs"><span class="on" style="--c:#86ae95">Health</span><span style="--c:#c98e8e">Relationships</span><span style="--c:#7fa7d9">Work</span><span style="--c:#c9a46e">Chores</span><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></i></div>
+  <div class="bcanvas">
+    <div class="tools"><small>ADD</small><span class="tl t1"><i style="--c:#4f9a72"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg></i>Goal</span><span class="tl"><i style="--c:#3f6fb5"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></i>Task</span><span class="tl"><i style="--c:#d9a23a"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5l4 4L8.5 19.5H4.5v-4z"/><path d="M13.5 6.5l4 4"/></svg></i>Note</span></div>
+    <div class="bt goal g1"><svg class="i tg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg><span><b>Run a 10K by May</b><em>Run a 10K race without stopping.</em></span></div>
+    <div class="bt note n1"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5l4 4L8.5 19.5H4.5v-4z"/><path d="M13.5 6.5l4 4"/></svg><span><b>Stretch after every run</b><em>Five minutes: hips, calves, hamstrings.</em></span></div>
+    <div class="bt task k1"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Book a physio check</b></span></div>
+    <div class="bt goal g2"><svg class="i tg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg><span><b>Sleep 8 hours a night</b><em>Lights out by 10:30 on weeknights.</em></span></div>
+    <div class="bt task mvS"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Buy running shoes</b></span><i class="cur"></i></div>
+  </div>
+</div></div><div class="stage" data-k="timely" role="img" aria-label="Timely: pressing Trip adds a Lisbon trip that spans October 22 to 25 on the month calendar." hidden><div class="fx sc-timely"><div class="atop"><span class="abrand"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg><b>Sedi</b></span><svg class="i menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></div><div class="vt"><i class="vd" style="--c:#c9a46e"></i><b>Timely</b><span class="tseg"><span class="on">Scheduling</span><span>Planning</span></span></div><div class="rail"><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg></span><span class="rl on"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6.5 17 3 3 0 0 0 12 18.5V6a1.6 1.6 0 0 0-3-1.5z"/><path d="M15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2 3 3 0 0 1-2.5 4.3A3 3 0 0 1 12 18.5"/></svg></span><i class="tri"></i></div><span class="uni"><svg class="i " viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="uni-swoosh" d="M2.2 17.4C7.6 9.6 14.4 5.6 22.2 4.6c-6.9 2.2-12.6 6.6-16.7 13.3-1.3.4-2.4.3-3.3-.5z"/><path class="uni-star" d="M19.6 2.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z"/></svg></span><span class="orb"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><span class="bin"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l.9 12.2h9.2l.9-12.2"/><path d="M10.2 10.5v5.5M13.8 10.5v5.5"/></svg></span>
+  <div class="ttabs"><span class=""><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>Daily</span><span class=""><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.2 4.5v15M14.8 4.5v15"/></svg>Weekly</span><span class="on"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.2 4.5v15M14.8 4.5v15"/></svg>Monthly</span><span class=""><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5h6l-1 5 3 3H7l3-3z"/><path d="M12 12.5v7"/></svg>Reminders</span></div>
+  <div class="adds"><span class="ad trip"><i style="--c:#5aa4b0"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 13.5 4 11l1.2-1.6 7 .6 4.3-4.6a1.9 1.9 0 0 1 2.7 2.7l-4.6 4.3.6 7L13.6 20.6 11 14l-3.4 3.2.3 2.3-1.3 1-1.5-3.3L1.8 16l1-1.3 2.3.3z"/></svg></i>Trip</span><span class="ad"><i style="--c:#7f8fd0"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></i>Meeting</span><span class="ad"><i style="--c:#d39a4f"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="9.5" r="2.4"/><path d="M15.6 14.6c2.6-.3 4.5 1.3 5 4"/></svg></i>Conference</span><span class="ad"><i style="--c:#c9a46e"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></i>Event</span><small>Dots show what’s planned. Click a day to zoom in.</small></div>
+  <div class="mh"><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6"/></svg></i><b>October 2026</b><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></i><span>Today</span></div>
+  <div class="mw"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+  <div class="mg"><div class="c out"><span>28</span></div><div class="c out"><span>29</span></div><div class="c out"><span>30</span></div><div class="c out"><span>1</span></div><div class="c out"><span>2</span></div><div class="c out"><span>3</span></div><div class="c out"><span>4</span></div><div class="c out"><span>5</span></div><div class="c out"><span>6</span></div><div class="c out"><span>7</span></div><div class="c out"><span>8</span></div><div class="c out"><span>9</span></div><div class="c out"><span>10</span></div><div class="c out"><span>11</span></div><div class="c out"><span>12</span></div><div class="c today"><span>13</span><em><u>7</u><i></i><i></i><i></i><i></i><i></i></em></div><div class="c"><span>14</span><em><u>6</u><i></i><i></i><i></i><i></i><i></i></em></div><div class="c"><span>15</span><em><u>4</u><i></i><i></i><i></i><i></i></em></div><div class="c"><span>16</span><em><u>5</u><i></i><i></i><i></i><i></i><i></i></em></div><div class="c"><span>17</span><em><u>3</u><i></i><i></i><i></i></em></div><div class="c"><span>18</span><em><u>3</u><i></i><i></i><i></i></em></div><div class="c"><span>19</span><em><u>4</u><i></i><i></i><i></i><i></i></em></div><div class="c"><span>20</span><em><u>3</u><i></i><i></i><i></i></em></div><div class="c"><span>21</span><em><u>4</u><i></i><i></i><i></i><i></i></em></div><div class="c"><span>22</span><em><u>3</u><i></i><i></i><i></i></em></div><div class="c"><span>23</span><em><u>5</u><i></i><i></i><i></i><i></i><i></i></em></div><div class="c"><span>24</span><em><u>2</u><i></i><i></i></em></div><div class="c"><span>25</span><em><u>2</u><i></i><i></i></em></div><div class="c"><span>26</span><em><u>4</u><i></i><i></i><i></i><i></i></em></div><div class="c"><span>27</span><em><u>3</u><i></i><i></i><i></i></em></div><div class="c"><span>28</span><em><u>4</u><i></i><i></i><i></i><i></i></em></div><div class="c"><span>29</span><em><u>3</u><i></i><i></i><i></i></em></div><div class="c"><span>30</span><em><u>5</u><i></i><i></i><i></i><i></i><i></i></em></div><div class="c"><span>31</span><em><u>2</u><i></i><i></i></em></div><div class="c out"><span>1</span></div></div>
+  <div class="mg spans"><div class="sp design" style="grid-row:3;grid-column:4 / span 2">Design Week</div><div class="sp lisbon" style="grid-row:4;grid-column:4 / span 4">Lisbon</div></div>
+  <div class="mplan"><div class="mp-h"><b>October plan</b><small>Goals and to-dos for the month</small><i>0/2</i></div><div class="mp-b"><div class="tc"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Ship the onboarding guide</b></span><i class="x">×</i></div><div class="tc"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Pick a 10K race</b></span><i class="x">×</i></div><div class="mp-in">Add to this month, then Enter</div></div></div>
+</div></div><div class="stage" data-k="brainly" role="img" aria-label="Brainly: a saved link becomes the task “Read article from Lisbon food guide,” then a PDF becomes “Review Lease agreement.”" hidden><div class="fx sc-brainly"><div class="atop"><span class="abrand"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg><b>Sedi</b></span><svg class="i menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg></div><div class="vt"><i class="vd" style="--c:#a796cb"></i><b>Brainly</b></div><div class="rail"><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg></span><span class="rl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><span class="rl on"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 6.5 17 3 3 0 0 0 12 18.5V6a1.6 1.6 0 0 0-3-1.5z"/><path d="M15 4.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2 3 3 0 0 1-2.5 4.3A3 3 0 0 1 12 18.5"/></svg></span><i class="tri"></i></div><span class="uni"><svg class="i " viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="uni-swoosh" d="M2.2 17.4C7.6 9.6 14.4 5.6 22.2 4.6c-6.9 2.2-12.6 6.6-16.7 13.3-1.3.4-2.4.3-3.3-.5z"/><path class="uni-star" d="M19.6 2.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z"/></svg></span><span class="orb"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg></span><span class="bin"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l.9 12.2h9.2l.9-12.2"/><path d="M10.2 10.5v5.5M13.8 10.5v5.5"/></svg></span>
+  <div class="bsearch"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>Search Brainly and the rest of Sedi</div>
+  <div class="bbtns"><span class="dark"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Note</span><span><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>Folder</span></div>
+  <div class="links">
+    <div class="lh"><b>My links</b><span><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></svg>Upload</span><span><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>Folder</span></div>
+    <div class="lin">Paste a link</div>
+    <div class="lk l1"><i class="bdg doc">📄</i><span><b>Lisbon food guide</b><em>eater.com</em></span><i class="tk"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></i><i class="cur"></i></div>
+    <div class="lk l2"><i class="bdg pdf">PDF</i><span><b>Lease agreement</b><em>PDF · 1 MB</em></span><i class="tk"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></i><i class="cur c2"></i></div>
+    <div class="lfs"><div class="lf" style="--fc:#a796cb"><i class="ftab"></i><span class="le">📚</span><b>Reading</b><em>2 items · 1 folder</em></div><div class="lf" style="--fc:#c98e8e"><i class="ftab"></i><span class="le">🏠</span><b>Home admin</b><em>2 items</em></div></div>
+  </div>
+  <div class="bnotes">
+    <div class="bn" style="--n:#e9e1f7">📚<b>Book ideas for winter</b></div>
+    <div class="bn" style="--n:#dcebf8">✈️<b>Trip to Lisbon</b></div>
+    <div class="bn" style="--n:#f8ead3">💼<b>Launch sync notes</b></div>
+    <div class="bn fold" style="--n:#efe2cf"><i class="ftab"></i>🍳<b>Recipes</b><em>1 note · 1 folder</em></div>
+  </div>
+  <div class="toast t1">Added to Taskly: Read article from Lisbon food guide<b>Show</b></div>
+  <div class="toast t2">Added to Taskly: Review Lease agreement<b>Show</b></div>
 </div></div></div>
       </div>
     </div>
@@ -714,57 +873,61 @@ footer .end { margin-left: auto; }
     <div class="wrap">
       <div class="head"><span class="label">What you can do</span><h2 id="feat-title">Small tools that do one thing well.</h2>
         <p class="lede">A closer look at the details that make Sedi feel calm to use every day.</p></div>
-      <div class="bento"><figure class="tile"><div class="stage" data-k="talk" role="img" aria-label="The assistant answers “When am I calling the dentist?” with three matching cards."><div class="fx d-talk">
-  <div class="tk-tray">
-    <div class="tk-tabs"><span class="on">Chat</span><span>Voice</span><span>Command</span></div>
-    <div class="tk-q"><span>When am I calling the dentist?</span></div>
-    <div class="tk-found">Found 3 in your Sedi</div>
-    <div class="tk-r r1"><i class="m-list"></i><b>Call the dentist about the cleaning</b><small>Taskly</small></div>
-    <div class="tk-r r2"><i class="m-cal"></i><b>Dentist at Granville Dental, Thu 2pm</b><small>Timely</small></div>
-    <div class="tk-r r3"><i class="m-note"></i><b>Ask about the night guard</b><small>Brainly</small></div>
-  </div>
-</div></div><figcaption><b>Talk to your notes.</b> Ask a question by typing or speaking, and Sedi finds the answer in your own cards, wherever they live.</figcaption></figure><figure class="tile"><div class="stage" data-k="uni" role="img" aria-label="A goal card moves to the Universal Board, becomes plain text, then becomes a task in Taskly."><div class="fx d-uni">
-  <div class="u-zone z1"><span>Boardly</span></div>
-  <div class="u-zone z2"><span>Universal Board</span></div>
-  <div class="u-zone z3"><span>Taskly · To do</span></div>
-  <div class="m-card u-card"><i class="u-ic goal"></i><i class="u-ic plain"></i><i class="u-ic task"></i><span><b>Run a 10K by May</b></span></div>
-  <div class="u-label"><span class="a">A goal</span><span class="b">Plain text</span><span class="c">A task</span></div>
-</div></div><figcaption><b>One card, any shape.</b> Drop a card on the Universal Board and it becomes plain text. Drag it into another tool and it takes that tool’s shape.</figcaption></figure><figure class="tile"><div class="stage" data-k="rem" role="img" aria-label="A new reminder note is pinned to a cork board beside three others."><div class="fx d-rem">
-  <div class="cork">
-    <div class="pn p1"><i class="pin"></i><small>TODAY</small><b>Water the plants</b></div>
-    <div class="pn p2"><i class="pin"></i><small>TOMORROW</small><b>Call mom</b></div>
-    <div class="pn p3"><i class="pin"></i><small>THIS WEEK</small><b>Return library books</b></div>
-    <div class="pn p4 drop"><i class="pin"></i><small>TONIGHT</small><b>Take out the recycling</b></div>
-  </div>
-</div></div><figcaption><b>Pin a reminder.</b> Write it, pick “Tonight” or “Saturday,” and pin it to the board. Send it to Apple Reminders for a nudge on your phone.</figcaption></figure><figure class="tile"><div class="stage" data-k="fold" role="img" aria-label="The Reading folder opens into a panel showing a subfolder and two links."><div class="fx d-fold">
-  <div class="fd-col">
-    <div class="m-card"><i class="m-badge" style="--c:#7fa7d9">E</i><span><b>Lisbon food guide</b></span></div>
-    <div class="fd-tile"><i class="ftab"></i><b>📚 Reading</b><small>2 items · 1 folder</small></div>
-  </div>
-  <div class="fd-glass">
-    <b class="fd-title">Reading</b>
-    <div class="fd-row">
-      <span class="fd-it"><span class="fshape"><i></i>🔗</span><small>Articles</small></span>
-      <span class="fd-it"><span class="fd-ic">📝</span><small>Smart notes</small></span>
-      <span class="fd-it"><span class="fd-ic">💻</span><small>Web Speech</small></span>
+      <div class="bento"><figure class="tile"><div class="stage" data-k="talk" role="img" aria-label="Asked “When is my dentist appointment?”, the assistant answers “Today at 11am, at Granville Dental,” citing the Timely event."><div class="fx sc-talk">
+  <div class="tray">
+    <div class="trh"><span class="seg3"><span class="on">Chat</span><span>Voice</span><span>Command</span></span><small>On-device model</small><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></i></div>
+    <div class="tro">
+      <div class="me">When is my dentist appointment?</div>
+      <div class="think">Thinking…</div>
+      <div class="ans"><p><span class="w1">Today at 11am, at Granville Dental.</span> <span class="w2">Bring your insurance card and the referral letter.</span></p>
+        <div class="src"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg><b>Dentist at Granville Dental</b><small>Timely</small></div><i class="eng">On-device model</i></div>
     </div>
+    <div class="trf"><span class="inp"><span class="typed">When is my dentist appointment?</span><span class="ph">Ask about anything you’ve saved…</span></span><i class="mic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg></i><i class="send"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></i></div>
   </div>
-</div></div><figcaption><b>Folders inside folders.</b> Keep links, PDFs and any file in folders that open in place, like a folder on your phone.</figcaption></figure><figure class="tile"><div class="stage" data-k="speak" role="img" aria-label="A note fills with dictated lines while the microphone listens, then offers Open as Google Doc."><div class="fx d-speak">
-  <div class="sp-card">
-    <div class="sp-top"><b>📚 Book ideas for winter</b><span class="sp-mic"><i></i></span></div>
-    <div class="sp-wave"><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i><i style="--k:3"></i><i style="--k:4"></i><i style="--k:5"></i><i style="--k:6"></i><i style="--k:7"></i><i style="--k:8"></i><i style="--k:9"></i><i style="--k:10"></i><i style="--k:11"></i><i style="--k:12"></i><i style="--k:13"></i></div>
-    <div class="sp-lines"><span class="l1">Three novels to read this winter</span><span class="l2">Try audiobooks on long runs</span><span class="l3">Ask Priya what her club is reading</span></div>
-    <div class="sp-foot"><span class="sp-doc">Open as Google Doc</span></div>
+</div></div><figcaption><b>Talk to your notes.</b> Ask a real question, like when your dentist appointment is. Sedi reads your own cards and answers, with a link to where it found it.</figcaption></figure><figure class="tile"><div class="stage" data-k="uni" role="img" aria-label="A note typed into the Universal Board is dragged into Taskly’s To do column and becomes a task."><div class="fx sc-uni">
+  <div class="ucol"><div class="th" style="--c:#6e7fc4"><i class="tic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5l1.5 1.5L8.5 5"/><path d="M4 13.5l1.5 1.5 3-3"/><path d="M11.5 7h8.5M11.5 14h8.5M11.5 19.5h6"/></svg></i><b>To do</b><span class="n"><span class="k v1">2/9</span><span class="k v2">3/9</span></span></div>
+    <div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Renew passport</b></span></div><div class="tc"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Draft the Q4 budget</b></span></div></div></div>
+  <div class="upanel"><div class="uph"><b>Universal Board</b><small><span class="k u1">1/7</span><span class="k u2">2/7</span></small></div>
+    <div class="ucap"><span class="typed">Call the landlord about the lease</span><span class="ph">Capture something…</span></div>
+    <div class="uitem"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5l4 4L8.5 19.5H4.5v-4z"/><path d="M13.5 6.5l4 4"/></svg><b>Gift idea for Alex: pottery class</b></div>
+    <small class="uhint">Drop cards here, switch tools, then drag them out.</small></div>
+  <div class="tc umove"><i class="uic pen"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5l4 4L8.5 19.5H4.5v-4z"/><path d="M13.5 6.5l4 4"/></svg></i><i class="uic box"><i class="ck"><svg class="i ckmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i></i><span><b>Call the landlord about the lease</b></span><i class="cur"></i></div>
+</div></div><figcaption><b>Capture now, sort later.</b> Jot anything on the Universal Board in the corner. When you drag it into a tool, it becomes that tool’s kind of card.</figcaption></figure><figure class="tile"><div class="stage" data-k="rem" role="img" aria-label="A reminder is written, set for tonight and pinned to the Today lane of the cork board."><div class="fx sc-rem"><div class="cork">
+  <div class="comp"><i class="bpin"></i><small>NEW REMINDER</small><div class="rin"><span class="typed">Take out the recycling</span><span class="ph">Remind me to…</span></div>
+    <small>WHEN?</small><div class="chips"><span>In 1 hour</span><span class="tn">Tonight</span><span>Tomorrow 9am</span><span>Saturday</span></div>
+    <div class="cf"><span><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span class="t0">No time</span><span class="t1">Today · 8pm</span></span><i class="pinit"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5h6l-1 5 3 3H7l3-3z"/><path d="M12 12.5v7"/></svg>Pin it</i></div></div>
+  <div class="lane"><span class="tape">TODAY <i><span class="k r1">1</span><span class="k r2">2</span></i></span>
+    <div class="sn" style="--n:#e5dbf5"><i class="rpin"></i><b>Water the plants</b><em><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>Today · 6pm</em><small><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Done</small></div>
+    <div class="sn new" style="--n:#fbefa6"><i class="rpin"></i><b>Take out the recycling</b><em><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>Today · 8pm</em><small><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Done</small></div></div>
+</div></div></div><figcaption><b>Pin a reminder.</b> Write it, tap “Tonight,” and pin it. Send it to Apple Reminders when you want a nudge on your phone.</figcaption></figure><figure class="tile"><div class="stage" data-k="fold" role="img" aria-label="The Reading folder opens into a frosted panel showing an Articles subfolder and two links."><div class="fx sc-fold">
+  <div class="links">
+    <div class="lh"><b>My links</b></div>
+    <div class="lk"><i class="bdg doc">📄</i><span><b>Lisbon food guide</b><em>eater.com</em></span></div>
+    <div class="lfs"><div class="lf tapme" style="--fc:#a796cb"><i class="ftab"></i><span class="le">📚</span><b>Reading</b><em>2 items · 1 folder</em></div><div class="lf" style="--fc:#c98e8e"><i class="ftab"></i><span class="le">🏠</span><b>Home admin</b><em>2 items</em></div></div>
   </div>
-</div></div><figcaption><b>Write, or just speak.</b> Dictate into any note, then open it as a Google Doc when it’s ready to share.</figcaption></figure><figure class="tile"><div class="stage" data-k="plan" role="img" aria-label="A planning card moves from Ideas to In motion while the project meter fills."><div class="fx d-plan">
-  <div class="pl-head"><b>Projects</b><span class="pl-meter"><i></i></span></div>
-  <div class="pl-cols">
-    <div class="t-col" style="--c:#a796cb"><div class="t-head">Ideas</div><div class="m-card "><i class="m-ck"></i><span><b>List risks</b></span></div></div>
-    <div class="t-col" style="--c:#c9a46e"><div class="t-head">In motion</div><div class="m-card "><i class="m-ck"></i><span><b>Repaint kitchen</b></span></div></div>
-    <div class="t-col" style="--c:#86ae95"><div class="t-head">Wrapping up</div><div class="m-card done"><i class="m-ck on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg></i><span><b>Tax forms</b></span></div></div>
-    <div class="m-card pl-move"><i class="m-ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg></i><span><b>First milestone</b></span></div>
+  <div class="glass"><div class="gp">
+    <b class="gt">Reading</b><small>2 items · 1 folder</small>
+    <span class="gl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>FOLDERS · 1</span>
+    <div class="gr"><span class="gi"><span class="fsh"><i class="ftab"></i>🔗<i class="badge">3</i></span><small>Articles</small></span></div>
+    <span class="gl"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>LINKS &amp; FILES · 2</span>
+    <div class="gr"><span class="gi"><span class="gic" style="--t:#f3e6d6">📝</span><small>How to take smart notes</small></span><span class="gi"><span class="gic" style="--t:#ece6f6">💻</span><small>Web Speech API</small></span></div>
+  </div></div>
+</div></div><figcaption><b>Folders inside folders.</b> Keep links, PDFs and any file in folders that open in place, with subfolders shown apart from files.</figcaption></figure><figure class="tile"><div class="stage" data-k="speak" role="img" aria-label="Dictated lines appear in a note while the microphone listens, then the note opens as a Google Doc."><div class="fx sc-speak"><div class="ed">
+  <div class="eh"><b>📚 Book ideas for winter</b><span class="cols"><i style="--d:#f6e3c6"></i><i class="on" style="--d:#fff"></i><i style="--d:#d9ebf7"></i><i style="--d:#dcefe0"></i><i style="--d:#f7dcd6"></i></span></div>
+  <div class="tbar"><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/></svg></i><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5h-4M14 19h-4M13 5l-2 14"/></svg></i><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5v14M18 5v14M6 12h12"/></svg></i><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r=".9" fill="currentColor"/><circle cx="4.8" cy="12" r=".9" fill="currentColor"/><circle cx="4.8" cy="17" r=".9" fill="currentColor"/></svg></i><i class="mic"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg></i><span class="lis">Listening…</span></div>
+  <div class="body"><span class="l1">Three novels to read this winter.</span><span class="l2">Try audiobooks on long runs.</span><span class="l3">Ask Priya what her book club is reading.</span></div>
+  <div class="docs"><b>Docs</b><span class="gdoc">Open as Google Doc</span><span class="att"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Attach a link</span></div>
+  <div class="dstat">Opened a new Google Doc. Your note is copied: press ⌘V there.</div>
+  <div class="ef"><span>Duplicate</span><span>Move to…</span><span class="dark">Done</span></div>
+</div></div></div><figcaption><b>Write, or just speak.</b> Dictate into any note, then open it as a Google Doc when it’s ready to share.</figcaption></figure><figure class="tile"><div class="stage" data-k="plan" role="img" aria-label="In Timely’s Projects view, “Sketch the first milestone” is dragged from Ideas to In motion."><div class="fx sc-plan">
+  <div class="pt"><span class="ptabs"><span class="on"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/></svg>Projects</span><span><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>Goals</span></span><span class="pnav"><i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6"/></svg></i>1/2<i><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></i></span><span class="padd"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add project</span></div>
+  <div class="pcols">
+    <div class="pcol"><div class="pch"><b>Ideas</b><i class="cnt"><span class="k p1">2</span><span class="k p2">1</span></i></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r=".9" fill="currentColor"/><circle cx="4.8" cy="12" r=".9" fill="currentColor"/><circle cx="4.8" cy="17" r=".9" fill="currentColor"/></svg><span><b>List three risks</b></span></div></div></div>
+    <div class="pcol"><div class="pch"><b>In motion</b><i class="cnt"><span class="k p1">1</span><span class="k p2">2</span></i></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r=".9" fill="currentColor"/><circle cx="4.8" cy="12" r=".9" fill="currentColor"/><circle cx="4.8" cy="17" r=".9" fill="currentColor"/></svg><span><b>Repaint the kitchen</b></span></div></div></div>
+    <div class="pcol"><div class="pch"><b>Wrapping up</b><i class="cnt">1</i></div><div class="tb"><div class="add"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add task</div><div class="tc"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r=".9" fill="currentColor"/><circle cx="4.8" cy="12" r=".9" fill="currentColor"/><circle cx="4.8" cy="17" r=".9" fill="currentColor"/></svg><span><b>Tax paperwork</b></span></div></div></div>
+    <div class="tc pmove"><svg class="i " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r=".9" fill="currentColor"/><circle cx="4.8" cy="12" r=".9" fill="currentColor"/><circle cx="4.8" cy="17" r=".9" fill="currentColor"/></svg><span><b>Sketch the first milestone</b></span><i class="cur"></i></div>
   </div>
-</div></div><figcaption><b>Plan projects and goals.</b> Break a project into boards and steps, and watch it move. Drag the next step onto your calendar when it’s time.</figcaption></figure></div>
+</div></div><figcaption><b>Plan projects step by step.</b> Break a project into stages and move each step along as the work happens.</figcaption></figure></div>
       <ul class="more" aria-label="More things Sedi does">
         <li>Day, week and month views</li><li>Routines and repeating events</li><li>Trips and conferences across days</li><li>Send events to your calendar</li><li>Send tasks to Apple Reminders</li><li>SMART goal templates</li><li>Drag to delete, with Undo</li><li>Search across everything</li><li>Works offline</li><li>Download all your data</li>
       </ul>
@@ -955,7 +1118,6 @@ footer .end { margin-left: auto; }
       if (d) { e.preventDefault(); select(tabs[(i + d + tabs.length) % tabs.length], true); }
     });
   });
-
   const copy = document.getElementById('copy-link');
   copy?.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(copy.dataset.url); copy.textContent = 'Copied'; }
