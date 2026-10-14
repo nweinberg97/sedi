@@ -197,6 +197,7 @@ export function moveDestinations() {
   const plan = store.get('planContainers', { projects: [], goals: [] });
   const folders = store.get('brainFolders', []);
   const lfolders = store.get('linkFolders', []);
+  const lpath = f => { const names = [f.name]; let p = lfolders.find(x => x.id === f.parentId), g = 0; while (p && g++ < 10) { names.unshift(p.name); p = lfolders.find(x => x.id === p.parentId); } return names.join(' › '); };
   const fpath = f => { const names = [f.name]; let p = folders.find(x => x.id === f.parentId); while (p) { names.unshift(p.name); p = folders.find(x => x.id === p.parentId); } return names.join(' › '); };
   return [
     ['Taskly', COLS.map(([v, l]) => [`taskly:${v}`, l])],
@@ -205,7 +206,7 @@ export function moveDestinations() {
       ...(plan.projects || []).map(c => [`timely:plan:projects:${c.id}`, `Projects › ${c.name}`]),
       ...(plan.goals || []).map(c => [`timely:plan:goals:${c.id}`, `Goals › ${c.name}`])]],
     ['Brainly', [['brainly:canvas', 'Canvas'], ...folders.map(f => [`brainly:folder:${f.id}`, `Folder › ${fpath(f)}`]),
-      ['brainly:links:', 'My links'], ...lfolders.map(f => [`brainly:links:${f.id}`, `Links › ${f.name}`])]],
+      ['brainly:links:', 'My links'], ...lfolders.map(f => [`brainly:links:${f.id}`, `Links › ${lpath(f)}`])]],
     ['Universal Board', [['universal', 'Universal Board']]],
   ];
 }

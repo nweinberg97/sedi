@@ -29,8 +29,20 @@ const folderNotes = fid => store.cardsWhere(c => c.tool === 'brainly' && c.type 
 const links = lfid => store.cardsWhere(c => c.tool === 'brainly' && c.type === 'link' && (c.meta?.linkFolderId || null) === (lfid || null)).sort(byOrder);
 const descendants = fid => childFolders(fid).flatMap(f => [f.id, ...descendants(f.id)]);
 export const noteColor = c => c.meta?.color || NOTE_COLORS[hashStr(c.meta?.emoji || c.title) % NOTE_COLORS.length];
-const kindOf = c => (c.meta?.pdf ? 'pdf' : c.meta?.file ? 'text' : c.type === 'link' ? 'link' : 'note');
-const dotColor = c => ({ pdf: '#d6453d', text: '#9AA3AD', link: colorFor(c.meta?.host || c.title) }[kindOf(c)] || noteColor(c));
+const kindOf = c => (c.meta?.pdf ? 'pdf' : c.meta?.upload ? 'upload' : c.meta?.file ? 'text' : c.type === 'link' ? 'link' : 'note');
+const MAX_UPLOAD = 25e6;
+/** What sort of file an upload is, from its type or extension. */
+const FILE_KINDS = [
+  ['image', /^image\//, /\.(png|jpe?g|gif|webp|heic|svg|avif)$/i, '🖼️', '#7FAEBE'],
+  ['video', /^video\//, /\.(mp4|mov|webm|m4v)$/i, '🎬', '#A796CB'],
+  ['audio', /^audio\//, /\.(mp3|m4a|wav|aac|ogg|flac)$/i, '🎵', '#C98E8E'],
+  ['sheet', /spreadsheet|excel|csv/, /\.(xlsx?|csv|numbers|tsv)$/i, '📊', '#86AE95'],
+  ['slides', /presentation|powerpoint/, /\.(pptx?|key)$/i, '📽️', '#C9A46E'],
+  ['doc', /word|opendocument\.text|rtf/, /\.(docx?|pages|rtf|odt)$/i, '📝', '#8E9BC9'],
+  ['archive', /zip|compressed|x-tar|x-7z/, /\.(zip|rar|7z|tar|gz)$/i, '🗜️', '#9AA3AD'],
+];
+const fileKind = up => FILE_KINDS.find(([, mime, ext]) => mime.test(up?.type || '') || ext.test(up?.name || '')) || ['file', null, null, '📄', '#9AA3AD'];
+const dotColor = c => ({ pdf: '#d6453d', text: '#9AA3AD', upload: fileKind(c.meta?.upload)[4], link: colorFor(c.meta?.host || c.title) }[kindOf(c)] || noteColor(c));
 const fmtSize = n => (n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
 
 // ---------- Search (SD-S1 in place, SD-B6 everything else in a list) ----------
@@ -91,6 +103,17 @@ function favicon(c) {
   const kind = kindOf(c);
   if (kind === 'pdf') return h('span', { class: 'link-badge pdf-badge' }, 'PDF');
   if (kind === 'text') return h('span', { class: 'link-badge', style: { background: '#9AA3AD' } }, '📄');
+  if (kind === 'upload') {
+    const [k, , , emoji, tint] = fileKind(m.upload);
+    const badge = h('span', { class: 'link-badge word-badge', style: { '--tint': tint } }, emoji);
+    if (k === 'image') store.getFile(m.upload.fileId).then(blob => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const img = h('img', { class: 'link-thumb', src: url, alt: '' });
+      img.addEventListener('load', () => { badge.replaceChildren(img); badge.classList.add('thumb'); });
+    }).catch(() => {});
+    return badge;
+  }
   const letter = h('span', { class: 'link-badge', style: { background: colorFor(m.host || c.title) } }, (m.host || c.title || '?')[0].toUpperCase());
   // An icon picked from the link's own words (recipes → 🍳, flights → ✈️, GitHub → 💻…); the site icon only when nothing fits.
   const word = smartEmoji(`${c.title} ${m.host || ''} ${(m.url || '').replace(/[/._-]+/g, ' ')}`, null);
@@ -113,19 +136,17 @@ function renderDash() {
     const t = e.clipboardData.getData('text');
     if (/^https?:\/\//i.test(t.trim())) { e.preventDefault(); addLink(t.trim()); }
   });
-  const textIn = h('input', { type: 'file', accept: '.txt,.md,.markdown,text/plain,text/markdown', multiple: true, hidden: true, onchange: e => { [...e.target.files].forEach(f => addTextFile(f)); e.target.value = ''; } });
-  const pdfIn = h('input', { type: 'file', accept: 'application/pdf,.pdf', multiple: true, hidden: true, onchange: e => { [...e.target.files].forEach(f => addPdf(f, null)); e.target.value = ''; } });
+  const fileIn = h('input', { type: 'file', multiple: true, hidden: true, onchange: e => { [...e.target.files].forEach(f => addUpload(f, null)); e.target.value = ''; } });
   const looseItems = links(null).filter(c => matches(c, q));
   const loose = h('div', { class: 'link-list loose', dataset: { drop: 'link-list', accept: 'card', lfolder: '' }, 'data-list': '' }, looseItems.map(linkEl));
   if (!looseItems.length && !q) loose.append(h('p', { class: 'empty-hint' }, 'Paste a link, or drop a PDF or text file here.'));
   const stack = h('div', { class: 'lf-stack', dataset: { drop: 'lfolder-stack', accept: 'lfolder' }, 'data-list': '' },
-    linkFolders().filter(f => !q || f.name.toLowerCase().includes(q) || links(f.id).some(c => matches(c, q))).map(linkFolderEl));
+    lfChildren(null).filter(f => lfMatches(f, q)).map(linkFolderEl));
   dash.replaceChildren(
     h('div', { class: 'dash-head' }, h('h2', {}, 'My links'),
-      h('button', { class: 'icon-btn sm', 'aria-label': 'Add PDFs', title: 'Add PDFs', onclick: () => pdfIn.click() }, h('span', { class: 'pdf-mini' }, 'PDF')),
-      h('button', { class: 'icon-btn sm', 'aria-label': 'Add a text file', title: 'Add a text file', onclick: () => textIn.click() }, icon('file')),
-      h('button', { class: 'chip new-lf', title: 'New folder for links', onclick: addLinkFolder }, icon('folder'), 'New folder')),
-    input, textIn, pdfIn,
+      h('button', { class: 'chip', title: 'Upload any file (up to 25 MB each)', onclick: () => fileIn.click() }, icon('upload'), 'Upload'),
+      h('button', { class: 'chip new-lf', title: 'New folder', onclick: () => addLinkFolder(null) }, icon('folder'), 'Folder')),
+    input, fileIn,
     h('div', { class: 'dash-scroll' }, loose, stack));
 }
 
@@ -135,7 +156,7 @@ function linkEl(c) {
   const el = h('div', { class: `link-card kind-${kind}`, dataset: { drag: 'card', id: c.id }, tabindex: 0, title: m.url || m.pdf?.name || c.title },
     favicon(c),
     h('span', { class: 'link-text' }, h('span', { class: 'link-title' }, c.title),
-      h('span', { class: 'link-host' }, kind === 'pdf' ? `PDF · ${fmtSize(m.pdf.size || 0)}` : kind === 'text' ? 'Text file' : m.host || 'Link')));
+      h('span', { class: 'link-host' }, kind === 'pdf' ? `PDF · ${fmtSize(m.pdf.size || 0)}` : kind === 'upload' ? `${(m.upload.name.split('.').pop() || 'File').toUpperCase()} · ${fmtSize(m.upload.size || 0)}` : kind === 'text' ? 'Text file' : m.host || 'Link')));
   // SD-F4 / SD-L3: a click previews; the preview has the Open button.
   el.addEventListener('click', e => { if (!e.target.closest('button')) previewItem(el, c.id); });
   el.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(el, c.id); });
@@ -152,63 +173,105 @@ function dotsRow(items, max = DOT_MAX) {
     !items.length ? h('span', {}, 'Empty') : null);
 }
 
-/** Link folders sit as small squares; click one to open it full width with everything inside. */
+// ---------- Link folders: squares in the column; open one in a glass folder view (folders can hold folders) ----------
+const lfById = id => linkFolders().find(f => f.id === id);
+const lfChildren = pid => linkFolders().filter(f => (f.parentId && lfById(f.parentId) ? f.parentId : null) === (pid || null));
+const lfDescendants = id => lfChildren(id).flatMap(f => [f.id, ...lfDescendants(f.id)]);
+const lfPath = f => { const names = [f.name]; let p = lfById(f.parentId), guard = 0; while (p && guard++ < 10) { names.unshift(p.name); p = lfById(p.parentId); } return names.join(' › '); };
+const lfMatches = (f, q) => !q || f.name.toLowerCase().includes(q) || links(f.id).some(c => matches(c, q)) || lfChildren(f.id).some(x => lfMatches(x, q));
+const lfEmoji = f => f.emoji || mostCommonEmoji(links(f.id).map(c => `${c.meta?.url || ''} ${c.title}`), '🔗');
+const lfCount = f => { const n = links(f.id).length, k = lfChildren(f.id).length; return [n ? `${n} item${n === 1 ? '' : 's'}` : '', k ? `${k} folder${k === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || 'Empty'; };
+
 function linkFolderEl(f) {
-  const q = query();
   const all = links(f.id);
-  const items = all.filter(c => matches(c, q));
-  const open = !!f.expanded || !!(q && items.length);
-  const emoji = f.emoji || mostCommonEmoji(all.map(c => `${c.meta?.url || ''} ${c.title}`), '🔗');
-  const name = h('span', { class: 'lf-name' }, f.name);
+  const subs = lfChildren(f.id);
+  const name = h('span', { class: 'lf-name', title: 'Double-click to rename' }, f.name);
   name.addEventListener('dblclick', e => { e.stopPropagation(); editInline(name, { onCommit: v => saveLinkFolder(f.id, { name: v }) }); });
-  const pdfIn = h('input', { type: 'file', accept: 'application/pdf,.pdf', multiple: true, hidden: true, onchange: e => { [...e.target.files].forEach(file => addPdf(file, f.id)); e.target.value = ''; } });
-  const toggle = () => saveLinkFolder(f.id, { expanded: !f.expanded });
-  const emojiBtn = h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, emoji);
-  if (!open) {
-    const tile = h('section', {
-      class: 'lf-tile', tabindex: 0, role: 'button', 'aria-label': `${f.name}, ${all.length} item${all.length === 1 ? '' : 's'}. Open folder`,
-      dataset: { drag: 'lfolder', id: f.id, lfolder: f.id, drop: 'link-list', accept: 'card' }, 'data-list': '',
-    },
-    emojiBtn,
-    h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, all.length ? `${all.length} item${all.length === 1 ? '' : 's'}` : 'Empty'), all.length ? dotsRow(all) : null),
-    h('button', { class: 'card-del', 'aria-label': `Delete folder ${f.name}`, title: 'Delete folder (its links move to My links)', onclick: e => { e.stopPropagation(); deleteLinkFolder(f); } }, icon('x')),
-    pdfIn);
-    tile.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) toggle(); });
-    tile.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tile) toggle(); });
-    return tile;
+  const tile = h('section', {
+    class: 'lf-tile', tabindex: 0, role: 'button', 'aria-label': `${f.name}, ${lfCount(f)}. Open folder`,
+    dataset: { drag: 'lfolder', id: f.id, lfolder: f.id, drop: 'lf-into', accept: 'card lfolder', into: f.id },
+  },
+  h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, lfEmoji(f)),
+  h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, lfCount(f)),
+    all.length || subs.length ? dotsRow([...subs.map(x => ({ title: x.name, meta: { color: '#A796CB' }, type: 'note' })), ...all]) : null),
+  h('button', { class: 'card-del', 'aria-label': `Delete folder ${f.name}`, title: 'Delete folder (what’s inside moves up a level)', onclick: e => { e.stopPropagation(); deleteLinkFolder(f); } }, icon('x')));
+  tile.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openLinkFolder(f.id, tile); });
+  tile.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tile) openLinkFolder(f.id, tile); });
+  return tile;
+}
+
+/** The glass folder: a frosted panel over a blurred page, like opening a folder on an iPhone home screen. */
+let glass = null;
+function openLinkFolder(fid, fromEl) {
+  closeGlass(true);
+  const backdrop = h('div', { class: 'glass-backdrop', role: 'dialog', 'aria-modal': 'true' });
+  const panel = h('div', { class: 'glass-folder' });
+  backdrop.append(panel);
+  if (fromEl) {
+    const r = fromEl.getBoundingClientRect();
+    panel.style.setProperty('--from-x', `${r.left + r.width / 2 - innerWidth / 2}px`);
+    panel.style.setProperty('--from-y', `${r.top + r.height / 2 - innerHeight / 2}px`);
   }
-  const list = h('div', { class: 'link-list lf-list', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': '' }, items.map(linkEl));
-  if (!all.length) list.append(h('p', { class: 'empty-hint' }, 'Drag links here, or add PDFs.'));
-  return h('section', { class: 'link-folder open', dataset: { drag: 'lfolder', id: f.id, lfolder: f.id } },
-    h('header', { class: 'lf-head' },
-      emojiBtn,
-      h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, `${all.length} item${all.length === 1 ? '' : 's'}`)),
-      h('button', { class: 'icon-btn xs', 'aria-label': `Add PDFs to ${f.name}`, title: 'Add PDFs', onclick: () => pdfIn.click() }, h('span', { class: 'pdf-mini' }, 'PDF')),
-      h('button', { class: 'icon-btn xs', 'aria-label': `Open ${f.name} wide`, title: 'Open in a wide view', onclick: () => openLinkFolder(f.id) }, icon('expand')),
-      h('button', { class: 'icon-btn xs lf-collapse', 'aria-label': 'Close folder', title: 'Close folder', onclick: toggle }, icon('minimize'))),
-    list,
-    pdfIn);
-}
-
-/** SD-F3: the wide view of a link folder. */
-function openLinkFolder(fid) {
-  const f = linkFolders().find(x => x.id === fid);
-  if (!f) return;
-  const grid = h('div', { class: 'wide-grid', dataset: { drop: 'link-list', accept: 'card', lfolder: fid }, 'data-list': '' });
-  const fill = () => {
-    const items = links(fid);
-    grid.replaceChildren(...items.map(linkEl));
-    if (!items.length) grid.append(h('p', { class: 'muted' }, 'Empty. Drag links here or add PDFs.'));
+  backdrop.addEventListener('pointerdown', e => { if (e.target === backdrop) closeGlass(); });
+  const fileIn = h('input', { type: 'file', multiple: true, hidden: true, onchange: e => { [...e.target.files].forEach(file => addUpload(file, glass?.fid)); e.target.value = ''; } });
+  const paint = () => {
+    const f = lfById(glass.fid);
+    if (!f) return closeGlass();
+    const parent = lfById(f.parentId);
+    const title = h('input', { class: 'glass-title', value: f.name, 'aria-label': 'Folder name', spellcheck: false });
+    title.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') title.blur(); if (e.key === 'Escape') { title.value = f.name; title.blur(); } });
+    title.addEventListener('change', () => { const v = title.value.trim(); if (v && v !== f.name) saveLinkFolder(f.id, { name: v }); });
+    const subs = lfChildren(f.id), items = links(f.id);
+    const grid = h('div', { class: 'glass-grid', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': '' },
+      subs.map(x => {
+        const peek = links(x.id).slice(0, 4);
+        const t = h('div', { class: 'glass-item glass-sub', tabindex: 0, dataset: { drag: 'lfolder', id: x.id, drop: 'lf-into', accept: 'card lfolder', into: x.id } },
+          h('span', { class: 'glass-icon glass-mini' }, peek.length ? peek.map(c => h('i', {}, favicon(c))) : h('b', {}, lfEmoji(x))),
+          h('span', { class: 'glass-label' }, x.name));
+        t.addEventListener('click', () => { glass.fid = x.id; paint(); });
+        t.addEventListener('keydown', e => { if (e.key === 'Enter') { glass.fid = x.id; paint(); } });
+        return t;
+      }),
+      items.map(c => {
+        const t = h('div', { class: 'glass-item', tabindex: 0, dataset: { drag: 'card', id: c.id }, title: c.meta?.url || c.title },
+          h('span', { class: 'glass-icon' }, favicon(c)), h('span', { class: 'glass-label' }, c.title));
+        t.addEventListener('click', () => previewItem(t, c.id));
+        t.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(t, c.id); });
+        return t;
+      }));
+    if (!subs.length && !items.length) grid.append(h('p', { class: 'glass-empty' }, 'Empty. Drop links or files here, upload something, or make a folder inside.'));
+    panel.replaceChildren(
+      h('div', { class: 'glass-top' },
+        parent ? h('button', { class: 'glass-back', type: 'button', onclick: () => { glass.fid = parent.id; paint(); } }, icon('chevL'), parent.name) : h('span'),
+        h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Close folder', onclick: () => closeGlass() }, icon('x'))),
+      title,
+      h('p', { class: 'glass-sub-line' }, `${lfCount(f)}${parent ? ` · in ${lfPath(parent)}` : ''}`),
+      grid,
+      h('div', { class: 'glass-actions' },
+        h('button', { class: 'glass-btn', type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Upload'),
+        h('button', { class: 'glass-btn', type: 'button', onclick: () => addLinkFolder(f.id) }, icon('folder'), 'New folder'),
+        h('button', { class: 'glass-btn', type: 'button', onclick: e => pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })) }, h('span', {}, lfEmoji(f)), 'Icon'),
+        h('button', { class: 'glass-btn danger', type: 'button', onclick: () => { const ff = lfById(glass.fid); closeGlass(); if (ff) deleteLinkFolder(ff); } }, icon('trash'), 'Delete')),
+      fileIn);
   };
-  fill();
-  const unsub = store.on(fill);
-  modal({ title: `${f.emoji || '🔗'}  ${f.name}`, wide: true, body: grid, onClose: unsub });
+  glass = { fid, backdrop, paint, unsub: store.on(() => glass && paint()) };
+  document.body.append(backdrop);
+  paint();
+  requestAnimationFrame(() => backdrop.classList.add('in'));
 }
+function closeGlass(instant = false) {
+  if (!glass) return;
+  const g = glass; glass = null;
+  g.unsub?.();
+  if (instant) { g.backdrop.remove(); return; }
+  g.backdrop.classList.remove('in'); g.backdrop.classList.add('out');
+  setTimeout(() => g.backdrop.remove(), 260);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && glass && !document.querySelector('.popover, .modal-backdrop')) closeGlass(); });
 
-registerDrop('link-list', ({ id, data, index }) => {
+function moveIntoLinkFolder(id, lfid, index) {
   const c = store.getCard(id);
   if (!c) return false;
-  const lfid = data.lfolder || null;
   if (c.tool === 'brainly' && c.type === 'link') {
     store.updateCard(id, { meta: { linkFolderId: lfid } }, { silent: true });
   } else {
@@ -218,15 +281,28 @@ registerDrop('link-list', ({ id, data, index }) => {
     if (c.tool === 'brainly') store.updateCard(id, { type: 'link', meta }, { replaceMeta: true, silent: true });
   }
   reorder(links(lfid), id, index);
+}
+registerDrop('link-list', ({ id, data, index }) => moveIntoLinkFolder(id, data.lfolder || null, index));
+// Drop a link on a folder to file it; drop a folder on a folder to nest it.
+registerDrop('lf-into', {
+  accepts: ({ kind, id, data }) => kind !== 'lfolder' || (id !== data.into && !lfDescendants(id).includes(data.into)),
+  drop: ({ kind, id, data }) => {
+    if (kind === 'lfolder') { saveLinkFolder(id, { parentId: data.into }); toast(`Moved into ${lfById(data.into)?.name}`); return; }
+    moveIntoLinkFolder(id, data.into, null);
+    toast(`Filed in ${lfById(data.into)?.name}`);
+  },
 });
-// SD-F5: link folders reorder by drag.
+// SD-F5: top-level folders reorder by drag (dropping here also takes a folder back to the top level).
 registerDrop('lfolder-stack', ({ kind, id, index }) => {
   if (kind !== 'lfolder') return false;
   const list = linkFolders();
   const moving = list.find(f => f.id === id);
   if (!moving) return false;
   const rest = list.filter(f => f.id !== id);
-  rest.splice(index ?? rest.length, 0, moving);
+  const tops = rest.filter(f => !f.parentId);
+  const before = tops[index ?? tops.length];
+  const at = before ? rest.indexOf(before) : rest.length;
+  rest.splice(at, 0, { ...moving, parentId: null });
   store.set('linkFolders', rest);
 });
 
@@ -237,11 +313,30 @@ function addLink(raw) {
   const { host, title } = prettyUrl(url);
   store.createCard({ type: 'link', tool: 'brainly', title, description: url, meta: { url, host, linkFolderId: null, order: links(null).length } });
 }
-async function addTextFile(file) {
-  if (!file || file.size > 2e6) return toast('Text files up to 2 MB, please.');
+async function addTextFile(file, lfid = null) {
   const text = await file.text();
-  store.createCard({ type: 'link', tool: 'brainly', title: file.name.replace(/\.[^.]+$/, ''), description: text, meta: { file: true, linkFolderId: null, order: links(null).length } });
+  store.createCard({ type: 'link', tool: 'brainly', title: file.name.replace(/\.[^.]+$/, ''), description: text, meta: { file: true, linkFolderId: lfid, order: links(lfid).length } });
   toast(`Added ${file.name}`);
+}
+/** Any file: PDFs and text open in Sedi; everything else is kept on this device and opens in its own app. */
+async function addUpload(file, lfid = null) {
+  if (!file) return;
+  if (file.size > MAX_UPLOAD) return toast(`“${file.name}” is ${fmtSize(file.size)}. The upload limit is 25 MB per file.`);
+  if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') return addPdf(file, lfid);
+  if ((/\.(txt|md|markdown)$/i.test(file.name) || file.type === 'text/plain' || file.type === 'text/markdown') && file.size <= 2e6) return addTextFile(file, lfid);
+  const fileId = uuid();
+  try { await store.putFile(fileId, file); } catch { return toast('Couldn’t save that file on this device. It may be out of space.'); }
+  store.createCard({ type: 'link', tool: 'brainly', title: file.name.replace(/\.[^.]+$/, ''), description: '',
+    meta: { upload: { fileId, name: file.name, size: file.size, type: file.type || '' }, linkFolderId: lfid, order: links(lfid).length } });
+  toast(`Added ${file.name}`);
+}
+async function openUpload(up, download = false) {
+  const blob = await store.getFile(up.fileId);
+  if (!blob) return toast('That file isn’t on this device any more.');
+  const url = URL.createObjectURL(blob);
+  const a = h('a', { href: url, target: '_blank', rel: 'noopener', ...(download ? { download: up.name } : {}) });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60e3);
 }
 /** SD-F2: PDFs are saved on this device and included in Download data. */
 async function addPdf(file, lfid) {
@@ -257,26 +352,29 @@ function setupFileDrop() {
   dash.addEventListener('dragleave', e => { if (!dash.contains(e.relatedTarget)) dash.classList.remove('drop-over'); });
   dash.addEventListener('drop', e => {
     e.preventDefault(); dash.classList.remove('drop-over');
-    const target = e.target.closest('.link-folder')?.dataset.id || null;
+    const target = e.target.closest('.lf-tile')?.dataset.id || null;
     const all = [...e.dataTransfer.files];
-    all.filter(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf').forEach(f => addPdf(f, target));
-    all.filter(f => /\.(txt|md|markdown)$/i.test(f.name) || f.type.startsWith('text/')).forEach(addTextFile);
+    all.forEach(f => addUpload(f, target));
     const uri = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
     if (!all.length && /^https?:\/\//i.test(uri?.trim() || '')) addLink(uri.trim().split('\n')[0]);
   });
 }
 function saveLinkFolder(id, patch) { store.set('linkFolders', linkFolders().map(x => (x.id === id ? { ...x, ...patch } : x))); }
-function addLinkFolder() {
-  const f = { id: uuid(), name: 'New folder' };
+function addLinkFolder(parentId = null) {
+  const f = { id: uuid(), name: 'New folder', ...(parentId ? { parentId } : {}) };
   store.set('linkFolders', [...linkFolders(), f]);
-  setTimeout(() => { const n = dash.querySelector(`.link-folder[data-id="${f.id}"] .lf-name`); if (n) editInline(n, { onCommit: v => saveLinkFolder(f.id, { name: v }) }); }, 60);
+  if (parentId) { toast('Folder added. Click it to rename or fill it.'); return; }
+  // Open the new folder right away with its name selected, ready to type.
+  setTimeout(() => { const tile = dash.querySelector(`.lf-tile[data-id="${f.id}"]`); openLinkFolder(f.id, tile); setTimeout(() => { const t = document.querySelector('.glass-title'); t?.focus(); t?.select(); }, 280); }, 60);
 }
 export function deleteLinkFolder(f) {
+  const up = f.parentId && lfById(f.parentId) ? f.parentId : null;
   const moved = links(f.id);
-  moved.forEach(c => store.updateCard(c.id, { meta: { linkFolderId: null } }, { silent: true }));
+  moved.forEach(c => store.updateCard(c.id, { meta: { linkFolderId: up } }, { silent: true }));
   const prev = linkFolders();
-  store.set('linkFolders', prev.filter(x => x.id !== f.id));
-  toast(`Removed folder ${f.name}${moved.length ? '. Its links moved to My links.' : ''}`, {
+  store.set('linkFolders', prev.filter(x => x.id !== f.id).map(x => (x.parentId === f.id ? { ...x, parentId: up } : x)));
+  const where = up ? lfById(up)?.name : 'My links';
+  toast(`Removed folder ${f.name}${moved.length || lfChildren(f.id).length ? `. What was inside moved to ${where}.` : ''}`, {
     action: 'Undo', onAction: () => { store.set('linkFolders', prev); moved.forEach(c => store.updateCard(c.id, { meta: { linkFolderId: f.id } }, { silent: true })); store.notify(); },
   });
 }
@@ -313,6 +411,16 @@ function previewItem(anchor, id) {
             catch (err) { status.textContent = err.message; }
           } }, icon('upload'), 'Save to Google Drive')),
       h('label', { class: 'field-label' }, 'Google Drive link'), drive, status);
+  } else if (kind === 'upload') {
+    const up = m.upload;
+    const [k] = fileKind(up);
+    const media = h('div', { class: 'peek-media' });
+    if (k === 'image') store.getFile(up.fileId).then(blob => { if (blob) media.append(h('img', { src: URL.createObjectURL(blob), alt: up.name })); });
+    rows.push(media, h('div', { class: 'muted small' }, `${up.name} · ${fmtSize(up.size || 0)} · saved on this device`),
+      h('div', { class: 'peek-actions' },
+        h('button', { class: 'btn sm primary', onclick: () => openUpload(up) }, icon('external'), 'Open'),
+        h('button', { class: 'chip', onclick: () => openUpload(up, true) }, icon('download'), 'Download'),
+        h('button', { class: 'chip', onclick: () => { closePopovers(); openMoveDialog(id); } }, icon('move'), 'Move to…')));
   } else {
     rows.push(h('div', { class: 'peek-text' }, (c.description || '').slice(0, 700) || 'Empty file.'),
       h('div', { class: 'peek-actions' }, h('button', { class: 'chip', onclick: () => { closePopovers(); openEditor(id, { title: 'Text file' }); } }, icon('pencil'), 'Open')));
@@ -656,32 +764,51 @@ export function openNote(id, isNew = false) {
   paintDocs();
   const linkIn = h('input', { class: 'field-input sm', placeholder: 'Paste a Google Docs, Drive or Apple Notes link', 'aria-label': 'Attach a link' });
   linkIn.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') attach(); });
+  const attachRow = h('div', { class: 'note-docs-add', hidden: true }, linkIn, h('button', { class: 'chip', type: 'button', onclick: () => attach() }, icon('link'), 'Attach'));
+  const showAttach = (hint = '') => { attachRow.hidden = false; linkIn.placeholder = hint || 'Paste a Google Docs, Drive or Apple Notes link'; setTimeout(() => linkIn.focus(), 30); };
   const attach = () => {
     const url = linkIn.value.trim();
     if (!url) return;
     const kind = docKind(url);
-    store.updateCard(id, { meta: { docLinks: [...(store.getCard(id)?.meta?.docLinks || []), { kind, url, title: DOC_KINDS[kind]?.label || prettyUrl(url).host || url }] } }, { log: true, logLabel: 'Linked a doc' });
-    linkIn.value = '';
+    store.updateCard(id, { meta: { docLinks: [...(store.getCard(id)?.meta?.docLinks || []), { kind, url, title: kind === 'gdoc' ? `${store.getCard(id)?.title || 'Note'} (Google Doc)` : DOC_KINDS[kind]?.label || prettyUrl(url).host || url }] } }, { log: true, logLabel: 'Linked a doc' });
+    linkIn.value = ''; attachRow.hidden = true;
+    docStatus.textContent = 'Linked.';
     paintDocs();
   };
+  // One click, no setup: copy the note, open a new Google Doc with its title, paste.
+  // (If a Google account is connected in the menu, Sedi creates the doc with the text already in it.)
   const createDoc = async () => {
     save();
     const now = store.getCard(id);
-    docStatus.textContent = google.isSetUp() ? 'Creating your Google Doc…' : '';
+    if (google.isSetUp() && store.pref('googleConnected')) {
+      docStatus.textContent = 'Creating your Google Doc…';
+      try {
+        const url = await google.createDoc(now.title, noteText(now));
+        store.updateCard(id, { meta: { docLinks: [...(now.meta?.docLinks || []), { kind: 'gdoc', url, title: `${now.title} (Google Doc)` }] } }, { log: true, logLabel: 'Created a Google Doc' });
+        paintDocs(); docStatus.textContent = 'Created and linked.';
+        window.open(url, '_blank', 'noopener');
+        return;
+      } catch { /* fall back to copy-and-open */ }
+    }
+    const html = `<h1>${escapeHtml(now.title || '')}</h1>${sanitize(now.description || '')}`;
+    const plain = `${now.title}\n\n${noteText(now)}`;
+    let copied = false;
     try {
-      const url = await google.createDoc(now.title, noteText(now));
-      store.updateCard(id, { meta: { docLinks: [...(now.meta?.docLinks || []), { kind: 'gdoc', url, title: `${now.title} (Google Doc)` }] } }, { log: true, logLabel: 'Created a Google Doc' });
-      paintDocs();
-      docStatus.textContent = 'Created. It’s linked below.';
-      window.open(url, '_blank', 'noopener');
-    } catch (err) { docStatus.textContent = err.message; }
+      if (navigator.clipboard?.write && window.ClipboardItem) await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([plain], { type: 'text/plain' }) })]);
+      else await navigator.clipboard.writeText(plain);
+      copied = true;
+    } catch { /* clipboard blocked; the doc still opens */ }
+    window.open(`https://docs.google.com/document/create?title=${encodeURIComponent(now.title || 'Note')}`, '_blank', 'noopener');
+    docStatus.textContent = copied ? 'Opened a new Google Doc. Your note is copied: press ⌘V (Ctrl V) there.' : 'Opened a new Google Doc.';
+    showAttach('Optional: paste the new doc’s address to keep it linked here');
   };
   const docs = h('div', { class: 'note-docs' },
-    h('div', { class: 'note-docs-head' }, h('strong', {}, 'Linked docs'),
-      h('button', { class: 'chip', type: 'button', onclick: createDoc, title: 'Creates a new Google Doc in your Drive with this note’s text' }, icon('plus'), 'Create Google Doc'), docStatus),
+    h('div', { class: 'note-docs-head' }, h('strong', {}, 'Docs'),
+      h('button', { class: 'btn sm primary gdoc-btn', type: 'button', onclick: createDoc, title: 'Opens a new Google Doc with this note’s title and copies the note so you can paste it' }, h('span', { class: 'gdoc-mark', 'aria-hidden': 'true' }), 'Open as Google Doc'),
+      h('button', { class: 'chip ghost', type: 'button', onclick: () => (attachRow.hidden ? showAttach() : (attachRow.hidden = true)) }, icon('link'), 'Attach a link')),
+    docStatus,
     docList,
-    h('div', { class: 'note-docs-add' }, linkIn, h('button', { class: 'chip', type: 'button', onclick: attach }, icon('link'), 'Attach')),
-    h('p', { class: 'muted small' }, 'Links open the doc; text isn’t synced back into Sedi. Apple Notes can’t be created from a web app, so attach its share link instead.'));
+    attachRow);
 
   const save = () => {
     session?.stop();

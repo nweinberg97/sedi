@@ -19,7 +19,7 @@ export const SLOT_LABELS = { morning: 'Morning', noon: 'Noon', afternoon: 'After
 const RECUR = { '': 'Does not repeat', daily: 'Every day (daily routine)', weekdays: 'Every weekday', weekly: 'Every week (weekly routine)', monthly: 'Every month (monthly routine)', custom: 'Custom…' };
 const RECUR_SHORT = { daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly', monthly: 'Monthly' };
 // SD-T14: one-off item kinds. Stored as meta.itemType so it never collides with meta.kind ('reminder').
-export const ITEM_TYPES = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Work session', icon: 'target' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
+export const ITEM_TYPES = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Focus', icon: 'target' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
 const ARCHIVE_DAYS = 30;
 
 let root, body, tbRight, planAdding = null;
@@ -199,18 +199,19 @@ export function render() {
   ({ day: renderDay, week: renderWeek, month: renderMonth, reminders: renderReminders })[view()]();
 }
 
-function navControl(label, step, extra) {
+/** The date header that sits right above a calendar: big title, then ‹ › and Today. */
+function navControl(label, step, { sub = '' } = {}) {
   const a = anchor(), atToday = view() === 'day' || view() === 'week' ? a === todayKey()
     : parseKey(a).getMonth() === new Date().getMonth() && parseKey(a).getFullYear() === new Date().getFullYear();
   const go = k => { zoom = null; dayScroll = null; setAnchor(k); };
-  tbRight.append(...[extra, archiveButton()].filter(Boolean),
-    h('div', { class: 'time-nav' },
-      h('button', { class: 'chip ghost today-btn', disabled: atToday, onclick: () => go(todayKey()) }, 'Today'),
-      h('div', { class: 'time-nav-main' },
-        h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Previous', disabled: atToday, onclick: () => go(step(-1)) }, icon('chevL')),
-        h('span', { class: 'time-label' }, label),
-        h('button', { class: 'icon-btn tri-btn', 'aria-label': 'Next', onclick: () => go(step(1)) }, icon('chevR')))));
-  return null;
+  const archive = archiveButton();
+  if (archive) tbRight.append(archive);
+  return h('div', { class: 'cal-head' },
+    h('div', { class: 'cal-title' }, h('h2', {}, label), sub ? h('span', { class: 'cal-sub' }, sub) : null),
+    h('div', { class: 'cal-nav' },
+      h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Previous', disabled: atToday, onclick: () => go(step(-1)) }, icon('chevL')),
+      h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Next', onclick: () => go(step(1)) }, icon('chevR')),
+      h('button', { class: 'chip cal-today', disabled: atToday, onclick: () => go(todayKey()) }, 'Today')));
 }
 function archiveButton() {
   const n = store.cardsWhere(c => isSched(c) && c.meta?.archivedAt).length;
@@ -222,7 +223,7 @@ const itemTypeOf = c => (c.meta?.kind === 'reminder' ? 'reminder' : c.meta?.item
 function renderDay() {
   const key = anchor();
   const d = parseKey(key);
-  const label = `${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+  const label = `${key === todayKey() ? 'Today, ' : ''}${DAY_NAMES[d.getDay()]} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
   const occ = occurrencesOn(key);
   const timed = occ.filter(o => o.card.meta.start != null);
   const untimed = occ.filter(o => o.card.meta.start == null);
@@ -234,10 +235,11 @@ function renderDay() {
   const grid = h('div', { class: 'day-grid', dataset: { drop: 'timely-day', accept: 'card', date: key } });
   scroll.append(grid);
   // SD-T9 narrower day column, SD-T10 the day's to-do list beside it, SD-T11 Daily routine.
-  navControl(label, n => dateKey(addDays(parseKey(key), n)));
+  const head = navControl(label, n => dateKey(addDays(parseKey(key), n)), { sub: `${occ.length ? `${occ.length} planned` : 'Nothing planned yet'}` });
   body.replaceChildren(
+    actionRow(standardAdds(key), 'Hover the day to add at a time, or press + Now.'),
     h('div', { class: 'day-layout' },
-      h('div', { class: 'day-col' }, allDay, scroll),
+      h('div', { class: 'day-col' }, head, allDay, scroll),
       dayPlanPanel(key)));
 
   // Size hours so 6am–8pm fills the visible window exactly.
@@ -471,6 +473,26 @@ registerDrop('timely-reminders', ({ id }) => {
   return placeSched(id, { kind: 'reminder', done: false, ...(isSched(c) ? {} : { date: null, start: null }) }, 'Made a reminder');
 });
 
+// ---------- Calm cells: dots and a count; the cards live in the zoom view ----------
+const cellTitle = list => list.map(o => `${o.done ? '✓ ' : ''}${o.card.meta.start != null ? `${fmtMinutes(o.card.meta.start)} ` : ''}${o.card.title}`).join('\n');
+function cellDots(list, { compact = false } = {}) {
+  if (!list.length) return null;
+  const MAX = compact ? 5 : 7;
+  return h('div', { class: `cell-dots ${compact ? 'compact' : ''}` },
+    compact ? null : h('b', { class: 'cell-n' }, list.length),
+    h('span', { class: 'cd-row' },
+      list.slice(0, MAX).map(o => h('i', { class: `cd it-${itemTypeOf(o.card)} ${isRoutine(o.card) ? 'is-r' : ''} ${o.done ? 'is-done' : ''}` })),
+      list.length > MAX ? h('em', {}, `+${list.length - MAX}`) : null));
+}
+/** Trips and conferences read as one thin bar across the days they cover. */
+function spanBars(list, key) {
+  return list.filter(o => o.card.meta.endDate).map(o => {
+    const m = o.card.meta;
+    return h('button', { class: `span-bar it-${itemTypeOf(o.card)} ${key === m.date ? 'span-start' : ''} ${key === m.endDate ? 'span-end' : ''}`, title: `${o.card.title} · ${fmtShortDate(parseKey(m.date))} – ${fmtShortDate(parseKey(m.endDate))}`, onclick: e => { e.stopPropagation(); openEventEditor(o.card.id); } },
+      key === m.date || parseKey(key).getDay() === 1 ? h('span', {}, o.card.title) : null);
+  });
+}
+
 // ---------- Weekly: a rolling week that starts today (SD-T13) ----------
 const nowSlot = () => { const n = new Date(); return slotOfMinutes(n.getHours() * 60 + n.getMinutes()); };
 const slotOf = c => c.meta.slot || (c.meta.start != null ? slotOfMinutes(c.meta.start) : null); // null = all day
@@ -491,11 +513,18 @@ function cellItems(list, key, { max = 2, showTime = true } = {}) {
 function actionRow(buttons, hint) {
   return h('div', { class: 'action-row' }, h('div', { class: 'action-adds' }, buttons), hint ? h('span', { class: 'action-hint' }, hint) : null);
 }
+/** The same one-word add buttons in Daily and Weekly. */
+function standardAdds(date, slot = null) {
+  return [
+    h('button', { class: 'add-btn add-routine', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date, slot, routine: true, title: 'New routine' }) }, h('span', { class: 'add-btn-ic' }, icon('repeat')), 'Routine'),
+    ...['task', 'meeting', 'appointment', 'work'].map(t => addBtn(t, e => openItemForm(e.currentTarget, { type: t, date, slot }))),
+  ];
+}
 const addBtn = (type, onClick) => h('button', { class: `add-btn add-${type}`, type: 'button', onclick: onClick }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES[type].icon)), ITEM_TYPES[type].label);
 function renderWeek() {
   const ws = parseKey(anchor());
   const days = [...Array(7)].map((_, i) => addDays(ws, i));
-  const label = `${fmtShortDate(days[0])} – ${fmtShortDate(days[6])}`;
+  const label = days[0].getMonth() === days[6].getMonth() ? `${fmtShortDate(days[0])} – ${days[6].getDate()}` : `${fmtShortDate(days[0])} – ${fmtShortDate(days[6])}`;
   const today = todayKey();
   const curSlot = nowSlot();
   const grid = h('div', { class: 'week-grid' });
@@ -511,8 +540,8 @@ function renderWeek() {
   for (const d of days) {
     const k = dateKey(d);
     const items = byDay[k].filter(o => slotOf(o.card) === null);
-    grid.append(h('div', { class: `week-cell week-allday ${k === today ? 'today' : ''}`, dataset: { drop: 'timely-cell', accept: 'card', date: k, slot: '' }, 'data-list': '' },
-      cellItems(items, k, { max: 2, showTime: false })));
+    grid.append(h('div', { class: `week-cell week-allday ${k === today ? 'today' : ''}`, title: cellTitle(items), dataset: { drop: 'timely-cell', accept: 'card', date: k, slot: '' }, 'data-list': '' },
+      spanBars(items, k), cellDots(items.filter(o => !o.card.meta.endDate), { compact: true })));
   }
   for (const slot of SLOTS) {
     const [a, b] = SLOT_HOURS[slot];
@@ -523,10 +552,10 @@ function renderWeek() {
       const items = byDay[k].filter(o => slotOf(o.card) === slot);
       const isNow = k === today && slot === curSlot;
       const cell = h('div', {
-        class: `week-cell ${k === today ? 'today' : ''} ${isNow ? 'now' : ''}`, title: `${DAY_NAMES[d.getDay()]} ${SLOT_LABELS[slot].toLowerCase()} · click to zoom in`,
+        class: `week-cell ${k === today ? 'today' : ''} ${isNow ? 'now' : ''} ${items.length ? 'has-items' : ''}`, title: cellTitle(items) || `${DAY_NAMES[d.getDay()]} ${SLOT_LABELS[slot].toLowerCase()} · click to zoom in`,
         dataset: { drop: 'timely-cell', accept: 'card', date: k, slot }, 'data-list': '',
       }, isNow ? h('span', { class: 'now-badge' }, h('i'), 'Now') : null,
-      cellItems(items, k, { max: 2 }));
+      cellDots(items));
       cell.append(
         h('button', { class: 'cell-zoom icon-btn xs', 'aria-label': `Zoom into ${DAY_NAMES[d.getDay()]} ${SLOT_LABELS[slot]}`, title: 'Zoom in', onclick: e => { e.stopPropagation(); openZoom('week', k, slot, cell); } }, icon('expand')),
         h('button', { class: 'cell-add icon-btn xs', 'aria-label': `Add to ${SLOT_LABELS[slot]}`, onclick: e => { e.stopPropagation(); openItemForm(e.currentTarget, { type: 'task', date: k, slot }); } }, icon('plus')));
@@ -534,11 +563,11 @@ function renderWeek() {
       grid.append(cell);
     }
   }
-  navControl(label, n => dateKey(addDays(ws, 7 * n)));
+  const head = navControl(label, n => dateKey(addDays(ws, 7 * n)), { sub: `${MONTH_NAMES[days[0].getMonth()]} ${days[0].getFullYear()}` });
   const wk = weekPlanKey(ws);
-  const host = h('div', { class: 'zoom-host week-main' }, grid);
+  const host = h('div', { class: 'zoom-host week-main' }, head, grid);
   body.replaceChildren(
-    actionRow(['task', 'meeting', 'appointment', 'work'].map(t => addBtn(t, e => openItemForm(e.currentTarget, { type: t, date: today }))), 'Click any part of a day to zoom in. Routines fold into one line.'),
+    actionRow(standardAdds(today), 'Dots show what’s planned. Click a block to zoom in and see it all.'),
     h('div', { class: 'period-layout' }, host,
     periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`)));
   if (zoom?.view === 'week') host.append(zoomPanel());
@@ -561,27 +590,13 @@ function renderMonth() {
     const k = dateKey(d);
     const occ = k >= today ? occurrencesOn(k) : [];
     const inMonth = d.getMonth() === a.getMonth();
-    // The month shows what's special about a day; routines stay out of the way (zoom in to see them).
-    const rest = occ.filter(o => !isRoutine(o.card) || ITEM_TYPES[o.card.meta.itemType]?.span || o.card.meta.recurrence === 'monthly')
-      .sort((x, y) => (y.card.meta.endDate ? 1 : 0) - (x.card.meta.endDate ? 1 : 0)); // trips and conferences first, so they read as one bar
-    const routineCount = occ.length - rest.length;
-    const shown = rest.slice(0, 2);
     const cell = h('div', {
-      class: `month-cell ${inMonth ? '' : 'out'} ${k < today ? 'past' : ''} ${k === today ? 'today' : ''}`, role: 'button', tabindex: 0,
-      title: k < today ? '' : `${DAY_NAMES[d.getDay()]}, ${fmtShortDate(d)} · click to zoom in`,
+      class: `month-cell ${inMonth ? '' : 'out'} ${k < today ? 'past' : ''} ${k === today ? 'today' : ''} ${occ.length ? 'has-items' : ''}`, role: 'button', tabindex: 0,
+      title: k < today ? '' : (cellTitle(occ) || `${DAY_NAMES[d.getDay()]}, ${fmtShortDate(d)} · click to zoom in`),
       dataset: { drop: 'timely-month', accept: 'card', date: k },
     }, h('span', { class: 'month-num' }, d.getDate()),
-    // SD-T16: click an item to change its time right there.
-    shown.map(o => {
-      const m = o.card.meta, span = !!m.endDate;
-      return h('button', {
-        class: `month-item it-${itemTypeOf(o.card)} ${isRoutine(o.card) ? 'is-routine' : ''} ${o.done ? 'is-done' : ''} ${span ? `is-span ${k === m.date ? 'span-start' : ''} ${k === m.endDate ? 'span-end' : ''}` : ''}`,
-        title: span ? `${o.card.title} · ${fmtShortDate(parseKey(m.date))} – ${fmtShortDate(parseKey(m.endDate))}` : `${o.card.title} · click to change the time`,
-        onclick: e => { e.stopPropagation(); span ? openEventEditor(o.card.id) : openTimePopover(e.currentTarget, o.card.id); },
-      }, span ? icon(ITEM_TYPES[m.itemType]?.icon || 'calendar') : null, m.start != null ? h('b', {}, fmtMinutes(m.start)) : null, h('span', { class: 'mi-text' }, o.card.title));
-    }),
-    rest.length > 2 ? h('span', { class: 'month-more' }, `+${rest.length - 2} more`) : null,
-    routineCount ? h('span', { class: 'month-routine-dot', title: `${routineCount} routine${routineCount === 1 ? '' : 's'}`, 'aria-label': `${routineCount} routines` }) : null);
+    spanBars(occ, k),
+    cellDots(occ.filter(o => !o.card.meta.endDate)));
     if (k >= today) {
       cell.addEventListener('click', () => openZoom('month', k, null, cell));
       cell.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === cell) openZoom('month', k, null, cell); });
@@ -589,8 +604,8 @@ function renderMonth() {
     grid.append(cell);
   }
   const label = `${MONTH_NAMES[a.getMonth()]} ${a.getFullYear()}`;
-  navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); });
-  const host = h('div', { class: 'zoom-host month-main' }, grid);
+  const head = navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); });
+  const host = h('div', { class: 'zoom-host month-main' }, head, grid);
   const first0 = dateKey(a < parseKey(today) ? parseKey(today) : a);
   body.replaceChildren(
     actionRow([
@@ -598,7 +613,7 @@ function renderMonth() {
       addBtn('meeting', e => openItemForm(e.currentTarget, { type: 'meeting', date: first0 })),
       addBtn('conference', e => openSpanForm(e.currentTarget, 'conference', first0)),
       h('button', { class: 'add-btn add-task', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: first0, title: 'New event' }) }, h('span', { class: 'add-btn-ic' }, icon('plus')), 'Event'),
-    ], 'Click a day to zoom in. A small dot means routines, tucked away.'),
+    ], 'Dots show what’s planned. Click a day to zoom in.'),
     h('div', { class: 'period-layout' }, host,
     periodPlanPanel('monthplan', monthPlanKey(a), `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month')));
   if (zoom?.view === 'month') host.append(zoomPanel());
@@ -815,9 +830,9 @@ function daySelect(value) {
   return wrap;
 }
 /** SD-T14 / SD-T17: a one-off Task, Meeting, Appointment or Work session, with an optional exact time. */
-function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null, pickDate = true, title: heading } = {}) {
+function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null, pickDate = true, title: heading, routine = false } = {}) {
   const typeSel = h('select', { class: 'field-input sm', 'aria-label': 'Type' }, Object.entries(ITEM_TYPES).filter(([, t]) => !t.span).map(([v, t]) => h('option', { value: v, selected: v === type }, t.label)));
-  const title = h('input', { class: 'field-input sm', placeholder: { task: 'Pick up the dry cleaning', meeting: 'Sync with Sam', appointment: 'Dentist', work: 'Focus: budget draft' }[type], 'aria-label': 'Title' });
+  const title = h('input', { class: 'field-input sm', placeholder: routine ? 'Morning stretch' : { task: 'Pick up the dry cleaning', meeting: 'Sync with Sam', appointment: 'Dentist', work: 'Budget draft' }[type], 'aria-label': 'Title' });
   const dateIn = daySelect(date);
   const dayText = h('span', {}, dayName(date));
   const dayHead = h('span', { class: 'form-pop-day' }, icon('calendar'), dayText, slot ? h('span', { class: 'muted' }, ` · ${SLOT_LABELS[slot]}`) : null);
@@ -826,18 +841,23 @@ function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null,
   const slotSel = h('select', { class: 'field-input sm', 'aria-label': 'Part of day' }, SLOTS.map(s => h('option', { value: s, selected: s === (slot || 'morning') }, SLOT_LABELS[s])));
   const sync = () => { slotSel.disabled = !!time.value; dur.disabled = !time.value; };
   time.addEventListener('input', sync); sync();
+  // Routines: how often, from the same choices as everywhere else.
+  const recSel = routine ? h('select', { class: 'field-input sm', 'aria-label': 'Repeat' }, Object.entries(RECUR).filter(([v]) => v && v !== 'custom').map(([v, l]) => h('option', { value: v, selected: v === 'daily' }, l.replace(/ \(.*\)/, '')))) : null;
+  if (routine) { time.value = '07:00'; sync(); }
   const save = () => {
     const start = read();
-    store.createCard({ type: 'event', tool: 'timely', title: title.value.trim() || ITEM_TYPES[typeSel.value].label,
-      meta: { date: dateIn.value || date, itemType: typeSel.value, start, dur: start != null ? +dur.value : undefined, slot: start != null ? null : slotSel.value } });
+    store.createCard({ type: 'event', tool: 'timely', title: title.value.trim() || (routine ? 'Routine' : ITEM_TYPES[typeSel.value].label),
+      meta: { date: dateIn.value || date, itemType: typeSel.value, start, dur: start != null ? +dur.value : undefined, slot: start != null ? null : slotSel.value,
+        ...(routine ? { recurrence: recSel.value, doneDates: [] } : {}) } });
     closePopovers();
+    if (routine) toast(`Routine added. It repeats ${recurLabel({ recurrence: recSel.value }).toLowerCase()}.`);
   };
   title.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
   popover(anchorEl, h('div', { class: 'form-pop' },
     h('strong', {}, heading || `New ${ITEM_TYPES[type].label.toLowerCase()}`),
     dayHead,
-    field('What', title), field('Type', typeSel),
-    pickDate ? field('Day', dateIn) : null,
+    field('What', title), routine ? field('Repeats', recSel) : field('Type', typeSel),
+    pickDate ? field(routine ? 'Starting' : 'Day', dateIn) : null,
     h('div', { class: 'time-pop-row' }, field('Time (optional)', time), field('Length', dur)),
     field('Otherwise, part of the day', slotSel),
     h('button', { class: 'btn sm primary', onclick: save }, 'Add')));
@@ -889,7 +909,10 @@ function renderReminders() {
       h('div', { class: 'lane-notes' }, lanes[k].map(c => stickyEl(c, k === 'overdue')))));
   }
   if (!rem.length) board.append(h('p', { class: 'cork-empty' }, 'Nothing pinned yet. Write one on the blank note, or drop any card here.'));
-  body.replaceChildren(h('div', { class: 'reminders' }, board));
+  const overdueN = lanes.overdue.length;
+  const head = h('div', { class: 'cal-head' }, h('div', { class: 'cal-title' }, h('h2', {}, 'Reminders'),
+    h('span', { class: 'cal-sub' }, `${rem.length} open${overdueN ? ` · ${overdueN} overdue` : ''}`)));
+  body.replaceChildren(h('div', { class: 'reminders' }, head, board));
   board.scrollTop = prevScroll;
   if (justPinned) {
     const el = board.querySelector(`.sticky[data-id="${justPinned}"]`);
@@ -1218,31 +1241,29 @@ function renderPlan() {
   const navEl = h('div', { class: 'time-nav plan-nav' }, h('div', { class: 'time-nav-main' }, left, label, right));
   tbRight.prepend(navEl);
   body.replaceChildren(h('div', { class: 'plan' }, viewport));
+  // Native sideways scrolling with snapping: swipe on touch screens and trackpads, or use the arrows.
   requestAnimationFrame(() => {
     const step = colW(b) + COL_GAP;
     const visible = Math.max(1, Math.floor((viewport.clientWidth + COL_GAP) / step));
     const total = list.length + 1;
     const max = Math.max(0, total - visible);
-    let off = clamp((store.pref('planOffset', {})[b]) || 0, 0, max);
     navEl.hidden = !max;
-    const paint = animate => {
-      track.style.transition = animate ? '' : 'none';
-      track.style.transform = `translateX(${-off * step}px)`;
+    const offNow = () => clamp(Math.round(viewport.scrollLeft / step), 0, max);
+    const paint = () => {
+      const off = offNow();
       left.disabled = off === 0; right.disabled = off >= max;
-      const last = Math.min(list.length, off + visible);
-      label.textContent = last > off + 1 ? `${off + 1}–${last} of ${list.length}` : `${Math.min(off + 1, list.length)} of ${list.length}`;
-      if (!animate) requestAnimationFrame(() => (track.style.transition = ''));
+      label.textContent = `${Math.min(list.length, off + visible)}/${list.length}`;
     };
-    const go = d => { off = clamp(off + d, 0, max); store.setPref('planOffset', { ...store.pref('planOffset', {}), [b]: off }); paint(true); };
-    // Trackpads and Shift+wheel page sideways too.
-    let wheelLock = false;
-    viewport.addEventListener('wheel', e => {
-      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0;
-      if (!dx || wheelLock || Math.abs(dx) < 12) return;
-      e.preventDefault(); wheelLock = true; go(dx > 0 ? 1 : -1); setTimeout(() => (wheelLock = false), 380);
-    }, { passive: false });
+    const go = d => viewport.scrollTo({ left: clamp(offNow() + d, 0, max) * step, behavior: 'smooth' });
+    viewport.scrollLeft = clamp((store.pref('planOffset', {})[b]) || 0, 0, max) * step;
+    let t = null;
+    viewport.addEventListener('scroll', () => {
+      paint();
+      clearTimeout(t);
+      t = setTimeout(() => store.setPref('planOffset', { ...store.pref('planOffset', {}), [b]: offNow() }), 200);
+    }, { passive: true });
     left.onclick = () => go(-1); right.onclick = () => go(1);
-    paint(false);
+    paint();
   });
 }
 

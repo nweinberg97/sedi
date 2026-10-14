@@ -135,9 +135,11 @@ test('v1 fixture loads into a fresh profile and renders everywhere', async ({ pa
   await timelyTab(page, 'Scheduling'); await timelyTab(page, 'Daily');
   await open(page, 'brainly');
   await expect(page.locator('.b-note', { hasText: 'Fixture: welcome note' })).toBeVisible();
-  // Link folders start as squares; open one to see its links.
+  // Link folders are squares; opening one shows its links in the glass folder view.
   await page.locator('.lf-tile').first().click();
-  await expect(page.locator('.link-card', { hasText: 'Fixture: MDN' })).toBeVisible();
+  await expect(page.locator('.glass-item', { hasText: 'Fixture: MDN' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.glass-backdrop')).toHaveCount(0);
   // Platform-wide search (Brainly search bar) reaches every tool and the Universal Board.
   const search = page.getByRole('searchbox', { name: 'Search everything' });
   for (const [q, tool] of [['dentist', 'Taskly'], ['standup', 'Timely'], ['10K', 'Boardly'], ['in transit', 'Universal Board']]) {

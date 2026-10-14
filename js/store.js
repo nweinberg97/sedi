@@ -209,8 +209,10 @@ async function allFiles() {
   });
 }
 /** Drop stored files no card points at any more (run at boot, after any Undo window has passed). */
+/** Files a card keeps on this device: PDFs and any other upload. */
+const fileIdsOf = c => [c.meta?.pdf?.fileId, c.meta?.upload?.fileId].filter(Boolean);
 export async function pruneFiles() {
-  const used = new Set(allCards().map(c => c.meta?.pdf?.fileId).filter(Boolean));
+  const used = new Set(allCards().flatMap(fileIdsOf));
   for (const [id] of await allFiles()) if (!used.has(id)) { if (db) await tx('files', 'readwrite', s => s.delete(id)); else memFiles.delete(id); }
 }
 const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(blob); });
@@ -241,7 +243,7 @@ export function exportAll() {
 /** Export including stored files (PDFs) as base64, so a backup is complete. */
 export async function exportAllWithFiles() {
   const data = exportAll();
-  const used = new Set(data.cards.map(c => c.meta?.pdf?.fileId).filter(Boolean));
+  const used = new Set(data.cards.flatMap(fileIdsOf));
   data.files = [];
   for (const [id, blob] of await allFiles()) {
     if (!used.has(id) || !blob) continue;
