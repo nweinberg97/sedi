@@ -364,3 +364,6 @@ export const ICONS = {
   heading: S('<path d="M6 5v14M18 5v14M6 12h12"/>'),
   open: S('<path d="M13.5 4.5h6v6M19.5 4.5 11 13"/><path d="M18 14v5.5H4.5V6H10"/>'),
 };
+
+/** Phones show free-form canvases (Boardly, Brainly notes) as a tidy list, so positions are left alone there. */
+export const listMode = () => matchMedia('(max-width: 700px)').matches;

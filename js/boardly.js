@@ -1,7 +1,8 @@
 // Sedi — Boardly: life-category tabs with a fixed, free-form canvas of goal, task and note cards.
 
 import * as store from './store.js';
-import { h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, confirmModal, SOFT_COLORS } from './util.js';
+import { attachDots } from './dotfield.js';
+import { h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, confirmModal, SOFT_COLORS, listMode } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, openEditor, cardChrome, openMoveDialog, notesSnippet, duplicateCard } from './cards.js';
 import { crunch } from './sound.js';
@@ -25,10 +26,14 @@ function activeTab() {
 }
 const tabCards = tabId => store.cardsWhere(c => c.tool === 'boardly' && c.meta?.tabId === tabId);
 
+let dots = null;
 export function mount(el) {
   root = el;
   tabBar = h('div', { class: 'tabs boardly-tabs', role: 'tablist' });
-  canvas = h('div', { class: 'board-canvas', tabindex: 0, 'aria-label': 'Board canvas. G adds a goal, T a task, N a note.', dataset: { drop: 'boardly-canvas', accept: 'card' }, 'data-canvas': '' });
+  canvas = h('div', { class: 'board-canvas has-dots', tabindex: 0, 'aria-label': 'Board canvas. G adds a goal, T a task, N a note.', dataset: { drop: 'boardly-canvas', accept: 'card' }, 'data-canvas': '' });
+  // The dot pattern is drawn on a canvas so it can drift away from the pointer and ripple on a click.
+  dots?.destroy();
+  dots = attachDots(canvas);
   // SD-O4: Goal / Task / Note live inside the canvas as a vertical toolbar.
   // Hovering a button slides out a label that says exactly what it adds.
   const tool = (type, ic, label, hint, key) => h('button', { class: `vtool vt-${type}`, 'aria-label': `New ${label} (${key})`, onclick: () => addCard(type) },
@@ -64,6 +69,7 @@ function paintHint() {
   if (hint) hint.textContent = sel.size > 1 ? `${sel.size} selected · drag any of them to move all · Esc to clear` : '';
 }
 function startMarquee(e) {
+  if (listMode()) return;
   if (e.button !== 0 || (e.target !== canvas && !e.target.classList.contains('canvas-empty'))) return;
   const r = canvas.getBoundingClientRect();
   const sx = e.clientX, sy = e.clientY;
@@ -135,6 +141,7 @@ registerDrop('boardly-canvas', ({ id, left, top, zone }) => {
   const x = clamp(Math.round(left), LEFT, zone.clientWidth - w - 8);
   const y = clamp(Math.round(top), 8, zone.clientHeight - hgt - 8);
   const wasHere = card.tool === 'boardly' && card.meta?.tabId === tab.id;
+  if (wasHere && listMode()) return false; // phones list the board; keep the desktop layout untouched
   const dx = x - (card.meta?.x ?? x), dy = y - (card.meta?.y ?? y);
   // Same-tab moves keep the card's own data (SMART fields, done state); other drops route like before.
   if (wasHere) store.updateCard(id, { meta: { x, y } });
@@ -233,9 +240,10 @@ function renderTabs() {
 function renderCanvas() {
   const tab = activeTab();
   canvas.style.setProperty('--tab-color', tab?.color || '#8E9BC9');
+  dots?.recolor();
   const cards = tab ? tabCards(tab.id) : [];
   const cw = canvas.clientWidth || 1000, ch = canvas.clientHeight || 600;
-  canvas.replaceChildren(...cards.map(c => {
+  canvas.replaceChildren(dots.el, ...cards.map(c => {
     const [w, hh] = SIZES[c.type] || SIZES.note;
     const el = c.type === 'note' ? noteEl(c) : tileEl(c);
     el.style.left = clamp(c.meta?.x ?? 24, LEFT, Math.max(LEFT, cw - w - 8)) + 'px';
@@ -326,15 +334,17 @@ export function openSmart(id) {
   }));
   const notes = h('textarea', { class: 'field-input', rows: 3, placeholder: 'Notes', 'aria-label': 'Notes' });
   notes.value = c.description || '';
+  const saveSmart = () => {
+    const smart = Object.fromEntries(SMART.map(([k]) => [k, fields[k].value]));
+    store.updateCard(id, { title: title.value.trim() || 'Untitled goal', description: notes.value, meta: { smart } }, { log: true });
+  };
   modal({
     title: 'SMART goal', wide: true,
     body: h('div', { class: 'editor' }, title, grid, h('label', { class: 'field-label' }, 'Notes'), notes,
       h('p', { class: 'muted small' }, 'When it’s set, drag the goal to the Universal Board and into Timely’s Goals view to plan it out.')),
-    actions: [{ label: 'Duplicate', kind: 'ghost', onClick: () => { duplicateCard(id); } }, { label: 'Move to…', kind: 'ghost', onClick: () => { setTimeout(() => openMoveDialog(id), 200); } }, { label: 'Cancel', kind: 'ghost' }, {
-      label: 'Save goal', kind: 'primary', onClick: () => {
-        const smart = Object.fromEntries(SMART.map(([k]) => [k, fields[k].value]));
-        store.updateCard(id, { title: title.value.trim() || 'Untitled goal', description: notes.value, meta: { smart } }, { log: true });
-      },
+    // Duplicate and Move to save what you've typed first, so nothing is lost on the way.
+    actions: [{ label: 'Duplicate', kind: 'ghost', onClick: () => { saveSmart(); duplicateCard(id); } }, { label: 'Move to…', kind: 'ghost', onClick: () => { saveSmart(); setTimeout(() => openMoveDialog(id), 200); } }, { label: 'Cancel', kind: 'ghost' }, {
+      label: 'Save goal', kind: 'primary', onClick: () => saveSmart(),
     }],
   });
 }

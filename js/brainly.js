@@ -4,7 +4,7 @@
 import * as store from './store.js';
 import {
   h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml,
-  colorFor, smartEmoji, mostCommonEmoji, prettyUrl, EMOJI_CHOICES, debounce, hashStr,
+  colorFor, smartEmoji, mostCommonEmoji, prettyUrl, EMOJI_CHOICES, debounce, hashStr, listMode,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, typeIcon, TOOL_NAMES, flatten, cardChrome, openMoveDialog, trashCard } from './cards.js';
@@ -566,11 +566,13 @@ onDragStart(() => hidePeek());
 // ---------- Drops ----------
 registerDrop('brainly-canvas', ({ kind, id, left, top, zone }) => {
   if (kind === 'bfolder') {
+    if (listMode()) return false;
     saveFolder(id, { x: clamp(Math.round(left), 8, zone.clientWidth - FOLDER_W - 8), y: clamp(Math.round(top), 8, zone.clientHeight - FOLDER_H - 8), parentId: null });
     return;
   }
   const c = store.getCard(id);
   if (!c) return false;
+  if (listMode() && c.tool === 'brainly' && c.type !== 'link' && !c.meta?.folderId) return false; // phones list notes; keep desktop positions
   const x = clamp(Math.round(left), 8, zone.clientWidth - NOTE - 8), y = clamp(Math.round(top), 8, zone.clientHeight - NOTE - 8);
   if (c.tool === 'brainly' && c.type !== 'link') store.updateCard(id, { meta: { x, y, folderId: null } }, { log: !!c.meta?.folderId, logLabel: 'Moved out of folder' });
   else {
