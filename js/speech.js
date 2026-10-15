@@ -7,6 +7,7 @@ export const canListen = !!SR || canCapture;
 export const canSpeak = 'speechSynthesis' in window;
 
 import * as store from './store.js';
+import { loadKokoro, roomFor } from './runtime.js';
 
 /** Optional: a Whisper-style transcription service, set in Menu → AI engines. */
 function transcriber() {
@@ -144,7 +145,6 @@ function sayDevice(part) {
 }
 
 // ----- Natural voice (Kokoro) -----
-const KOKORO_URL = 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/dist/kokoro.web.js';
 let tts = null, ttsLoading = null, audioCtx = null, playing = null;
 let naturalState = { status: 'off', progress: 0, error: null };
 const naturalListeners = new Set();
@@ -157,7 +157,9 @@ export function prepareNaturalVoice() {
   if (ttsLoading) return ttsLoading;
   setNatural({ status: 'loading', progress: 0, error: null });
   ttsLoading = (async () => {
-    const { KokoroTTS } = await import(/* @vite-ignore */ KOKORO_URL);
+    const room = await roomFor(140);
+    if (!room.ok) throw new Error(`Not enough browser storage for the natural voice (about 140 MB needed, ${room.freeMb} MB free).`);
+    const { KokoroTTS } = await loadKokoro();
     const files = {};
     tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
       dtype: 'q8', device: 'wasm',
@@ -278,9 +280,9 @@ export function hearOnce(cb = {}) {
     const go = () => { if (!cancelled) inner = captureUtterance(cb); };
     if (hearingState().status === 'ready') go();
     else {
-      cb.onStatus?.('Getting private voice ready…');
-      const off = onHearingChange(st => { if (st.status === 'loading') cb.onStatus?.(`Getting private voice ready… ${Math.round(st.progress * 100)}%`); });
-      prepareHearing().finally(off).then(go, err => { cb.onError?.(`Couldn’t load on-device hearing: ${err.message || err}`); cb.onEnd?.({ heard: false }); });
+      setTimeout(() => cb.onPrepare?.(hearingState().progress || 0), 0); // after the caller has its handle
+      const off = onHearingChange(st => { if (st.status === 'loading') cb.onPrepare?.(st.progress); });
+      prepareHearing().finally(off).then(() => { cb.onPrepare?.(1, true); go(); }, err => { cb.onError?.(/^Not enough browser storage/.test(err?.message) ? err.message : navigator.onLine ? 'Couldn’t set up the private voice just now. Try again in a moment.' : 'The private voice needs a connection the first time, to download. Try again once you’re online.'); cb.onEnd?.({ heard: false }); });
     }
     return { stop() { inner ? inner.stop() : (cancelled = true, cb.onEnd?.({ heard: false })); }, cancel() { cancelled = true; inner ? inner.cancel() : cb.onEnd?.({ heard: false }); }, ears };
   }

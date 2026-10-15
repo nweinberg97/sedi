@@ -6,8 +6,8 @@
 
 import * as store from './store.js';
 import { h, icon, modal, toast } from './util.js';
+import { loadTransformers } from './runtime.js';
 
-const TRANSFORMERS_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0';
 export const MODELS = {
   light: { id: 'onnx-community/Qwen2.5-0.5B-Instruct', label: 'Light', size: 'about 500 MB', note: 'Fast on most laptops.' },
   full: { id: 'HuggingFaceTB/SmolLM2-1.7B-Instruct', label: 'Full', size: 'about 1.2 GB', note: 'Smarter. Best with a recent GPU.' },
@@ -71,10 +71,8 @@ async function loadModel(key, { fromCacheOnly = false } = {}) {
   const model = MODELS[key] || MODELS.light;
   setState({ status: 'loading', progress: 0, error: null });
   loading = (async () => {
-    const tf = await import(/* @vite-ignore */ TRANSFORMERS_URL);
+    const tf = await loadTransformers(model.id);
     TextStreamer = tf.TextStreamer;
-    tf.env.allowLocalModels = false;
-    tf.env.useBrowserCache = true;
     const files = {};
     const progress_callback = p => {
       if (p.status === 'progress' && p.file) {

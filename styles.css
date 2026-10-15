@@ -2857,3 +2857,33 @@ textarea.field-input { min-height: 0; }
 @media (max-width: 700px) {
   .assistant-tray { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 76px) !important; max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 100px); }
 }
+
+/* Setting up the private voice: dots drift loose, then each springs into its place on the ring. */
+.as-prep { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s ease; }
+.assistant-tray[data-state="preparing"] .as-prep { opacity: 1; }
+.as-prep i {
+  position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%;
+  background: color-mix(in srgb, #8e9bc9 70%, white); opacity: 0.55;
+  transform: translate(var(--sx), var(--sy)) scale(0.75);
+  animation: prepDrift 4.5s ease-in-out var(--d) infinite alternate;
+  transition: transform 0.7s cubic-bezier(.2, .9, .25, 1.25) var(--o), background 0.4s ease, opacity 0.4s ease;
+}
+@keyframes prepDrift { to { translate: 6px -5px; } }
+.as-prep i.placed {
+  animation: none; translate: 0 0; opacity: 1; background: #4f86ea;
+  transform: rotate(var(--a)) translateY(-43px) scale(1);
+}
+.assistant-tray[data-state="preparing"] .as-prep { animation: prepTurn 14s linear infinite; }
+@keyframes prepTurn { to { rotate: 1turn; } }
+.assistant-tray[data-state="preparing"] .as-orb-core { scale: 0.86; color: #8e9bc9; animation: tokenBreathe 3.2s linear infinite; }
+.assistant-tray[data-state="preparing"] .as-orb-ring { opacity: 0.2; }
+.assistant-tray[data-state="preparing"] .as-orb { cursor: default; }
+.as-caption .prep-line { animation: prepFade 0.5s ease; }
+.as-caption .prep-pct { font-weight: 600; color: #3a6fd8; font-variant-numeric: tabular-nums; }
+@keyframes prepFade { from { opacity: 0; translate: 0 3px; } }
+.as-orb-wrap { position: relative; }
+.as-orb { overflow: visible; }
+@media (prefers-reduced-motion: reduce) { .as-prep, .as-prep i { animation: none !important; } }
+.assistant-tray[data-state="preparing"] .as-caption { white-space: nowrap; }
+.assistant-tray[data-state="preparing"] .as-orb-wrap { gap: 20px; padding-top: 10px; }
+.vs-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

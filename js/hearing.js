@@ -2,11 +2,12 @@
 // The microphone is read through Web Audio. A small voice-activity detector decides when you
 // start and stop talking, and the finished utterance is transcribed by Whisper running in the
 // browser (Transformers.js, the same open runtime the on-device brain uses). Nothing leaves the device.
-// The model downloads once (about 75 MB) and is served from the browser cache after that.
+// The model downloads once (about 80–150 MB, depending on your device) and is served from the browser cache after that.
+// Where the files come from (Sedi's own copies, or the pinned public sources) is decided in runtime.js.
 
 import * as store from './store.js';
+import { loadTransformers, roomFor } from './runtime.js';
 
-const TRANSFORMERS_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0';
 const MODEL = 'onnx-community/whisper-base';
 const RATE = 16000;
 
@@ -29,9 +30,12 @@ export function prepareHearing() {
   lastTry = Date.now();
   setState({ status: 'loading', progress: 0, error: null });
   loading = (async () => {
-    const tf = await import(/* @vite-ignore */ TRANSFORMERS_URL);
-    tf.env.allowLocalModels = false;
-    tf.env.useBrowserCache = true;
+    // Model files go to the browser's Cache Storage, not IndexedDB. Check there's room first (a no-op once cached).
+    if (!store.pref('hearingReady')) {
+      const room = await roomFor(160);
+      if (!room.ok) throw new Error(`Not enough browser storage for the private voice (about 160 MB needed, ${room.freeMb} MB free).`);
+    }
+    const tf = await loadTransformers(MODEL);
     const files = {};
     const progress_callback = p => {
       if (p.status !== 'progress' || !p.file) return;

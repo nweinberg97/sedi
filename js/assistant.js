@@ -15,6 +15,7 @@ import { occurrencesOn, weekPlanKey, monthPlanKey } from './timely.js';
 import { speak, speechStream, stopSpeaking, hearOnce, earsNow, replyVoice, prepareNaturalVoice, naturalVoiceState, onNaturalVoiceChange } from './speech.js';
 import { hearingState, onHearingChange, hearingPref, prepareHearing, canCapture } from './hearing.js';
 import * as brain from './brain.js';
+import { removeModelFiles } from './runtime.js';
 import { tick } from './sound.js';
 import { parseCommands, looksLikeCommand } from './commands.js';
 
@@ -30,7 +31,7 @@ export function buildAssistant() {
   input = h('input', { class: 'as-input', placeholder: 'Type a message, or a change like “move passport to in progress”', 'aria-label': 'Message the assistant' });
   statusEl = h('span', { class: 'as-status' });
   earsChip = h('span', { class: 'as-ears' });
-  orb = h('button', { class: 'as-orb', type: 'button', 'aria-label': 'Talk', onclick: onOrb }, h('span', { class: 'as-orb-ring' }), h('span', { class: 'as-orb-core' }, icon('mic')));
+  orb = h('button', { class: 'as-orb', type: 'button', 'aria-label': 'Talk', onclick: onOrb }, h('span', { class: 'as-orb-ring' }), prepDots(), h('span', { class: 'as-orb-core' }, icon('mic')));
   caption = h('div', { class: 'as-caption', 'aria-live': 'polite' });
   const more = h('button', { class: 'icon-btn xs', 'aria-label': 'More', title: 'More', onclick: e => openMore(e.currentTarget) }, icon('more'));
   tray = h('section', { class: 'assistant-tray', 'aria-label': 'Assistant', hidden: true, dataset: { view: 'voice', state: 'idle' } },
@@ -74,12 +75,43 @@ function paintStatus() {
   earsChip.hidden = !earsChip.childNodes.length;
 }
 
-const CAPTIONS = { idle: 'Tap to talk', listening: 'Listening…', hearing: 'Listening…', thinking: 'Thinking…', speaking: 'Tap to interrupt' };
+// ---------- Setting up the private voice: everything finds its place ----------
+// The first time, the speech model downloads. A loose cloud of dots drifts around the orb, and each one
+// springs into its place on the ring as the download moves along. When the ring closes, it listens.
+const DOTS = 28;
+function prepDots() {
+  const wrap = h('span', { class: 'as-prep', 'aria-hidden': 'true' });
+  for (let i = 0; i < DOTS; i++) {
+    const a = (i / DOTS) * 360, r = 44 + Math.random() * 30, t = Math.random() * 6.283;
+    wrap.append(h('i', { style: { '--a': `${a}deg`, '--sx': `${Math.cos(t) * r}px`, '--sy': `${Math.sin(t) * r}px`, '--d': `${(Math.random() * 3).toFixed(2)}s`, '--o': `${i * 18}ms` } }));
+  }
+  return wrap;
+}
+const PREP_LINES = ['Setting up your private voice', 'What you say stays on this device', 'Only the first time'];
+let prepLine = 0, prepTimer = null;
+function showPrep(p, done) {
+  const placed = done ? DOTS : Math.floor(Math.min(0.99, p) * DOTS);
+  orb.querySelectorAll('.as-prep i').forEach((d, i) => d.classList.toggle('placed', i < placed));
+  if (done) { clearInterval(prepTimer); prepTimer = null; setState('listening', 'All in place. Listening…'); return; }
+  if (vstate !== 'preparing') {
+    setState('preparing');
+    prepLine = 0; clearInterval(prepTimer);
+    prepTimer = setInterval(() => { prepLine = (prepLine + 1) % PREP_LINES.length; paintPrep(); }, 3200);
+  }
+  orb.dataset.pct = Math.round(p * 100);
+  paintPrep();
+}
+function paintPrep() {
+  if (vstate !== 'preparing') { clearInterval(prepTimer); prepTimer = null; return; }
+  caption.replaceChildren(h('span', { class: 'prep-line', key: prepLine }, PREP_LINES[prepLine]), h('b', { class: 'prep-pct' }, ` ${orb.dataset.pct || 0}%`));
+}
+
+const CAPTIONS = { preparing: 'Setting up your private voice', idle: 'Tap to talk', listening: 'Listening…', hearing: 'Listening…', thinking: 'Thinking…', speaking: 'Tap to interrupt' };
 function setState(st, text) {
   vstate = st;
   tray.dataset.state = st;
   token.classList.toggle('is-listening', st === 'listening' || st === 'hearing');
-  orb.setAttribute('aria-label', { idle: 'Talk', listening: 'Done talking', hearing: 'Done talking', thinking: 'Thinking', speaking: 'Interrupt' }[st]);
+  orb.setAttribute('aria-label', { preparing: 'Setting up the private voice', idle: 'Talk', listening: 'Done talking', hearing: 'Done talking', thinking: 'Thinking', speaking: 'Interrupt' }[st]);
   caption.textContent = text || CAPTIONS[st];
   if (st !== 'listening' && st !== 'hearing') orb.style.setProperty('--lvl', 0);
 }
@@ -230,7 +262,7 @@ function afterSpeaking() {
 function onOrb() {
   if (vstate === 'speaking') { stopSpeaking(); convo = true; startListening(); return; }      // tap to interrupt
   if (vstate === 'listening' || vstate === 'hearing') { session?.stop(); return; }           // done talking
-  if (vstate === 'thinking') return;
+  if (vstate === 'thinking' || vstate === 'preparing') return;
   convo = true; startListening();
 }
 
@@ -246,6 +278,7 @@ function startListening({ followUp = false } = {}) {
     onSpeech: () => { if (session === me) setState('hearing'); },
     onInterim: t => { if (t) bubble().firstChild.textContent = t; },
     onLevel: l => orb.style.setProperty('--lvl', l.toFixed(2)),
+    onPrepare: (p, done) => { if (session === me) showPrep(p, done); },
     onStatus: t => { if (session === me) caption.textContent = t; if (/Transcribing/.test(t)) bubble().firstChild.textContent = '…'; },
     onFinal: t => { finalText += (finalText ? ' ' : '') + t; },
     onError: msg => { if (!/Didn’t catch/.test(msg)) toast(msg); },
@@ -605,7 +638,7 @@ function openVoiceSettings() {
   const paintHear = () => {
     const s = hearingState();
     hearStatus.textContent = !canCapture ? 'Not available in this browser.' : s.status === 'ready' ? `Ready on this device${s.device === 'webgpu' ? ' (using your GPU)' : ''}.`
-      : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now (are you offline?). Browser speech fills in, and it tries again later.' : 'Downloads once, the first time you talk (about 75 MB).';
+      : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now (are you offline?). Browser speech fills in, and it tries again later.' : 'Downloads once, the first time you talk (about 80–150 MB, depending on your device).';
     hearStatus.dataset.tone = s.status === 'error' ? 'warn' : s.status === 'ready' ? 'ok' : '';
   };
   const paintVoice = () => {
@@ -634,12 +667,20 @@ function openVoiceSettings() {
     voice.querySelectorAll('.vs-choice').forEach(l => l.classList.toggle('on', l.contains(e.target)));
     if (e.target.value === 'natural') prepareNaturalVoice().catch(err => toast(`The natural voice couldn’t load, so your device’s voice will be used: ${err.message || err}`));
   });
+  // Voice files live in the browser's cache, apart from your cards (which are in IndexedDB).
+  const storageNote = h('small', { class: 'muted' }, 'Voice files are stored in your browser’s cache, apart from your cards.');
+  const removeBtn = h('button', { class: 'btn ghost sm', type: 'button', onclick: async () => {
+    const n = await removeModelFiles(/whisper|kokoro/i);
+    store.setPref('hearingReady', false);
+    toast(n ? 'Removed the downloaded voice files. They’ll download again if you use voice.' : 'No voice files were stored on this device.');
+  } }, icon('trash'), 'Remove voice downloads');
   modal({
     title: 'Voice and hearing', className: 'voice-settings',
     body: h('div', { class: 'vs' },
       h('h3', { class: 'vs-h' }, 'Hearing you'), hear,
       h('div', { class: 'vs-h-row' }, h('h3', { class: 'vs-h' }, 'Answering you'), sample), voice,
-      h('p', { class: 'muted small' }, 'Tap the atom and talk. Tap the circle to interrupt while it’s speaking, or say “bye” to finish. Space bar works too.')),
+      h('p', { class: 'muted small' }, 'Tap the atom and talk. Tap the circle to interrupt while it’s speaking, or say “bye” to finish. Space bar works too.'),
+      h('div', { class: 'vs-foot' }, storageNote, removeBtn)),
     actions: [{ label: 'Done', kind: 'primary' }],
     onClose: () => { offH(); offV(); },
   });
