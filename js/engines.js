@@ -78,6 +78,7 @@ export function askClaudeUrl(question, cards = []) {
 // The assistant remembers your latest question (and the cards it matched) so Settings can hand it to Claude.
 let lastAsk = { q: '', cards: [] };
 export const rememberAsk = (q, cards = []) => { lastAsk = { q, cards }; };
+export const forgetAsk = () => { lastAsk = { q: '', cards: [] }; };
 
 // ---------- Settings panel ----------
 export function openEnginesPanel() {

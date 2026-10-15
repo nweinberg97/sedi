@@ -3,7 +3,7 @@
 // connection. Spoken replies use voices installed on your device and work offline.
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-export const canListen = !!SR;
+export const canListen = !!SR || canCapture;
 export const canSpeak = 'speechSynthesis' in window;
 
 import * as store from './store.js';
@@ -43,7 +43,20 @@ function listenRecorded(cfg, { onInterim, onFinal, onEnd, onError }) {
 }
 
 /** Start dictation. Returns { stop }. Callbacks: onInterim(text), onFinal(text), onEnd(), onError(msg). */
-export function listen({ onInterim, onFinal, onEnd, onError, continuous = true } = {}) {
+export function listen(opts = {}) {
+  // Private by default: when the on-device ears are the ones to use, dictation goes through them too.
+  if (earsNow() === 'device' && !transcriber()) {
+    const { onInterim, onFinal, onEnd, onError } = opts;
+    const s = hearOnce({
+      onStatus: t => onInterim?.(t), onSpeech: () => onInterim?.('Listening…'),
+      onFinal: t => onFinal?.(t), onError, onEnd: () => onEnd?.(),
+    });
+    onInterim?.('Listening…');
+    return { stop() { s.stop(); } };
+  }
+  return listenBrowser(opts);
+}
+function listenBrowser({ onInterim, onFinal, onEnd, onError, continuous = true } = {}) {
   const tr = transcriber();
   if (tr) return listenRecorded(tr, { onInterim, onFinal, onEnd, onError });
   if (!SR) { onError?.('Voice input isn’t supported in this browser. Try Chrome or Safari.'); onEnd?.(); return { stop() {} }; }
@@ -241,7 +254,7 @@ export const stopSpeaking = () => {
 export const isSpeaking = () => !!talk;
 
 // ---------- Hearing one utterance (the assistant's ears) ----------
-import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare } from './hearing.js';
+import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange } from './hearing.js';
 /** Which ears will be used right now: 'device' (private, on-device Whisper) or 'browser'. */
 export function earsNow() {
   const pref = hearingPref(), ready = hearingState().status === 'ready';
@@ -266,12 +279,13 @@ export function hearOnce(cb = {}) {
     if (hearingState().status === 'ready') go();
     else {
       cb.onStatus?.('Getting private voice ready…');
-      prepareHearing().then(go, err => { cb.onError?.(`Couldn’t load on-device hearing: ${err.message || err}`); cb.onEnd?.({ heard: false }); });
+      const off = onHearingChange(st => { if (st.status === 'loading') cb.onStatus?.(`Getting private voice ready… ${Math.round(st.progress * 100)}%`); });
+      prepareHearing().finally(off).then(go, err => { cb.onError?.(`Couldn’t load on-device hearing: ${err.message || err}`); cb.onEnd?.({ heard: false }); });
     }
     return { stop() { inner ? inner.stop() : (cancelled = true, cb.onEnd?.({ heard: false })); }, cancel() { cancelled = true; inner ? inner.cancel() : cb.onEnd?.({ heard: false }); }, ears };
   }
   let heard = false, cancelled = false;
-  const s = listen({
+  const s = listenBrowser({
     continuous: false,
     onInterim: t => { if (t) cb.onSpeech?.(); cb.onInterim?.(t); },
     onFinal: t => { if (t && !cancelled) { heard = true; cb.onFinal?.(t); } },

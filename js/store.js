@@ -165,7 +165,9 @@ export function logActivity(action, card) {
   kv.activity = list;
   tx('kv', 'readwrite', s => s.put(list, 'activity'));
 }
-/** Append-only record of assistant commands. Entries are frozen once written. */
+/** Record of assistant commands, kept on this device. Entries are frozen once written; Clear conversation erases them all. */
+export function clearCommandLog() { kv.commandLog = []; tx('kv', 'readwrite', s => s.put([], 'commandLog')); }
+export function restoreCommandLog(list) { kv.commandLog = Array.isArray(list) ? list : []; tx('kv', 'readwrite', s => s.put(kv.commandLog, 'commandLog')); }
 export function appendCommandLog(entry) {
   const list = kv.commandLog || [];
   list.push(Object.freeze({ at: now(), ...entry }));

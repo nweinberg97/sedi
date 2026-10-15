@@ -16,8 +16,8 @@ export const onHearingChange = fn => (listeners.add(fn), () => listeners.delete(
 const setState = patch => { state = { ...state, ...patch }; listeners.forEach(fn => fn(state)); };
 export const hearingState = () => state;
 export const canCapture = !!(navigator.mediaDevices?.getUserMedia && (window.AudioContext || window.webkitAudioContext));
-/** 'auto' (on-device when ready, browser until then), 'device' (on-device only) or 'browser'. */
-export const hearingPref = () => store.pref('hearing', 'auto');
+/** 'device' (private: on-device only; the default), 'auto' (on-device when ready, browser until then) or 'browser'. */
+export const hearingPref = () => store.pref('hearing', 'device');
 
 let asr = null, loading = null, lastTry = 0;
 /** True when it's worth trying to load (never tried, or the last failure was over a minute ago). */
@@ -110,13 +110,17 @@ export function captureUtterance({ onLevel, onSpeech, onStatus, onFinal, onEnd, 
     stream?.getTracks().forEach(t => t.stop());
     ctx?.close().catch(() => {});
     onLevel?.(0);
-    if (cancelled || !speaking || speechMs < 250) { onEnd?.({ heard: false }); return; }
-    const audio = new Float32Array(frames.reduce((n, f) => n + f.length, 0));
+    preroll.length = 0; carry = new Float32Array(0);
+    if (cancelled || !speaking || speechMs < 250) { frames.length = 0; onEnd?.({ heard: false }); return; }
+    // The recording only ever exists in memory. It's transcribed here, then wiped: only the words are kept.
+    let audio = new Float32Array(frames.reduce((n, f) => n + f.length, 0));
     let o = 0; for (const f of frames) { audio.set(f, o); o += f.length; }
+    frames.length = 0;
     onStatus?.('Transcribing…');
     try {
       const pipe = await prepareHearing();
       const r = await pipe(audio, { language: lang(), task: 'transcribe' });
+      audio.fill(0); audio = null;
       const text = String(r?.text || '').replace(/\s+/g, ' ').trim();
       if (text && !(PHANTOM.test(text) && speechMs < 1500)) onFinal?.(text);
       onEnd?.({ heard: !!text });

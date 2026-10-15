@@ -341,6 +341,8 @@ test.describe('assistant', () => {
   test('voice chat answers out loud; voice command confirms by voice', async ({ page }) => {
     await open(page, 'home');
     await loadFixture(page);
+    // These tests stand in for the browser's ears (the private model can't download here).
+    await page.evaluate(async () => (await import('/js/store.js')).setPref('hearing', 'browser'));
     // Voice first: tapping the atom opens the assistant already listening.
     await page.evaluate(() => window.__heard.push('summary'));
     await page.locator('.assistant-token').click();
@@ -358,5 +360,10 @@ test.describe('assistant', () => {
     // Typing is one tap away.
     await page.getByRole('button', { name: 'Type instead' }).click();
     await expect(page.locator('.as-input')).toBeFocused();
+    // Clearing the conversation forgets what was said, including the command history.
+    await page.getByRole('button', { name: 'More' }).click();
+    await page.locator('.as-menu-item', { hasText: 'Clear conversation' }).click();
+    expect(await page.evaluate(async () => (await import('/js/store.js')).get('commandLog', []).length)).toBe(0);
+    await expect(page.locator('.as-msg')).toHaveCount(0);
   });
 });

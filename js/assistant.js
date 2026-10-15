@@ -6,7 +6,7 @@ import * as store from './store.js';
 import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime, popover, closePopovers } from './util.js';
 import { TOOL_NAMES, typeIcon, byOrder, routeCard, flatten, trashCard } from './cards.js';
 import { navigate, revealCard } from './shell.js';
-import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, rememberAsk, openEnginesPanel } from './engines.js';
+import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, rememberAsk, forgetAsk, openEnginesPanel } from './engines.js';
 import { summaryFor, ensureSummary, noteText } from './summaries.js';
 import { findCard } from './commands.js';
 import { nextUpItems } from './home.js';
@@ -95,11 +95,17 @@ function greet() {
     h('p', {}, 'Ask about anything you’ve saved, or tell it what to change. It answers out loud and checks with you before changing anything.'),
     h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t)))));
 }
+/** Clear conversation forgets everything said in it: the messages on screen, the last question kept
+ *  for "Ask Claude", and the command history (which records the words of each command). Undo puts it back. */
 function clearChat() {
   if (pending) cancelPending(true);
   session?.cancel(); stopSpeaking(); convo = false; setState('idle');
+  const kept = [...output.childNodes], log = store.get('commandLog', []);
   output.replaceChildren();
+  forgetAsk();
+  store.clearCommandLog();
   greet();
+  toast('Conversation and command history cleared', { action: 'Undo', onAction: () => { output.replaceChildren(...kept); store.restoreCommandLog(log); } });
 }
 function openMore(anchor) {
   const item = (ic, label, fn) => h('button', { class: 'as-menu-item', type: 'button', onclick: () => { closePopovers(); fn(); } }, icon(ic), label);
@@ -579,7 +585,7 @@ function openLog() {
   modal({
     title: 'Command history', wide: true,
     body: h('div', { class: 'modal-list' },
-      h('p', { class: 'muted small' }, 'Every command you confirm or cancel is recorded here. Entries can’t be edited.'),
+      h('p', { class: 'muted small' }, 'Every command you confirm or cancel is recorded here, on this device only. Clear conversation erases it.'),
       log.length ? log.map(e => h('div', { class: 'activity-row' },
         h('span', { class: `log-dot ${e.result === 'cancelled' ? 'off' : ''}` }),
         h('span', { class: 'activity-text' }, e.action, h('small', { class: 'muted' }, `  “${e.text}”`)),
@@ -599,7 +605,7 @@ function openVoiceSettings() {
   const paintHear = () => {
     const s = hearingState();
     hearStatus.textContent = !canCapture ? 'Not available in this browser.' : s.status === 'ready' ? `Ready on this device${s.device === 'webgpu' ? ' (using your GPU)' : ''}.`
-      : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now (are you offline?). Browser speech fills in, and it tries again later.' : 'Downloads once when you first talk (about 75 MB).';
+      : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now (are you offline?). Browser speech fills in, and it tries again later.' : 'Downloads once, the first time you talk (about 75 MB).';
     hearStatus.dataset.tone = s.status === 'error' ? 'warn' : s.status === 'ready' ? 'ok' : '';
   };
   const paintVoice = () => {
@@ -610,8 +616,8 @@ function openVoiceSettings() {
   const offH = onHearingChange(paintHear), offV = onNaturalVoiceChange(paintVoice);
   paintHear(); paintVoice();
   const hear = h('div', { class: 'vs-group', role: 'radiogroup', 'aria-label': 'Hearing' },
-    choice('hearing', 'auto', hearingPref(), 'Private, on this device', 'Your voice is turned into text on your computer and never leaves it. Until the model has downloaded, your browser’s speech recognition fills in.', hearStatus),
-    choice('hearing', 'device', hearingPref(), 'Private only', 'Never use the browser’s speech recognition. Voice waits until the private model is ready.'),
+    choice('hearing', 'device', hearingPref(), 'Private, on this device', 'Your voice is turned into text on your computer and never leaves it. Only the words are kept; the recording is wiped as soon as it’s transcribed.', hearStatus),
+    choice('hearing', 'auto', hearingPref(), 'Private, with a quick start', 'Uses your browser’s speech recognition until the private model has downloaded. In Chrome, that audio goes to Google.'),
     choice('hearing', 'browser', hearingPref(), 'Browser speech recognition', 'Nothing to download. In Chrome, your audio is processed by Google.'));
   const sample = h('button', { class: 'btn ghost sm', type: 'button', onclick: () => speak('Hi. This is how I’ll sound when I answer you.') }, icon('play'), 'Hear it');
   const voice = h('div', { class: 'vs-group', role: 'radiogroup', 'aria-label': 'Reply voice' },
