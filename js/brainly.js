@@ -7,7 +7,7 @@ import {
   colorFor, smartEmoji, mostCommonEmoji, prettyUrl, EMOJI_CHOICES, debounce, hashStr, listMode,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, typeIcon, TOOL_NAMES, flatten, cardChrome, openMoveDialog, trashCard } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, typeIcon, TOOL_NAMES, flatten, cardChrome, openMoveDialog, trashCard, landed, withMic } from './cards.js';
 import { revealCard } from './shell.js';
 import { listen, canListen } from './speech.js';
 import { crunch } from './sound.js';
@@ -411,6 +411,7 @@ function previewItem(anchor, id) {
   const m = c.meta || {};
   const kind = kindOf(c);
   const title = h('input', { class: 'field-input sm', value: c.title, 'aria-label': 'Title' });
+  withMic(title, { label: 'Dictate the title', subtle: true });
   title.addEventListener('change', () => title.value.trim() && store.updateCard(id, { title: title.value.trim() }, { log: true }));
   title.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') title.blur(); });
   const rows = [];
@@ -501,7 +502,7 @@ function noteEl(c) {
   const el = h('article', { class: 'b-note', dataset: { drag: 'card', id: c.id }, tabindex: 0, 'aria-label': c.title, style: { '--note': noteColor(c) } },
     emoji, h('span', { class: 'b-note-title' }, c.title));
   // Duplicate on hover: the quickest way to start a new note from an old one.
-  cardChrome(el, c, () => openNote(c.id), { actions: [h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Duplicate', title: 'Duplicate this note (⌘D)', onclick: e => { e.stopPropagation(); hidePeek(); duplicateNote(c.id); } }, icon('copy'))] });
+  cardChrome(el, c, () => openNote(c.id), { onDuplicate: nid => { hidePeek(); duplicateNote(nid); } });
   el.removeAttribute('title');
   el.addEventListener('click', e => { if (!e.target.closest('button')) { hidePeek(); openNote(c.id); } });
   el.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === el) openNote(c.id); });
@@ -648,6 +649,7 @@ export function duplicateNote(id) {
   const { summary, summaryOf, summaryBy, ...meta } = c.meta || {};
   void summary; void summaryOf; void summaryBy;
   const copy = store.createCard({ type: 'note', tool: 'brainly', title: `${c.title} copy`, description: c.description, meta: { ...meta, ...(meta.folderId ? {} : { x: (meta.x ?? 24) + 26, y: (meta.y ?? 24) + 26 }) } });
+  landed(copy.id);
   toast(`Duplicated “${c.title}”`, { action: 'Undo', onAction: () => store.deleteCard(copy.id) });
   return copy;
 }
@@ -757,6 +759,7 @@ export function openNote(id, isNew = false) {
   const c = store.getCard(id);
   if (!c) return;
   const title = h('input', { class: 'field-input title-input', value: isNew ? '' : c.title, placeholder: 'Title', 'aria-label': 'Note title' });
+  withMic(title, { label: 'Dictate the title', subtle: true });
   const emojiBtn = h('button', { class: 'note-emoji lg', 'aria-label': 'Change emoji', onclick: e => pickEmoji(e.currentTarget, v => { store.updateCard(id, { meta: { emoji: v } }); emojiBtn.textContent = v; }) }, c.meta?.emoji || smartEmoji(c.title));
   const editor = h('div', { class: 'rich-editor', contenteditable: 'true', 'aria-label': 'Note body', role: 'textbox', 'aria-multiline': 'true' });
   editor.innerHTML = /<\/?[a-z][\s\S]*>/i.test(c.description || '') ? sanitize(c.description) : (c.description || '').split('\n').map(l => `<div>${escapeHtml(l) || '<br>'}</div>`).join('');

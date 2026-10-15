@@ -3,7 +3,7 @@
 import * as store from './store.js';
 import { h, icon, toast, popover, closePopovers } from './util.js';
 import { registerDrop } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet, withMic } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet, withMic, guardDuplicate } from './cards.js';
 import { crunch, checkSound } from './sound.js';
 
 export const COLUMNS = [
@@ -37,6 +37,10 @@ const capOf = col => {
   const body = document.querySelector(`.taskly-col[data-col="${col}"] .col-body`);
   return body?.clientHeight ? capacity(body) : (store.pref('tasklyCaps', {})[col] ?? Infinity);
 };
+
+// A copy lands in the same column, so it needs a free slot there.
+guardDuplicate(c => (c.tool === 'taskly' && (c.meta?.columnId || 'todo') !== 'completed' && colCards(c.meta?.columnId || 'todo').length >= capOf(c.meta?.columnId || 'todo'))
+  ? 'That column is full. Finish, move or delete a card first.' : null);
 
 export function mount(el) {
   root = el;

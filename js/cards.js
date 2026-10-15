@@ -99,20 +99,23 @@ export function notesSnippet(card, cls = '') {
   return line ? h('span', { class: `card-snippet ${cls}`, title: d.slice(0, 400) }, line) : null;
 }
 
-/** Adds the shared corner chrome to a card element: delete, details, dictate, and the notes fold.
- *  Small cards pass { compact: true } and keep extras (dictation, quick actions) inside Details only. */
-export function cardChrome(el, card, onInfo, { compact = false, actions = [] } = {}) {
+/** Adds the shared corner chrome to a card element: delete, details, duplicate, and the notes fold.
+ *  Every card gets one-tap Duplicate in its hover tools, beside Details. Small cards ({ compact: true })
+ *  get only that; their other extras live inside Details. Pass { onDuplicate } to use a tool's own copy. */
+export function cardChrome(el, card, onInfo, { compact = false, actions = [], onDuplicate = null } = {}) {
   el.classList.add('has-chrome');
   el.classList.toggle('with-notes', hasNotes(card));
   if (hasNotes(card)) el.title = el.title || 'Has notes';
   el.append(deleteButton(card.id), infoButton(onInfo));
-  if (!compact) {
-    // Hover tools slide in at the bottom right, beside Details: tool-specific quick actions.
-    // The mic lives where you type (add fields and the Details description), not on finished cards.
-    if (actions.length) el.append(h('div', { class: 'card-tools' }, ...actions));
-  }
+  const dup = duplicateButton(card.id, onDuplicate);
+  el.append(h('div', { class: 'card-tools' }, ...(compact ? [] : actions), dup));
   return el;
 }
+export const duplicateButton = (id, onDuplicate) => h('button', {
+  class: 'card-tool card-dup', type: 'button', 'aria-label': 'Duplicate', title: 'Duplicate',
+  onpointerdown: e => e.stopPropagation(), // a tap here never starts a drag
+  onclick: e => { e.stopPropagation(); (onDuplicate || duplicateCard)(id); },
+}, icon('copy'));
 
 // ---------- Dictation into any card (speak; the words are added to the card's notes) ----------
 let dictation = null;
@@ -151,7 +154,7 @@ export function dictateInto(id, anchor) {
 
 /** Wrap a text input with a small mic that shows on hover/focus: speak and the words land in the field.
  *  The mic never steals focus, so inputs that save on blur keep working. */
-export function withMic(input, { label = 'Dictate' } = {}) {
+export function withMic(input, { label = 'Dictate', subtle = false } = {}) {
   let session = null, base = '';
   const btn = h('button', {
     class: 'field-mic-inline', type: 'button', 'aria-label': label, title: canListen ? `${label} (speak, then Enter)` : 'Voice input isn’t supported in this browser', disabled: !canListen,
@@ -171,23 +174,34 @@ export function withMic(input, { label = 'Dictate' } = {}) {
       onEnd: () => { session = null; wrap.classList.remove('listening'); input.focus(); },
     });
   });
-  const wrap = h('span', { class: 'mic-field' });
+  const wrap = h('span', { class: `mic-field ${subtle ? 'mic-subtle' : ''}` });
   queueMicrotask(() => { if (input.parentNode && input.parentNode !== wrap) { input.replaceWith(wrap); wrap.append(input, btn); } });
   if (!input.parentNode) wrap.append(input, btn);
   return wrap;
 }
 
 // ---------- Duplicate any card ----------
+// Tools can refuse a copy (e.g. a full Taskly column) by registering a guard that returns a message.
+const dupGuards = [];
+export const guardDuplicate = fn => dupGuards.push(fn);
 export function duplicateCard(id) {
   const c = store.getCard(id);
   if (!c) return null;
+  for (const g of dupGuards) { const msg = g(c); if (msg) { toast(msg); return null; } }
   const { summary, summaryOf, summaryBy, doneDates, archivedAt, ...meta } = c.meta || {};
   void summary; void summaryOf; void summaryBy; void doneDates; void archivedAt;
   if (meta.x != null) { meta.x += 26; meta.y = (meta.y ?? 0) + 26; }
   if (meta.order != null) meta.order += 0.5;
   const copy = store.createCard({ type: c.type, tool: c.tool, title: `${c.title} copy`, description: c.description, meta });
+  landed(copy.id);
   toast(`Duplicated “${truncate(c.title, 28)}”`, { action: 'Undo', onAction: () => store.deleteCard(copy.id) });
   return copy;
+}
+/** Give a just-made card a soft pop so the eye finds it. */
+export function landed(id) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll(`[data-id="${CSS.escape(id)}"]`).forEach(el => { el.classList.add('landed'); setTimeout(() => el.classList.remove('landed'), 700); });
+  }));
 }
 
 // ---------- Move to… (SD-C4): the same routes dragging uses ----------
@@ -321,6 +335,7 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
   if (!card) return;
   const refs = {};
   refs.title = h('input', { class: 'field-input title-input', value: card.title, placeholder: 'Title', 'aria-label': 'Title' });
+  withMic(refs.title, { label: 'Dictate the title', subtle: true });
   refs.desc = h('textarea', { class: 'field-input', rows: 6, placeholder: 'Add details, or press the mic and speak…', 'aria-label': 'Description' });
   // Dictate straight into the details box.
   let session = null;

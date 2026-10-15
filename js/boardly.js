@@ -4,7 +4,7 @@ import * as store from './store.js';
 import { attachDots } from './dotfield.js';
 import { h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, confirmModal, SOFT_COLORS, listMode } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, openEditor, cardChrome, openMoveDialog, notesSnippet, duplicateCard } from './cards.js';
+import { routeCard, openEditor, cardChrome, openMoveDialog, notesSnippet, duplicateCard, withMic } from './cards.js';
 import { crunch } from './sound.js';
 
 const MAX_TABS = 10;
@@ -195,9 +195,17 @@ onDragStart(d => {
   addEventListener('pointermove', live.move);
   live.move();
 });
-onDragEnd(() => {
+onDragEnd(snap => {
   if (!live) return;
   removeEventListener('pointermove', live.move);
+  // Land where it was dropped: fold the drag offset into left/top before clearing it,
+  // so the card never flashes back to its old spot for a frame before the board redraws.
+  const m = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(live.el.style.transform);
+  if (m && live.inside && snap?.accepted !== false) {
+    live.el.style.left = live.base.left + parseFloat(m[1]) + 'px';
+    live.el.style.top = live.base.top + parseFloat(m[2]) + 'px';
+    if (group) group.els.forEach(o => { o.style.left = (parseFloat(o.style.left) || 0) + parseFloat(m[1]) + 'px'; o.style.top = (parseFloat(o.style.top) || 0) + parseFloat(m[2]) + 'px'; });
+  }
   live.el.classList.remove('live-drag');
   live.el.style.transform = '';
   document.body.classList.remove('board-live');
@@ -326,6 +334,7 @@ export function openSmart(id) {
   if (!c) return;
   const s = c.meta?.smart || {};
   const title = h('input', { class: 'field-input title-input', value: c.title, 'aria-label': 'Goal title' });
+  withMic(title, { label: 'Dictate the goal', subtle: true });
   const fields = {};
   const grid = h('div', { class: 'smart-grid' }, SMART.map(([k, label, ph]) => {
     fields[k] = h('textarea', { class: 'field-input', rows: 2, placeholder: ph, 'aria-label': label });

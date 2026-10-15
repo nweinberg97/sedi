@@ -2756,3 +2756,22 @@ textarea.field-input { min-height: 0; }
 @media (prefers-reduced-motion: reduce) {
   .assistant-token, .assistant-token::before { animation: none !important; scale: 1; }
 }
+
+/* Boardly tasks share the .task-card class with Taskly, and were inheriting its hover lift and
+   transform animation, which fought the drag near the board's edges. A board tile moves only by drag. */
+.boardly .tile.task-card, .boardly .tile.task-card:hover { transform: none; transition: box-shadow 0.15s, border-color 0.15s; }
+
+/* One-tap Duplicate lives in every card's hover tools; the new copy lands with a soft pop. */
+.landed { animation: landedPop 0.6s cubic-bezier(.2, .9, .25, 1.2); }
+@keyframes landedPop { 0% { scale: 0.86; opacity: 0.2; } 60% { scale: 1.03; opacity: 1; } 100% { scale: 1; } }
+@media (prefers-reduced-motion: reduce) { .landed { animation: none; } }
+.event-block.short > .card-tools { bottom: auto; top: 50%; translate: 0 -50%; }
+
+/* Title fields get a mic too, but quieter than the one in Details: no fill, faint, and only
+   a whisper on hover. It firms up when the field is focused, so it's there when you reach for it. */
+.mic-subtle .field-mic-inline { background: transparent; color: var(--faint); width: 24px; height: 24px; }
+.mic-subtle:hover .field-mic-inline { opacity: 0.55; }
+.mic-subtle:focus-within .field-mic-inline { opacity: 0.85; }
+.mic-subtle .field-mic-inline:hover { opacity: 1; background: var(--well); color: var(--ink); }
+.mic-subtle.listening .field-mic-inline { opacity: 1; background: var(--danger); color: #fff; }
+@media (hover: none) { .mic-subtle .field-mic-inline { opacity: 0.5; } }
