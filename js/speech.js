@@ -100,7 +100,9 @@ function pickVoice() {
   if (voice || !canSpeak) return voice;
   const voices = speechSynthesis.getVoices();
   const lang = (navigator.language || 'en').slice(0, 2);
-  voice = voices.find(v => v.localService && v.lang.startsWith(lang) && /Samantha|Daniel|Karen|Moira|Ava|Allison|Natural|Aria/i.test(v.name))
+  // Best first: downloaded premium/enhanced voices (installed in the system's settings), then good local ones.
+  voice = voices.find(v => v.localService && v.lang.startsWith(lang) && /\((?:Premium|Enhanced)\)/i.test(v.name))
+    || voices.find(v => v.localService && v.lang.startsWith(lang) && /Ava|Zoe|Evan|Nathan|Samantha|Daniel|Karen|Moira|Allison|Natural|Aria/i.test(v.name))
     || voices.find(v => v.localService && v.lang.startsWith(lang))
     || voices.find(v => v.lang.startsWith(lang)) || voices[0] || null;
   return voice;
@@ -151,7 +153,8 @@ const naturalListeners = new Set();
 export const onNaturalVoiceChange = fn => (naturalListeners.add(fn), () => naturalListeners.delete(fn));
 const setNatural = patch => { naturalState = { ...naturalState, ...patch }; naturalListeners.forEach(fn => fn(naturalState)); };
 export const naturalVoiceState = () => naturalState;
-export const replyVoice = () => store.pref('replyVoice', 'device');
+// The natural voice is the default on computers; phones keep the device voice (smaller download, less memory).
+export const replyVoice = () => store.pref('replyVoice') || (isSmallDevice() ? 'device' : 'natural');
 export function prepareNaturalVoice() {
   if (tts) return Promise.resolve(tts);
   if (ttsLoading) return ttsLoading;
@@ -171,6 +174,7 @@ export function prepareNaturalVoice() {
       },
     });
     setNatural({ status: 'ready', progress: 1 });
+    store.setPref('naturalReady', true);
     return tts;
   })();
   ttsLoading.catch(err => { ttsLoading = null; tts = null; setNatural({ status: 'error', error: err.message || String(err) }); });
@@ -256,7 +260,7 @@ export const stopSpeaking = () => {
 export const isSpeaking = () => !!talk;
 
 // ---------- Hearing one utterance (the assistant's ears) ----------
-import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange } from './hearing.js';
+import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange, isSmallDevice } from './hearing.js';
 /** Which ears will be used right now: 'device' (private, on-device Whisper) or 'browser'. */
 export function earsNow() {
   const pref = hearingPref(), ready = hearingState().status === 'ready';

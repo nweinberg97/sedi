@@ -8,7 +8,16 @@
 import * as store from './store.js';
 import { loadTransformers, roomFor } from './runtime.js';
 
-const MODEL = 'onnx-community/whisper-base';
+// Two sizes. "Accurate" (Whisper Small) makes noticeably fewer mistakes and is the default on computers;
+// "Light" (Whisper Base) is the default on phones, where memory and downloads are tighter.
+export const HEARING_MODELS = {
+  accurate: { id: 'onnx-community/whisper-small', label: 'Accurate', size: 'about 250–300 MB', mb: 300 },
+  light: { id: 'onnx-community/whisper-base', label: 'Light', size: 'about 80–150 MB', mb: 160 },
+};
+export const hearingModelKey = () => store.pref('hearingModel') || (isSmallDevice() ? 'light' : 'accurate');
+export const hearingModel = () => HEARING_MODELS[hearingModelKey()] || HEARING_MODELS.accurate;
+/** True once the chosen model has been downloaded on this device. */
+export const hearingDownloaded = () => store.pref('hearingReady') === hearingModel().id;
 const RATE = 16000;
 
 let state = { status: 'off', progress: 0, error: null };
@@ -24,16 +33,22 @@ let asr = null, loading = null, lastTry = 0;
 /** True when it's worth trying to load (never tried, or the last failure was over a minute ago). */
 export const shouldPrepare = () => !asr && !loading && (state.status === 'off' || (state.status === 'error' && Date.now() - lastTry > 60000));
 /** Download (once) and load Whisper. Resolves to the pipeline, or throws. */
+let asrModel = null;
+export const isSmallDevice = () => matchMedia('(max-width: 700px)').matches || (navigator.deviceMemory && navigator.deviceMemory < 6);
+/** Drop the loaded model (e.g. after switching size) so the next use loads the chosen one. */
+export function resetHearing() { asr = null; asrModel = null; loading = null; setState({ status: 'off', progress: 0, error: null }); }
 export function prepareHearing() {
-  if (asr) return Promise.resolve(asr);
   if (loading) return loading;
+  if (asr && asrModel === hearingModel().id) return Promise.resolve(asr);
+  if (asr) resetHearing();
   lastTry = Date.now();
   setState({ status: 'loading', progress: 0, error: null });
   loading = (async () => {
     // Model files go to the browser's Cache Storage, not IndexedDB. Check there's room first (a no-op once cached).
-    if (!store.pref('hearingReady')) {
-      const room = await roomFor(160);
-      if (!room.ok) throw new Error(`Not enough browser storage for the private voice (about 160 MB needed, ${room.freeMb} MB free).`);
+    const MODEL = hearingModel().id;
+    if (!hearingDownloaded()) {
+      const room = await roomFor(hearingModel().mb);
+      if (!room.ok) throw new Error(`Not enough browser storage for the private voice (about ${hearingModel().mb} MB needed, ${room.freeMb} MB free).`);
     }
     const tf = await loadTransformers(MODEL);
     const files = {};
@@ -44,10 +59,15 @@ export function prepareHearing() {
       const loaded = all.reduce((s, f) => s + f.loaded, 0), total = all.reduce((s, f) => s + f.total, 0);
       if (total) setState({ progress: Math.min(0.99, loaded / total) });
     };
-    const webgpu = !!navigator.gpu;
-    // WebGPU: full-precision encoder (accuracy) with a 4-bit decoder (speed). WASM: 8-bit throughout.
+    // Only try the GPU recipes the GPU can run, so nothing is downloaded that can't be used.
+    let webgpu = false, f16 = false;
+    try { const ad = await navigator.gpu?.requestAdapter(); webgpu = !!ad; f16 = !!ad?.features?.has('shader-f16'); } catch {}
+    // WebGPU (fast): half-precision encoder, which keeps accuracy, with a compact decoder; then the safest GPU
+    // mix; then the CPU (WASM) with 8-bit weights, which works everywhere.
     const tries = webgpu
-      ? [{ device: 'webgpu', dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' } }, { device: 'wasm', dtype: 'q8' }]
+      ? [...(f16 ? [{ device: 'webgpu', dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4f16' } }] : []),
+        { device: 'webgpu', dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' } },
+        { device: 'wasm', dtype: 'q8' }]
       : [{ device: 'wasm', dtype: 'q8' }];
     let lastErr;
     for (const opt of tries) {
@@ -58,7 +78,8 @@ export function prepareHearing() {
     // Warm up once so the first real sentence isn't slow.
     try { await asr(new Float32Array(RATE / 2), { language: lang(), task: 'transcribe' }); } catch {}
     setState({ status: 'ready', progress: 1 });
-    store.setPref('hearingReady', true);
+    asrModel = MODEL;
+    store.setPref('hearingReady', MODEL);
     return asr;
   })();
   loading.catch(err => { loading = null; setState({ status: 'error', error: err.message || String(err) }); });

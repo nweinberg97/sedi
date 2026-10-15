@@ -36,12 +36,23 @@ const addDays = (d, n) => { const x = new Date(d.getFullYear(), d.getMonth(), d.
 const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** Speech recognisers rarely know Sedi's own words. Put back the ones they commonly mishear. */
+export function fixVocabulary(raw) {
+  return String(raw || '')
+    .replace(/\bbo(?:a|u|o)?re?d[\s-]?(?:ly|lee|ley|li|lie|ie|y)\b/gi, 'Boardly')
+    .replace(/\bbrain[\s-]?(?:ly|lee|ley|li|lie|ie)\b/gi, 'Brainly')
+    .replace(/\btask[\s-]?(?:ly|lee|ley|li|lie|ie)\b/gi, 'Taskly')
+    .replace(/\btime[\s-](?:lee|ley|li|lie)\b/gi, 'Timely')
+    .replace(/\b(?:sedi|seti|setti|setty|sedie|sedy|seddy|sedee|cedi|ceddy)\b/gi, 'Sedi')
+    .replace(/\b(called|named|titled|saying)\s*[,:;–—-]\s*/gi, '$1 ');
+}
+
 /** Strip politeness and assistant-addressing so "hey sedi, could you please add milk" → "add milk". */
 export function normalize(raw) {
-  return String(raw || '')
+  return fixVocabulary(raw)
     .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
     .trim()
-    .replace(/^(?:hey|hi|ok|okay)?\s*(?:sedi|seti|setty|cd)[,:]?\s+/i, '')
+    .replace(/^(?:hey|hi|ok|okay)?\s*(?:sedi|cd)[,:]?\s+/i, '')
     .replace(/^(?:can you|could you|would you|will you|please|i want you to|i'd like you to|i need you to|i want to|i need to|let's|lets)\s+/i, '')
     .replace(/^(?:please)\s+/i, '')
     .replace(/[\s,]*(?:please|for me|thanks|thank you)[.!?]*$/i, '')
@@ -289,7 +300,10 @@ export function parseCommand(raw, ctx = {}) {
     const tm = typeRe.exec(body);
     if (tm) {
       type = TYPE_WORDS[tm[1].toLowerCase()];
-      const after = body.slice(tm[0].length);
+      let after = body.slice(tm[0].length);
+      // "a task to Taskly called…": that "to" introduced the destination, not the title. Give it back.
+      const destWords = [...Object.keys(TOOL_WORDS), ...Object.keys(COLUMN_WORDS), ...(ctx.tabs || []).map(t => t.name)].sort((a, b) => b.length - a.length).map(esc).join('|');
+      if (/(?:^|\s)(?:to|for|in|into|on)\s*$/i.test(tm[0]) && new RegExp(`^(?:the\\s+|my\\s+)?(?:${destWords})\\b`, 'i').test(after)) after = `to ${after}`;
       // Keep descriptive nouns in the title: "a meeting with Sam" → "Meeting with Sam".
       if (/^(meeting|appointment|idea|call)$/i.test(tm[1]) && /\b(with|about|for|at)\s*$/i.test(tm[0])) body = `${tm[1]} ${tm[0].match(/\b(with|about|for|at)\s*$/i)[1]} ${after}`;
       else if (/^(meeting|appointment|idea)$/i.test(tm[1]) && /^(with|about|for|at)\b/i.test(after)) body = `${tm[1]} ${after}`;
@@ -323,6 +337,7 @@ export function parseCommand(raw, ctx = {}) {
 function stripQuotes(s) { return s.replace(/^["']|["']$/g, '').trim(); }
 function cleanTitle(s) {
   return cap(stripQuotes(String(s || '')
+    .replace(/^[\s:,;–—-]+/, '')
     .replace(/^(?:(?:a|an|the)\s+)?(?:called|titled|named|that says|saying|to|for|about|:|-)\s+/i, '')
     .replace(/\s+(?:to|in|on|into|for|at|by|called|titled)$/i, '')
     .trim()));

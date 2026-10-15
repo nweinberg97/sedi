@@ -8,12 +8,12 @@ import { TOOL_NAMES, typeIcon, byOrder, routeCard, flatten, trashCard } from './
 import { navigate, revealCard } from './shell.js';
 import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, rememberAsk, forgetAsk, openEnginesPanel } from './engines.js';
 import { summaryFor, ensureSummary, noteText } from './summaries.js';
-import { findCard } from './commands.js';
+import { findCard, fixVocabulary } from './commands.js';
 import { nextUpItems } from './home.js';
 import { COLUMNS } from './taskly.js';
 import { occurrencesOn, weekPlanKey, monthPlanKey } from './timely.js';
 import { speak, speechStream, stopSpeaking, hearOnce, earsNow, replyVoice, prepareNaturalVoice, naturalVoiceState, onNaturalVoiceChange } from './speech.js';
-import { hearingState, onHearingChange, hearingPref, prepareHearing, canCapture } from './hearing.js';
+import { hearingState, onHearingChange, hearingPref, prepareHearing, canCapture, hearingDownloaded, hearingModel, hearingModelKey, HEARING_MODELS, resetHearing } from './hearing.js';
 import * as brain from './brain.js';
 import { removeModelFiles } from './runtime.js';
 import { tick } from './sound.js';
@@ -92,7 +92,7 @@ let prepLine = 0, prepTimer = null;
 function showPrep(p, done) {
   const placed = done ? DOTS : Math.floor(Math.min(0.99, p) * DOTS);
   orb.querySelectorAll('.as-prep i').forEach((d, i) => d.classList.toggle('placed', i < placed));
-  if (done) { clearInterval(prepTimer); prepTimer = null; setState('listening', 'All in place. Listening…'); return; }
+  if (done) { clearInterval(prepTimer); prepTimer = null; setState('listening', 'All in place. Listening…'); warmNaturalVoice(); return; }
   if (vstate !== 'preparing') {
     setState('preparing');
     prepLine = 0; clearInterval(prepTimer);
@@ -156,7 +156,8 @@ function toggle(force, { view = 'voice' } = {}) {
   if (open) {
     paintStatus(); positionTray();
     if (!output.childElementCount) greet();
-    if (store.pref('hearingReady') && hearingPref() !== 'browser' && canCapture && hearingState().status === 'off') prepareHearing().catch(() => {});
+    if (hearingDownloaded() && hearingPref() !== 'browser' && canCapture && hearingState().status === 'off') prepareHearing().catch(() => {});
+    if (hearingDownloaded() || store.pref('naturalReady')) warmNaturalVoice();
     if (view === 'type' || !earsNow()) { setView('type'); return; }
     tray.dataset.view = 'voice';
     if (!wasOpen || vstate === 'idle') talk();
@@ -270,14 +271,22 @@ function talk() {
   if (needsVoiceSetup()) { showVoiceIntro(); return; }
   convo = true; startListening();
 }
-const needsVoiceSetup = () => earsNow() === 'device' && hearingState().status !== 'ready' && !store.pref('hearingReady') && !store.pref('voiceSetupOk');
+const needsVoiceSetup = () => earsNow() === 'device' && hearingState().status !== 'ready' && !hearingDownloaded() && !store.pref('voiceSetupOk');
 
 // ---------- First time: why there's a download, and what stays private ----------
+const downloadSize = () => {
+  const hear = hearingModel().size.replace(/^about /, '');
+  return replyVoice() === 'natural' ? `about ${hear} for hearing, plus about 90 MB for the natural voice` : `about ${hear}`;
+};
+/** The natural voice downloads quietly after hearing is ready, and loads from the cache after that. */
+function warmNaturalVoice() {
+  if (replyVoice() === 'natural' && naturalVoiceState().status === 'off') prepareNaturalVoice().catch(() => {});
+}
 function showVoiceIntro() {
   setState('idle', 'Set up private voice to talk');
   const more = h('div', { class: 'vi-more', hidden: true },
     h('ul', {},
-      h('li', {}, h('b', {}, 'What downloads: '), 'Whisper, an open speech-to-text model, plus the open software that runs it in your browser. About 80–150 MB, once.'),
+      h('li', {}, h('b', {}, 'What downloads: '), `Whisper, an open speech-to-text model${replyVoice() === 'natural' ? ', and Kokoro, an open voice model for natural-sounding replies' : ''}, plus the open software that runs them in your browser. ${downloadSize().replace(/^a/, 'A')}, once.`),
       h('li', {}, h('b', {}, 'Where it comes from: '), 'Hugging Face and jsDelivr, the public libraries where open models are shared. They only see that the files were downloaded, never what you say.'),
       h('li', {}, h('b', {}, 'What’s kept: '), 'Only the words, in the cards and messages they go into. Each recording lives briefly in memory and is wiped as soon as it’s turned into text.'),
       h('li', {}, h('b', {}, 'Where it’s stored: '), 'In your browser’s download cache, apart from your cards. You can remove it any time in Voice and hearing.'),
@@ -285,7 +294,7 @@ function showVoiceIntro() {
   const card = h('div', { class: 'voice-intro' },
     h('div', { class: 'vi-badge' }, icon('lock'), 'Private voice'),
     h('strong', { class: 'vi-title' }, 'Talk to Sedi'),
-    h('p', {}, 'Your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. To do that, it needs a one-time download of an open speech model (about 80–150 MB). After that, it works offline.'),
+    h('p', {}, `Your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. To do that, it needs a one-time download of open models (${downloadSize()}). After that, it works offline.`),
     h('button', { class: 'vi-link', type: 'button', 'aria-expanded': 'false', onclick: e => { more.hidden = !more.hidden; e.currentTarget.setAttribute('aria-expanded', String(!more.hidden)); e.currentTarget.textContent = more.hidden ? 'What exactly happens?' : 'Hide details'; } }, 'What exactly happens?'),
     more,
     h('div', { class: 'vi-actions' },
@@ -315,7 +324,7 @@ function startListening({ followUp = false } = {}) {
       session = null;
       live?.remove();
       paintStatus();
-      if (finalText) return submit(finalText, { fromVoice: true });
+      if (finalText) return submit(fixVocabulary(finalText).trim(), { fromVoice: true });
       convo = false;
       setState('idle');
     },
@@ -666,7 +675,7 @@ function openVoiceSettings() {
   const paintHear = () => {
     const s = hearingState();
     hearStatus.textContent = !canCapture ? 'Not available in this browser.' : s.status === 'ready' ? `Ready on this device${s.device === 'webgpu' ? ' (using your GPU)' : ''}.`
-      : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now (are you offline?). Browser speech fills in, and it tries again later.' : 'Downloads once, the first time you talk (about 80–150 MB, depending on your device).';
+      : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now (are you offline?). It tries again later.' : `Downloads once, the first time you talk (${hearingModel().size}).`;
     hearStatus.dataset.tone = s.status === 'error' ? 'warn' : s.status === 'ready' ? 'ok' : '';
   };
   const paintVoice = () => {
@@ -680,10 +689,18 @@ function openVoiceSettings() {
     choice('hearing', 'device', hearingPref(), 'Private, on this device', 'Your voice is turned into text on your computer and never leaves it. Only the words are kept; the recording is wiped as soon as it’s transcribed.', hearStatus),
     choice('hearing', 'auto', hearingPref(), 'Private, with a quick start', 'Uses your browser’s speech recognition until the private model has downloaded. In Chrome, that audio goes to Google.'),
     choice('hearing', 'browser', hearingPref(), 'Browser speech recognition', 'Nothing to download. In Chrome, your audio is processed by Google.'));
+  const size = h('div', { class: 'vs-group vs-row', role: 'radiogroup', 'aria-label': 'Hearing accuracy' },
+    ...Object.entries(HEARING_MODELS).map(([k, m]) => choice('hearingModel', k, hearingModelKey(), m.label, k === 'accurate' ? `Fewest mistakes. ${m.size}, once. Best on a computer.` : `Smaller and faster. ${m.size}, once. Best on a phone.`)));
+  size.addEventListener('change', e => {
+    store.setPref('hearingModel', e.target.value);
+    size.querySelectorAll('.vs-choice').forEach(l => l.classList.toggle('on', l.contains(e.target)));
+    resetHearing(); paintHear();
+    if (hearingPref() !== 'browser' && canCapture) prepareHearing().catch(() => {});
+  });
   const sample = h('button', { class: 'btn ghost sm', type: 'button', onclick: () => speak('Hi. This is how I’ll sound when I answer you.') }, icon('play'), 'Hear it');
   const voice = h('div', { class: 'vs-group', role: 'radiogroup', 'aria-label': 'Reply voice' },
     choice('replyVoice', 'device', replyVoice(), 'Your device’s voice', 'Instant and offline. How natural it sounds depends on your device.'),
-    choice('replyVoice', 'natural', replyVoice(), 'Natural voice', 'An open voice model (Kokoro) that runs on your device, so nothing is sent anywhere.', voiceStatus));
+    choice('replyVoice', 'natural', replyVoice(), 'Natural voice', 'Sounds like a person. An open voice model (Kokoro) that runs on your device, so nothing is sent anywhere. Your device’s voice fills in while it downloads.', voiceStatus));
   hear.addEventListener('change', e => {
     store.setPref('hearing', e.target.value);
     hear.querySelectorAll('.vs-choice').forEach(l => l.classList.toggle('on', l.contains(e.target)));
@@ -699,13 +716,14 @@ function openVoiceSettings() {
   const storageNote = h('small', { class: 'muted' }, 'Voice files are stored in your browser’s cache, apart from your cards.');
   const removeBtn = h('button', { class: 'btn ghost sm', type: 'button', onclick: async () => {
     const n = await removeModelFiles(/whisper|kokoro/i);
-    store.setPref('hearingReady', false);
+    store.setPref('hearingReady', false); store.setPref('naturalReady', false);
     toast(n ? 'Removed the downloaded voice files. They’ll download again if you use voice.' : 'No voice files were stored on this device.');
   } }, icon('trash'), 'Remove voice downloads');
   modal({
     title: 'Voice and hearing', className: 'voice-settings',
     body: h('div', { class: 'vs' },
       h('h3', { class: 'vs-h' }, 'Hearing you'), hear,
+      h('h3', { class: 'vs-h' }, 'Accuracy'), size,
       h('div', { class: 'vs-h-row' }, h('h3', { class: 'vs-h' }, 'Answering you'), sample), voice,
       h('p', { class: 'muted small' }, 'Tap the atom and talk. Tap the circle to interrupt while it’s speaking, or say “bye” to finish. Space bar works too.'),
       h('div', { class: 'vs-foot' }, storageNote, removeBtn)),

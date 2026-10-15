@@ -2899,3 +2899,5 @@ textarea.field-input { min-height: 0; }
 .vi-more ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-xs); line-height: 1.45; color: var(--muted); }
 .vi-more b { color: var(--ink-2); font-weight: 600; }
 .vi-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+.vs-group.vs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+@media (max-width: 520px) { .vs-group.vs-row { grid-template-columns: 1fr; } }

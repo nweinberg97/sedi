@@ -338,6 +338,17 @@ test.describe('assistant', () => {
     expect(log.filter(e => /smoke milk/i.test(e.text)).length).toBe(5);
   });
 
+  test('misheard voice commands still land in the right place', async ({ page }) => {
+    await open(page, 'home');
+    const out = await page.evaluate(async () => {
+      const { parseCommands } = await import('/js/commands.js');
+      const ctx = { cards: [], tabs: [{ id: 't1', name: 'Work' }], plan: { projects: [], goals: [] }, now: new Date() };
+      return ['make a note in Boardly called review Sedi', 'Make a note in Bordly called, review SETI.', 'make a note in bored lee called review seti', 'add a task to taskly called call the dentist']
+        .map(t => parseCommands(t, ctx)[0]).map(c => `${c.tool}:${c.type}:${c.title}`);
+    });
+    expect(out).toEqual(['boardly:note:Review Sedi', 'boardly:note:Review Sedi', 'boardly:note:Review Sedi', 'taskly:task:Call the dentist']);
+  });
+
   test('voice chat answers out loud; voice command confirms by voice', async ({ page }) => {
     await open(page, 'home');
     await loadFixture(page);
