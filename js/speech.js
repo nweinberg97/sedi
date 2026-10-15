@@ -93,9 +93,12 @@ function pickVoice() {
 }
 if (canSpeak) speechSynthesis.onvoiceschanged = () => { voice = null; pickVoice(); };
 
-// Chrome quirks handled here: speaking right after cancel() can be dropped, long utterances get cut off
-// after ~15 seconds, and an utterance can be garbage-collected mid-sentence (so onend never fires).
-let queue = [], speakToken = 0;
+// ---------- Speaking ----------
+// Replies are spoken sentence by sentence from a queue, so a streamed answer can start talking as soon
+// as its first sentence is ready. Two voices: the device's own (instant, offline) and an optional
+// natural voice (Kokoro, an open model that runs in the browser; downloaded once, about 90 MB).
+// Chrome quirks handled for device voices: speaking right after cancel() can be dropped, long utterances
+// get cut off after ~15 seconds, and an utterance can be garbage-collected mid-sentence (onend never fires).
 const live = new Set();
 /** Plain words for the ear: no markdown, no links, short sentences. */
 export function speakable(text) {
@@ -109,39 +112,171 @@ export function speakable(text) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
-export function speak(text, { onEnd } = {}) {
-  if (!canSpeak || !text) { onEnd?.(); return; }
-  const token = ++speakToken;
-  speechSynthesis.cancel();
-  const clean = speakable(text).slice(0, 1200);
-  // Speak in sentence-sized pieces so nothing gets cut off.
-  const parts = (clean.match(/[^.!?]+[.!?]*/g) || [clean]).reduce((acc, s) => {
-    const last = acc[acc.length - 1];
-    if (last && (last + s).length < 180) acc[acc.length - 1] = last + s; else acc.push(s);
-    return acc;
-  }, []).map(x => x.trim()).filter(Boolean);
-  queue = parts;
-  let finished = false;
-  const done = () => { if (finished) return; finished = true; onEnd?.(); };
-  const next = () => {
-    if (token !== speakToken) return;          // a newer reply took over
-    const part = queue.shift();
-    if (!part) return done();
+const sentences = text => (text.match(/[^.!?]+[.!?]+["”’)]*\s*|[^.!?]+$/g) || []).map(x => x.trim()).filter(Boolean);
+
+function sayDevice(part) {
+  return new Promise(resolve => {
     const u = new SpeechSynthesisUtterance(part);
     const v = pickVoice();
     if (v) u.voice = v;
     u.rate = 1.03;
     live.add(u);
     let ended = false;
-    const end = () => { if (ended) return; ended = true; live.delete(u); clearTimeout(guard); next(); };
-    u.onend = end;
-    u.onerror = end; // next() bows out if a newer reply took over
-    // Safety net: if the browser never reports the end, move on anyway.
-    const guard = setTimeout(end, 1500 + part.length * 90);
+    const end = () => { if (ended) return; ended = true; live.delete(u); clearTimeout(guard); resolve(); };
+    u.onend = end; u.onerror = end;
+    const guard = setTimeout(end, 1500 + part.length * 90); // if the browser never reports the end, move on
     speechSynthesis.speak(u);
     if (speechSynthesis.paused) speechSynthesis.resume();
-  };
-  setTimeout(next, 80); // give cancel() a beat, or Chrome drops the first utterance
+  });
 }
-export const stopSpeaking = () => { speakToken++; queue = []; if (canSpeak) speechSynthesis.cancel(); };
-export const isSpeaking = () => canSpeak && (speechSynthesis.speaking || queue.length > 0);
+
+// ----- Natural voice (Kokoro) -----
+const KOKORO_URL = 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/dist/kokoro.web.js';
+let tts = null, ttsLoading = null, audioCtx = null, playing = null;
+let naturalState = { status: 'off', progress: 0, error: null };
+const naturalListeners = new Set();
+export const onNaturalVoiceChange = fn => (naturalListeners.add(fn), () => naturalListeners.delete(fn));
+const setNatural = patch => { naturalState = { ...naturalState, ...patch }; naturalListeners.forEach(fn => fn(naturalState)); };
+export const naturalVoiceState = () => naturalState;
+export const replyVoice = () => store.pref('replyVoice', 'device');
+export function prepareNaturalVoice() {
+  if (tts) return Promise.resolve(tts);
+  if (ttsLoading) return ttsLoading;
+  setNatural({ status: 'loading', progress: 0, error: null });
+  ttsLoading = (async () => {
+    const { KokoroTTS } = await import(/* @vite-ignore */ KOKORO_URL);
+    const files = {};
+    tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
+      dtype: 'q8', device: 'wasm',
+      progress_callback: p => {
+        if (p.status !== 'progress' || !p.file) return;
+        files[p.file] = { loaded: p.loaded || 0, total: p.total || 0 };
+        const all = Object.values(files), loaded = all.reduce((a, f) => a + f.loaded, 0), total = all.reduce((a, f) => a + f.total, 0);
+        if (total) setNatural({ progress: Math.min(0.99, loaded / total) });
+      },
+    });
+    setNatural({ status: 'ready', progress: 1 });
+    return tts;
+  })();
+  ttsLoading.catch(err => { ttsLoading = null; tts = null; setNatural({ status: 'error', error: err.message || String(err) }); });
+  return ttsLoading;
+}
+const naturalReady = () => replyVoice() === 'natural' && !!tts;
+async function renderNatural(part) {
+  const out = await tts.generate(part, { voice: store.pref('naturalVoiceName', 'af_heart'), speed: 1.02 });
+  return out; // { audio: Float32Array, sampling_rate }
+}
+function playPcm({ audio, sampling_rate }) {
+  return new Promise(resolve => {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const buf = audioCtx.createBuffer(1, audio.length, sampling_rate);
+    buf.copyToChannel(audio, 0);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf; src.connect(audioCtx.destination);
+    src.onended = () => { if (playing === src) playing = null; resolve(); };
+    playing = src;
+    src.start();
+  });
+}
+
+// ----- The queue -----
+let talk = null; // the reply being spoken right now
+/**
+ * Start a spoken reply that can grow while it plays. push(text) adds words (whole sentences are
+ * spoken as soon as they're complete); close() says no more is coming. onEnd fires once, at the end.
+ */
+export function speechStream({ onEnd } = {}) {
+  stopSpeaking();
+  const me = { buffer: '', queue: [], closed: false, ended: false, wake: null, onEnd, budget: 1200 };
+  talk = me;
+  const finish = () => { if (me.ended) return; me.ended = true; if (talk === me) talk = null; if (!me.stopped) me.onEnd?.(); }; // an interrupted reply doesn't report an end
+  const take = () => {
+    const parts = sentences(me.buffer);
+    const keep = me.closed ? [] : (/[.!?]["”’)]*\s*$/.test(me.buffer) ? [] : parts.splice(-1));
+    me.buffer = keep.join(' ');
+    for (const p of parts) { if (me.budget <= 0) break; me.budget -= p.length; me.queue.push(p); }
+  };
+  const run = async () => {
+    if (!canSpeak && !naturalReady()) { finish(); return; }
+    if (!naturalReady()) speechSynthesis.cancel();
+    await new Promise(r => setTimeout(r, 80)); // give cancel() a beat, or Chrome drops the first utterance
+    let next = null; // natural voice: render the next sentence while this one plays
+    while (talk === me) {
+      if (!me.queue.length) {
+        if (me.closed) break;
+        await new Promise(r => (me.wake = r)); me.wake = null; continue;
+      }
+      const part = me.queue.shift();
+      if (naturalReady()) {
+        try {
+          const pcm = await (next?.part === part ? next.p : renderNatural(part));
+          next = me.queue[0] ? { part: me.queue[0], p: renderNatural(me.queue[0]) } : null;
+          if (talk !== me) break;
+          await playPcm(pcm);
+        } catch { if (talk === me && canSpeak) await sayDevice(part); }
+      } else await sayDevice(part);
+    }
+    finish();
+  };
+  const api = {
+    push(text) { if (me.ended || me.closed) return api; me.buffer += (me.buffer && !/\s$/.test(me.buffer) ? ' ' : '') + speakable(text); take(); me.wake?.(); return api; },
+    close() { me.closed = true; take(); me.wake?.(); return api; },
+    get active() { return talk === me; },
+  };
+  run();
+  return api;
+}
+/** Speak a whole reply. */
+export function speak(text, { onEnd } = {}) {
+  if (!text || (!canSpeak && !naturalReady())) { onEnd?.(); return; }
+  speechStream({ onEnd }).push(text).close();
+}
+export const stopSpeaking = () => {
+  const t = talk; talk = null;
+  if (t) { t.stopped = true; t.queue = []; t.wake?.(); }
+  if (canSpeak) speechSynthesis.cancel();
+  try { playing?.stop(); } catch {} playing = null;
+};
+export const isSpeaking = () => !!talk;
+
+// ---------- Hearing one utterance (the assistant's ears) ----------
+import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare } from './hearing.js';
+/** Which ears will be used right now: 'device' (private, on-device Whisper) or 'browser'. */
+export function earsNow() {
+  const pref = hearingPref(), ready = hearingState().status === 'ready';
+  if (pref === 'browser') return SR ? 'browser' : (canCapture ? 'device' : null);
+  if (ready && canCapture) return 'device';
+  if (pref === 'device' || !SR) return canCapture ? 'device' : null;
+  return 'browser';
+}
+/**
+ * Hear one thing the person says and hand back the words.
+ * Callbacks: onInterim(text) (browser ears only), onLevel(0..1) (device ears), onSpeech(), onStatus(text),
+ * onFinal(text), onEnd({ heard }), onError(msg). Returns { stop(), cancel(), ears }.
+ */
+export function hearOnce(cb = {}) {
+  const ears = earsNow();
+  // While the browser's ears are in use, quietly get the private ones ready for next time.
+  if (hearingPref() !== 'browser' && canCapture && shouldPrepare()) prepareHearing().catch(() => {});
+  if (!ears) { cb.onError?.('Voice input isn’t supported in this browser.'); cb.onEnd?.({ heard: false }); return { stop() {}, cancel() {}, ears }; }
+  if (ears === 'device') {
+    let inner = null, cancelled = false;
+    const go = () => { if (!cancelled) inner = captureUtterance(cb); };
+    if (hearingState().status === 'ready') go();
+    else {
+      cb.onStatus?.('Getting private voice ready…');
+      prepareHearing().then(go, err => { cb.onError?.(`Couldn’t load on-device hearing: ${err.message || err}`); cb.onEnd?.({ heard: false }); });
+    }
+    return { stop() { inner ? inner.stop() : (cancelled = true, cb.onEnd?.({ heard: false })); }, cancel() { cancelled = true; inner ? inner.cancel() : cb.onEnd?.({ heard: false }); }, ears };
+  }
+  let heard = false, cancelled = false;
+  const s = listen({
+    continuous: false,
+    onInterim: t => { if (t) cb.onSpeech?.(); cb.onInterim?.(t); },
+    onFinal: t => { if (t && !cancelled) { heard = true; cb.onFinal?.(t); } },
+    onError: msg => cb.onError?.(msg),
+    onEnd: () => cb.onEnd?.({ heard }),
+  });
+  return { stop() { s.stop(); }, cancel() { cancelled = true; s.stop(); }, ears };
+}

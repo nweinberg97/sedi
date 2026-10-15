@@ -316,7 +316,6 @@ test.describe('assistant', () => {
     await open(page, 'home');
     await loadFixture(page);
     await page.keyboard.press('ControlOrMeta+k');
-    await page.locator('.assistant-tray .segmented').getByRole('tab', { name: 'Command' }).click();
     const say = async text => {
       await page.locator('.as-input').fill(text);
       await page.locator('.as-input').press('Enter');
@@ -342,18 +341,22 @@ test.describe('assistant', () => {
   test('voice chat answers out loud; voice command confirms by voice', async ({ page }) => {
     await open(page, 'home');
     await loadFixture(page);
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.locator('.assistant-tray .segmented').getByRole('tab', { name: 'Voice' }).click();
-    await expect(page.locator('.as-mic')).toBeEnabled();
+    // Voice first: tapping the atom opens the assistant already listening.
     await page.evaluate(() => window.__heard.push('summary'));
-    await page.locator('.as-mic').click();
+    await page.locator('.assistant-token').click();
+    await expect(page.locator('.assistant-tray')).toHaveAttribute('data-view', 'voice');
     await expect(page.locator('.as-msg.bot').last()).toContainText('Taskly');
     await expect.poll(() => page.evaluate(() => window.__spoken.length)).toBeGreaterThan(0);
+    // After answering it listens again; hearing nothing, it goes quiet.
+    await expect(page.locator('.assistant-tray')).toHaveAttribute('data-state', 'idle');
     // Voice command: speak it, hear the confirmation, answer "yes" by voice.
     await page.evaluate(() => window.__heard.push('remind me to smoke stretch tomorrow at 9am', 'yes'));
-    await page.locator('.as-mic').click();
-    await expect.poll(() => page.evaluate(() => window.__spoken.join(' | '))).toMatch(/Done/);
+    await page.locator('.as-orb').click();
+    await expect.poll(() => page.evaluate(() => window.__spoken.join(' | '))).toMatch(/Should I go ahead.*Done/);
     const card = await cardByTitle(page, 'Smoke stretch');
     expect(card?.meta?.kind).toBe('reminder');
+    // Typing is one tap away.
+    await page.getByRole('button', { name: 'Type instead' }).click();
+    await expect(page.locator('.as-input')).toBeFocused();
   });
 });

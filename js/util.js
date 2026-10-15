@@ -374,6 +374,8 @@ export const ICONS = {
   list: S('<path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r=".9" fill="currentColor"/><circle cx="4.8" cy="12" r=".9" fill="currentColor"/><circle cx="4.8" cy="17" r=".9" fill="currentColor"/>'),
   heading: S('<path d="M6 5v14M18 5v14M6 12h12"/>'),
   open: S('<path d="M13.5 4.5h6v6M19.5 4.5 11 13"/><path d="M18 14v5.5H4.5V6H10"/>'),
+  keyboard: S('<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>'),
+  lock: S('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
 };
 
 /** Phones show free-form canvases (Boardly, Brainly notes) as a tidy list, so positions are left alone there. */
