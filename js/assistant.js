@@ -123,7 +123,7 @@ function setView(v) {
 function greet() {
   const tries = ['What’s next today?', 'What did I write about Lisbon?', 'Remind me to call mom tomorrow at 9am'];
   output.replaceChildren(h('div', { class: 'as-hint' },
-    h('strong', {}, 'Talk to your Sedi'),
+    h('strong', {}, 'Talk to Sedi'),
     h('p', {}, 'Ask about anything you’ve saved, or tell it what to change. It answers out loud and checks with you before changing anything.'),
     h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t)))));
 }
@@ -284,8 +284,8 @@ function showVoiceIntro() {
       h('li', {}, h('b', {}, 'Clearing: '), 'Clear conversation erases what you said in it, including the command history.')));
   const card = h('div', { class: 'voice-intro' },
     h('div', { class: 'vi-badge' }, icon('lock'), 'Private voice'),
-    h('strong', { class: 'vi-title' }, 'Your voice stays on this device'),
-    h('p', {}, 'Sedi turns your speech into text right here, so nothing you say is sent anywhere. To do that, it needs a one-time download of an open speech model (about 80–150 MB). After that, it works offline.'),
+    h('strong', { class: 'vi-title' }, 'Talk to Sedi'),
+    h('p', {}, 'Your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. To do that, it needs a one-time download of an open speech model (about 80–150 MB). After that, it works offline.'),
     h('button', { class: 'vi-link', type: 'button', 'aria-expanded': 'false', onclick: e => { more.hidden = !more.hidden; e.currentTarget.setAttribute('aria-expanded', String(!more.hidden)); e.currentTarget.textContent = more.hidden ? 'What exactly happens?' : 'Hide details'; } }, 'What exactly happens?'),
     more,
     h('div', { class: 'vi-actions' },
