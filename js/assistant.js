@@ -87,7 +87,7 @@ function prepDots() {
   }
   return wrap;
 }
-const PREP_LINES = ['Setting up your private voice', 'What you say stays on this device', 'Only the first time'];
+const PREP_LINES = ['Setting up your private voice', 'Speech becomes text on this device', 'Recordings are never saved, only words', 'Only the first time'];
 let prepLine = 0, prepTimer = null;
 function showPrep(p, done) {
   const placed = done ? DOTS : Math.floor(Math.min(0.99, p) * DOTS);
@@ -159,7 +159,7 @@ function toggle(force, { view = 'voice' } = {}) {
     if (store.pref('hearingReady') && hearingPref() !== 'browser' && canCapture && hearingState().status === 'off') prepareHearing().catch(() => {});
     if (view === 'type' || !earsNow()) { setView('type'); return; }
     tray.dataset.view = 'voice';
-    if (!wasOpen || vstate === 'idle') { convo = true; startListening(); }
+    if (!wasOpen || vstate === 'idle') talk();
   } else { convo = false; session?.cancel(); session = null; stopSpeaking(); setState('idle'); }
 }
 
@@ -263,7 +263,35 @@ function onOrb() {
   if (vstate === 'speaking') { stopSpeaking(); convo = true; startListening(); return; }      // tap to interrupt
   if (vstate === 'listening' || vstate === 'hearing') { session?.stop(); return; }           // done talking
   if (vstate === 'thinking' || vstate === 'preparing') return;
+  talk();
+}
+/** Start talking, or, the first time, explain the private voice and ask before downloading it. */
+function talk() {
+  if (needsVoiceSetup()) { showVoiceIntro(); return; }
   convo = true; startListening();
+}
+const needsVoiceSetup = () => earsNow() === 'device' && hearingState().status !== 'ready' && !store.pref('hearingReady') && !store.pref('voiceSetupOk');
+
+// ---------- First time: why there's a download, and what stays private ----------
+function showVoiceIntro() {
+  setState('idle', 'Set up private voice to talk');
+  const more = h('div', { class: 'vi-more', hidden: true },
+    h('ul', {},
+      h('li', {}, h('b', {}, 'What downloads: '), 'Whisper, an open speech-to-text model, plus the open software that runs it in your browser. About 80–150 MB, once.'),
+      h('li', {}, h('b', {}, 'Where it comes from: '), 'Hugging Face and jsDelivr, the public libraries where open models are shared. They only see that the files were downloaded, never what you say.'),
+      h('li', {}, h('b', {}, 'What’s kept: '), 'Only the words, in the cards and messages they go into. Each recording lives briefly in memory and is wiped as soon as it’s turned into text.'),
+      h('li', {}, h('b', {}, 'Where it’s stored: '), 'In your browser’s download cache, apart from your cards. You can remove it any time in Voice and hearing.'),
+      h('li', {}, h('b', {}, 'Clearing: '), 'Clear conversation erases what you said in it, including the command history.')));
+  const card = h('div', { class: 'voice-intro' },
+    h('div', { class: 'vi-badge' }, icon('lock'), 'Private voice'),
+    h('strong', { class: 'vi-title' }, 'Your voice stays on this device'),
+    h('p', {}, 'Sedi turns your speech into text right here, so nothing you say is sent anywhere. To do that, it needs a one-time download of an open speech model (about 80–150 MB). After that, it works offline.'),
+    h('button', { class: 'vi-link', type: 'button', 'aria-expanded': 'false', onclick: e => { more.hidden = !more.hidden; e.currentTarget.setAttribute('aria-expanded', String(!more.hidden)); e.currentTarget.textContent = more.hidden ? 'What exactly happens?' : 'Hide details'; } }, 'What exactly happens?'),
+    more,
+    h('div', { class: 'vi-actions' },
+      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { card.remove(); greet(); setView('type'); } }, 'Type instead'),
+      h('button', { class: 'btn primary sm', type: 'button', onclick: () => { store.setPref('voiceSetupOk', true); card.remove(); convo = true; startListening(); } }, 'Set up private voice')));
+  output.replaceChildren(card);
 }
 
 function startListening({ followUp = false } = {}) {

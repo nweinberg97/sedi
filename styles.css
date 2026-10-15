@@ -2887,3 +2887,15 @@ textarea.field-input { min-height: 0; }
 .assistant-tray[data-state="preparing"] .as-caption { white-space: nowrap; }
 .assistant-tray[data-state="preparing"] .as-orb-wrap { gap: 20px; padding-top: 10px; }
 .vs-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* First time: why there's a download, and what stays private */
+.voice-intro { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 18px; background: linear-gradient(180deg, color-mix(in srgb, #4f86ea 8%, white), #fff 70%); border: 1px solid color-mix(in srgb, #4f86ea 20%, white); }
+.vi-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--r-pill); font-size: var(--fs-2xs); font-weight: 600; color: #2f7a55; background: color-mix(in srgb, #2f9e6a 11%, white); }
+.vi-badge svg { width: 11px; height: 11px; stroke-width: 2.2; }
+.vi-title { font-size: var(--fs-md); color: var(--ink); }
+.voice-intro p { margin: 0; font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+.vi-link { align-self: flex-start; font-size: var(--fs-xs); color: #3a6fd8; font-weight: 500; padding: 0; }
+.vi-link:hover { text-decoration: underline; }
+.vi-more ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-xs); line-height: 1.45; color: var(--muted); }
+.vi-more b { color: var(--ink-2); font-weight: 600; }
+.vi-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
