@@ -1,7 +1,7 @@
 // Sedi service worker: caches the app shell so Sedi opens instantly and works fully offline.
 // Bump VERSION whenever app files change so browsers pick up the new build.
 
-const VERSION = 'sedi-v1.9.0';
+const VERSION = 'sedi-v1.9.1';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './brain/master_library.json',

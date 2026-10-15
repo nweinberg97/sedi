@@ -2727,3 +2727,27 @@ textarea.field-input { min-height: 0; }
   .card-del, .card-info { opacity: 1; width: 32px; height: 32px; }
   .link-card .link-task { opacity: 1; width: 32px; height: 32px; }
 }
+
+/* =====================================================================
+   The assistant breathes while it waits: a slow grow and settle, with its glow
+   swelling in step. It goes still while you hover it or have it open, and
+   breathes faster while it's listening.
+   ===================================================================== */
+@keyframes tokenBreathe {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.075; }
+}
+@keyframes tokenHalo {
+  0%, 100% { opacity: 0.35; scale: 0.92; }
+  50% { opacity: 0.85; scale: 1.18; }
+}
+.assistant-token { animation: tokenBreathe 4.8s cubic-bezier(.45, 0, .55, 1) infinite; transition: scale 0.3s ease; }
+.assistant-token::before { animation: tokenHalo 4.8s cubic-bezier(.45, 0, .55, 1) infinite !important; }
+.assistant-token:hover, .assistant-token:focus-visible, .assistant-token[aria-expanded="true"] { animation: none; scale: 1; }
+.assistant-token:active { scale: 0.94; }
+.assistant-token[aria-expanded="true"]::before { animation-duration: 3s !important; }
+.assistant-tray.listening ~ .assistant-token, .assistant-tray.listening ~ .assistant-token::before { animation-duration: 1.6s !important; }
+.assistant-tray.listening ~ .assistant-token { animation-name: tokenBreathe !important; }
+@media (prefers-reduced-motion: reduce) {
+  .assistant-token, .assistant-token::before { animation: none !important; scale: 1; }
+}
