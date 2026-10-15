@@ -6,7 +6,7 @@
 
 import * as store from './store.js';
 import { h, icon, modal, toast } from './util.js';
-import { loadTransformers } from './runtime.js';
+import { loadTransformers, removeModelFiles } from './runtime.js';
 
 export const MODELS = {
   light: { id: 'onnx-community/Qwen2.5-0.5B-Instruct', label: 'Light', size: 'about 500 MB', note: 'Fast on most laptops.' },
@@ -111,8 +111,8 @@ export async function enable(key) {
 export async function disable(removeFiles) {
   store.setPref('brain', { enabled: false, model: store.pref('brain')?.model });
   generator = null;
-  // Remove both the model weights and the cached runtime files the service worker kept.
-  if (removeFiles && 'caches' in window) { await caches.delete('transformers-cache'); await caches.delete('sedi-runtime'); }
+  // Remove this model's files only. The voice models and the shared runtime stay, so voice keeps working.
+  if (removeFiles) await removeModelFiles(new RegExp(Object.values(MODELS).map(m => m.id.split('/')[1].replace(/[.]/g, '\\.')).join('|'), 'i'));
   setState({ status: 'off', progress: 0 });
 }
 export async function ensureLoaded() {
