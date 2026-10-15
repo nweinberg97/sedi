@@ -2515,6 +2515,85 @@ textarea.field-input { min-height: 0; }
 .dot-field { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 
 /* =====================================================================
+   The Brainly feel, everywhere.
+   - Dialogs open like Brainly's link folders: they zoom out of what you tapped onto frosted glass.
+   - Columns and panels are tinted like Brainly's folders: a soft wash of their colour fading to white.
+   - Colour is calm (a hue, never a heavy outline); space does the separating.
+   ===================================================================== */
+.modal-backdrop {
+  opacity: 1; background: rgba(240, 244, 250, 0.12);
+  backdrop-filter: blur(0px) saturate(1); -webkit-backdrop-filter: blur(0px) saturate(1);
+  transition: backdrop-filter 0.32s ease, -webkit-backdrop-filter 0.32s ease, background 0.32s ease, opacity 0.2s ease;
+}
+.modal-backdrop.in { background: rgba(225, 232, 244, 0.34); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5); }
+.modal-backdrop.out { opacity: 0; }
+.modal {
+  border-radius: 28px; background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(17, 17, 17, 0.04), 0 30px 80px -30px rgba(30, 50, 90, 0.45);
+  transform: translate(var(--from-x, 0px), var(--from-y, 24px)) scale(0.3); opacity: 0;
+  transition: transform 0.38s cubic-bezier(.2, .9, .25, 1.08), opacity 0.22s ease;
+}
+.modal-backdrop.in .modal { transform: none; opacity: 1; }
+.modal-backdrop.out .modal { transform: scale(0.94); opacity: 0; transition-duration: 0.2s; }
+.modal-head { padding: 18px 18px 4px 24px; }
+.modal-body { padding: 6px 24px 18px; }
+.modal-foot { border-top: 1px solid rgba(17, 17, 17, 0.06); padding: 14px 18px 18px; }
+
+/* Columns and side panels: a calm wash of their own colour, like a Brainly folder */
+.taskly-col, .ct, .day-plan {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--col) 11%, white) 0, #fff 150px) !important;
+  border: 1px solid color-mix(in srgb, var(--col) 30%, rgba(17, 17, 17, 0.08)) !important;
+  border-radius: 20px !important; transform: none !important;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 18px 36px -30px color-mix(in srgb, var(--col) 70%, rgba(17, 17, 17, 0.4)) !important;
+}
+.taskly-col.drop-over, .ct:has(.ct-list.drop-over), .day-plan.drop-over {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--col) 20%, white) 0, color-mix(in srgb, var(--col) 7%, white) 100%) !important;
+}
+.taskly-col .col-head, .ct > .ct-head, .day-plan-head { background: transparent !important; border-bottom: 0 !important; }
+.taskly-col .col-head { padding: 14px 14px 8px !important; }
+.taskly-col .col-head h2, .ct-head .ct-name, .day-plan-head h3 { font-weight: 600; letter-spacing: -0.01em; }
+.col-icon { background: color-mix(in srgb, var(--col) 18%, white) !important; color: var(--col) !important; border: 0 !important; width: 28px; height: 28px; border-radius: 9px; }
+.col-icon svg { stroke-width: 2; }
+.taskly-col .col-count, .ct-head .col-count, .pp-count {
+  background: rgba(255, 255, 255, 0.8) !important; border: 1px solid color-mix(in srgb, var(--col, var(--ink)) 30%, rgba(17, 17, 17, 0.1)) !important;
+  color: var(--ink-2) !important; font-weight: 600;
+}
+.col-add, .ct-add-row {
+  border: 1px solid color-mix(in srgb, var(--col, var(--ink)) 26%, rgba(17, 17, 17, 0.1)) !important; box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.85) !important; color: var(--ink-2) !important; font-weight: 500 !important; border-radius: 12px !important;
+}
+.col-add svg, .ct-add-row svg { background: color-mix(in srgb, var(--col, var(--ink)) 18%, white) !important; color: var(--col, var(--ink)) !important; }
+.col-add:hover, .ct-add-row:hover { border-color: color-mix(in srgb, var(--col, var(--ink)) 60%, white) !important; color: var(--ink) !important; background: #fff !important; }
+
+/* Cards: white, soft, rounded like Brainly's links */
+.task-card, .plan-card, .plan-item, .step-card, .day-plan-list li {
+  border: 1px solid rgba(17, 17, 17, 0.07) !important; border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 6px 16px -12px rgba(17, 17, 17, 0.25) !important;
+}
+.task-card:hover, .plan-card:hover, .plan-item:hover, .step-card:hover, .day-plan-list li:hover {
+  border-color: rgba(17, 17, 17, 0.14) !important; box-shadow: 0 2px 4px rgba(17, 17, 17, 0.05), 0 14px 26px -14px rgba(17, 17, 17, 0.3) !important;
+}
+
+/* Timely surfaces: calm borders, today as a soft hue; a zoomed day opens on glass */
+.day-scroll { border: 1px solid color-mix(in srgb, var(--timely) 26%, rgba(17, 17, 17, 0.08)) !important; border-radius: 20px; }
+.week-cell, .month-cell { border: 1px solid rgba(17, 17, 17, 0.07) !important; }
+.week-cell.today, .month-cell.today { border: 1.5px solid color-mix(in srgb, var(--timely) 70%, white) !important; background: linear-gradient(180deg, color-mix(in srgb, var(--timely) 12%, white), #fff 70%) !important; }
+.zoom-panel {
+  background: rgba(255, 255, 255, 0.86) !important; -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.8) !important; border-radius: 28px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 30px 80px -30px rgba(30, 50, 90, 0.45) !important;
+}
+.zoom-panel.opening { animation: zoomGlass 0.38s cubic-bezier(.2, .9, .25, 1.08); }
+@keyframes zoomGlass { from { transform: scale(0.2); opacity: 0; } to { transform: none; opacity: 1; } }
+.zoom-head { background: transparent !important; border-bottom: 1px solid rgba(17, 17, 17, 0.06) !important; }
+.zoom-back { border: 1px solid rgba(17, 17, 17, 0.12) !important; }
+.reminders .composer { border: 1px solid rgba(17, 17, 17, 0.08) !important; box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 14px 30px -18px rgba(80, 45, 10, 0.4) !important; }
+.reminders .cork { border: 1px solid rgba(17, 17, 17, 0.1) !important; border-radius: 22px !important; }
+@media (prefers-reduced-motion: reduce) { .modal, .modal-backdrop { transition: opacity 0.15s ease !important; transform: none !important; } }
+
+/* =====================================================================
    Mobile v2 (≤700px): a real phone layout.
    - A bottom tab bar replaces the right-edge navigator (thumb reach, labels visible).
    - The assistant becomes a floating button above the bar; the trash appears only while dragging.

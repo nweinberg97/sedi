@@ -193,13 +193,24 @@ export function toast(message, { action, onAction, duration = 3200 } = {}) {
 
 // ---------- Modals ----------
 let modalStack = [];
+// Dialogs open out of whatever you tapped, like a folder on an iPhone (and Brainly's link folders).
+let lastTap = null;
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest?.('[data-drag], .tile, .task-card, .b-note, .link-card, .lf-tile, button, [role="button"], a');
+  if (el) { const r = el.getBoundingClientRect(); lastTap = { x: r.left + r.width / 2, y: r.top + r.height / 2, t: Date.now() }; }
+}, true);
 export function modal({ title, body, actions = [], wide = false, onClose, className = '' }) {
   const backdrop = h('div', { class: 'modal-backdrop' });
   const box = h('div', { class: `modal ${wide ? 'wide' : ''} ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Dialog' });
+  if (lastTap && Date.now() - lastTap.t < 1500) {
+    box.style.setProperty('--from-x', `${Math.round(lastTap.x - innerWidth / 2)}px`);
+    box.style.setProperty('--from-y', `${Math.round(lastTap.y - innerHeight / 2)}px`);
+  }
   const close = () => {
     backdrop.classList.remove('in');
+    backdrop.classList.add('out');
     modalStack = modalStack.filter(m => m !== close);
-    setTimeout(() => backdrop.remove(), 180);
+    setTimeout(() => backdrop.remove(), 220);
     document.removeEventListener('keydown', onKey, true);
     onClose?.();
   };
