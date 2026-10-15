@@ -137,7 +137,7 @@ export function openEnginesPanel() {
       opts, claudeBox, compatBox,
       h('div', { class: 'engine-section' },
         h('strong', {}, 'Voice transcription (optional)'),
-        h('p', { class: 'muted small' }, 'Sedi uses your browser’s dictation by default. Wispr Flow and similar apps already work in any Sedi text box. To use a Whisper-style service instead, turn this on.'),
+        h('p', { class: 'muted small' }, 'Sedi turns your speech into text on this device by default (see Voice and hearing in the assistant’s menu). Wispr Flow and similar apps also work in any Sedi text box. To send recordings to a Whisper-style service instead, turn this on.'),
         h('label', { class: 'check-row' }, trOn, ' Use a transcription service'),
         h('div', { class: 'engine-fields' }, lab('Address', trBase), lab('Model', trModel), lab('API key', trKey))),
       askSection,
