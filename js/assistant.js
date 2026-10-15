@@ -271,7 +271,7 @@ function talk() {
   if (needsVoiceSetup()) { showVoiceIntro(); return; }
   convo = true; startListening();
 }
-const needsVoiceSetup = () => earsNow() === 'device' && hearingState().status !== 'ready' && !hearingDownloaded() && !store.pref('voiceSetupOk');
+const needsVoiceSetup = () => earsNow() === 'device' && hearingState().status !== 'ready' && !hearingDownloaded() && store.pref('voiceSetupOk') !== hearingModel().id; // asks again if the download changes
 
 // ---------- First time: why there's a download, and what stays private ----------
 const downloadSize = () => {
@@ -299,7 +299,7 @@ function showVoiceIntro() {
     more,
     h('div', { class: 'vi-actions' },
       h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { card.remove(); greet(); setView('type'); } }, 'Type instead'),
-      h('button', { class: 'btn primary sm', type: 'button', onclick: () => { store.setPref('voiceSetupOk', true); card.remove(); convo = true; startListening(); } }, 'Set up private voice')));
+      h('button', { class: 'btn primary sm', type: 'button', onclick: () => { store.setPref('voiceSetupOk', hearingModel().id); card.remove(); convo = true; startListening(); } }, 'Set up private voice')));
   output.replaceChildren(card);
 }
 
