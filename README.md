@@ -24,13 +24,15 @@ A local-first workspace that runs entirely in your browser: tasks (Taskly), life
 
 ## In-app help (Navoro)
 
-Sedi ships with [Navoro](https://github.com/nweinberg97/Navoro) installed: a **Help** button in the header (next to the menu) that answers "how do I…?" from `docs/help-center.md` and points at the actual control, step by step. It is read-only — it never changes anything in Sedi for you.
+Sedi ships with [Navoro](https://github.com/nweinberg97/Navoro) built in: a **Help** (?) button in the header, to the left of the menu, that answers "how do I…?" from `docs/help-center.md` and points at the actual control, step by step, in Sedi's own blue. It is read-only — it never changes anything in Sedi for you.
 
-- **Locally:** run Navoro (`node start.mjs` from its download, or `npm run dev` from its repo) alongside `python3 -m http.server 8000`. Sedi is pre-registered in Navoro's demo workspace, so the launcher appears on `http://localhost:8000` with no setup. Sign in to the Navoro dashboard at `http://localhost:4400` (demo@navoro.dev / navoro-demo-2026) to edit the guidance, review what people ask, or import `http://localhost:8000/docs/help-center.md` as a documentation URL.
-- **On the published site:** off until you host Navoro somewhere. Set `productionOrigin` in `js/navoro.js`, add `https://<your-username>.github.io` as a production origin in the Navoro dashboard, and publish a configuration.
-- **Turn it off:** add `?navoro=off` to the URL, or remove the `js/navoro.js` script tag from `index.html`.
+It runs entirely in your browser: two static files in `navoro/` (the Navoro script and a knowledge pack built from the help center), cached by the service worker, so Help works offline too. No server, no account, nothing is sent anywhere.
 
-The controls Navoro can point at carry `data-navoro-id` attributes; the bold labels in `docs/help-center.md` match their accessible names. **What Navoro can and can't see.** It reads only the tagged controls (button and field *labels* like "Add to To do"), the route, the page title, and the fixed error toasts. It never reads anything you type, and every place your own content appears — Taskly columns, the Universal Board, Home lists, Boardly and Brainly canvases, Timely, search results, dialogs and the assistant — is marked `data-navoro-sensitive`, so the SDK skips it entirely. Headings are off for Sedi too, because Timely container names are yours. To check, open Help on localhost → **Inspect payload**. Navoro is served from its own origin, so Sedi stays fully offline-capable without it, and the Help button only appears when Navoro is actually reachable.
+- **Update the answers:** edit `docs/help-center.md`, then from the Navoro repo run `npm run navoro-pack -- /path/to/sedi/navoro.config.json` (writes `navoro/navoro-pack.json`). The report lists any step whose button it couldn't find.
+- **Privacy rules:** `navoro.config.json` (`neverCollect`, what Navoro may observe).
+- **Turn it off:** remove the `navoro/navoro.js` script tag from `index.html`.
+
+The controls Navoro can point at carry `data-navoro-id` attributes; the bold labels in `docs/help-center.md` match their accessible names. **What Navoro can and can't see.** It reads only the tagged controls (button and field *labels* like "Add to To do"), the route, the page title, and the fixed error toasts. It never reads anything you type, and every place your own content appears — Taskly columns, the Universal Board, Home lists, Boardly and Brainly canvases, Timely, search results, dialogs and the assistant — is marked `data-navoro-sensitive`, so the SDK skips it entirely. Headings are off for Sedi too, because Timely container names are yours. To check, open Help → **What Navoro read on this page**. The Help button only appears once Navoro has loaded.
 
 ## Privacy notes
 
@@ -55,7 +57,8 @@ js/timely.js        day/week/month/reminders, archive, .ics, planning boards
 js/brainly.js       search, links, notes, folders, dictation
 js/assistant.js     chat / voice / command
 js/brain.js         Sovereign Brain (retrieval + on-device model)
-js/navoro.js        installs the Navoro in-app help SDK (optional)
+navoro/             Navoro in-app help: navoro.js + navoro-pack.json (built from docs/help-center.md)
+navoro.config.json  Navoro privacy rules and help-panel text
 docs/help-center.md Sedi's help center, the knowledge Navoro learns from
 sw.js               offline cache
 ```

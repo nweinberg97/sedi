@@ -1,0 +1,34 @@
+{
+  "name": "Sedi",
+  "docs": [
+    "docs/help-center.md"
+  ],
+  "privacy": {
+    "observe": [
+      "route",
+      "pageTitle",
+      "elements",
+      "visibleErrors"
+    ],
+    "neverCollect": [
+      {
+        "selector": ".card",
+        "reason": "Card titles and notes are personal"
+      },
+      {
+        "selector": ".assistant-tray",
+        "reason": "Assistant conversations stay private"
+      }
+    ]
+  },
+  "launcher": {
+    "greeting": "Stuck on something in Sedi? Ask, and I'll point to it.",
+    "suggestions": [
+      "How do I add a reminder?",
+      "How do I save a link in Brainly?",
+      "How do I download my data?"
+    ]
+  },
+  "out": "navoro/navoro-pack.json",
+  "supportUrl": "https://github.com/nweinberg97/sedi/issues"
+}

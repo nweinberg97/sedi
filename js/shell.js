@@ -22,10 +22,11 @@ export function navigate(route) {
 
 // ---------- Header ----------
 export function buildHeader() {
-  // Help opens Navoro's in-app guide. Hidden until js/navoro.js reports Navoro is available.
+  // Help opens Navoro's in-app guide (navoro/navoro.js, runs fully on this device).
+  // data-navoro-trigger hands the button to Navoro, which shows it once it's ready.
   const help = h('button', {
     class: 'icon-btn help-btn', 'aria-label': 'Help', title: 'Help', 'aria-expanded': 'false', 'aria-haspopup': 'dialog',
-    onclick: () => import('./navoro.js').then(m => m.toggleHelp()),
+    'data-navoro-trigger': '', hidden: true,
   }, icon('help'));
   const header = h('header', { class: 'topbar' },
     h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home', 'data-navoro-id': 'nav.home-logo' }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
