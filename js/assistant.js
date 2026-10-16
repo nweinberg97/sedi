@@ -481,7 +481,7 @@ const YES = /^(?:y|yes|yeah|yep|yup|sure|ok|okay|confirm|confirmed|do it|go ahea
 const NO = /^(?:n|no|nope|nah|cancel|stop|never ?mind|don'?t|wait)\b/i;
 let pending = null;
 
-// ---------- Understanding with a real AI engine (Ollama, Groq, Claude…) ----------
+// ---------- Understanding with a real AI engine (Ollama on your Mac, or Claude) ----------
 const smartEngine = () => engineConfig().active !== 'local' && engineAvailable();
 async function restate(text, ctx) {
   const tabs = (ctx.tabs || []).map(t => t.name).join(', ') || 'none';
