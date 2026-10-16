@@ -382,3 +382,33 @@ export const ICONS = {
 
 /** Phones show free-form canvases (Boardly, Brainly notes) as a tidy list, so positions are left alone there. */
 export const listMode = () => matchMedia('(max-width: 700px)').matches;
+
+// ---------- Movable controls: a way home ----------
+// While a movable control (the assistant's atom, the Universal Board) is dragged, a dashed
+// circle marks where it normally lives. Dropping it near there snaps it back exactly, so a
+// control that's "put back" never ends up a few pixels off. 'sedi:reset-positions' (Menu →
+// Reset button positions) sends every movable control home at once.
+export const SNAP_HOME_PX = 56;
+export function homeSpot(measureHome) {
+  let ghost = null, home = null;
+  const centre = r => [r.left + r.width / 2, r.top + r.height / 2];
+  return {
+    show() {
+      home = measureHome();
+      if (!home || !home.width) return;
+      ghost ??= h('div', { class: 'home-spot', 'aria-hidden': 'true' });
+      Object.assign(ghost.style, { left: home.left + 'px', top: home.top + 'px', width: home.width + 'px', height: home.height + 'px' });
+      document.body.append(ghost);
+      requestAnimationFrame(() => ghost?.classList.add('show'));
+    },
+    near(rect) {
+      if (!home || !home.width) return false;
+      const [ax, ay] = centre(rect), [bx, by] = centre(home);
+      const hot = Math.hypot(ax - bx, ay - by) < SNAP_HOME_PX;
+      ghost?.classList.toggle('hot', hot);
+      return hot;
+    },
+    hide() { ghost?.classList.remove('show', 'hot'); ghost?.remove(); home = null; },
+  };
+}
+
