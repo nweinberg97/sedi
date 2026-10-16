@@ -241,7 +241,7 @@ function renderTabs() {
     tab.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tab) tab.click(); });
     return tab;
   }));
-  if (list.length < MAX_TABS) tabBar.append(h('button', { class: 'tab-add icon-btn sm', 'aria-label': 'Add category', onclick: addTab }, icon('plus')));
+  if (list.length < MAX_TABS) tabBar.append(h('button', { class: 'tab-add icon-btn sm', 'aria-label': 'Add category', 'data-navoro-id': 'boardly.add-category', onclick: addTab }, icon('plus')));
   else tabBar.append(h('span', { class: 'tab-limit muted small' }, '10 of 10'));
 }
 
@@ -333,7 +333,7 @@ export function openSmart(id) {
   const c = store.getCard(id);
   if (!c) return;
   const s = c.meta?.smart || {};
-  const title = h('input', { class: 'field-input title-input', value: c.title, 'aria-label': 'Goal title' });
+  const title = h('input', { class: 'field-input title-input', value: c.title, 'aria-label': 'Goal title', 'data-navoro-id': 'goal.title' });
   withMic(title, { label: 'Dictate the goal', subtle: true });
   const fields = {};
   const grid = h('div', { class: 'smart-grid' }, SMART.map(([k, label, ph]) => {

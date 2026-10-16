@@ -166,7 +166,7 @@ const setAnchor = k => { store.setPref('timelyAnchor', k); render(); };
 
 export function mount(el) {
   root = el;
-  body = h('div', { class: 'timely-body' });
+  body = h('div', { class: 'timely-body', 'data-navoro-sensitive': '' });
   root.replaceChildren(h('div', { class: 'view timely' }, h('div', { class: 'timely-head' }), body));
   dayScroll = null; zoom = null;
   render();
@@ -176,7 +176,7 @@ export function render() {
   if (!root?.isConnected) return;
   const head = root.querySelector('.timely-head');
   const seg = (items, value, onPick, cls = '') => h('div', { class: `segmented ${cls}`, role: 'tablist' },
-    items.map(([v, label]) => h('button', { class: v === value ? 'on' : '', role: 'tab', 'aria-selected': String(v === value), onclick: () => onPick(v) }, label)));
+    items.map(([v, label]) => h('button', { class: v === value ? 'on' : '', role: 'tab', 'aria-selected': String(v === value), 'data-navoro-id': `timely.${v}`, onclick: () => onPick(v) }, label)));
   // SD-T1/T2/T3: Scheduling / Planning on top; the sub-views sit in a smaller, indented bar beneath.
   // One clear hierarchy: the tool, then the mode, then a single toolbar with the views (left) and what you can do (right).
   const tabs = (items, value, onPick) => h('div', { class: 'tl-tabs', role: 'tablist' },
@@ -399,7 +399,7 @@ function dayPlanPanel(key) {
   const input = h('input', { class: 'field-input sm', placeholder: 'Add to the plan, then Enter', 'aria-label': 'Add to today’s plan', 'data-keep': `plan-${key}` });
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !input.value.trim()) return;
-    if (todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full. Finish or move something first.'); return; }
+    if (todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full. Finish or move something first.', { code: 'TASKLY_COLUMN_FULL' }); return; }
     store.createCard({ type: 'task', tool: 'taskly', title: input.value.trim(), meta: { columnId: 'todo', order: todoCards().length } });
     input.value = '';
   });
@@ -433,7 +433,7 @@ function scheduleToday(id, key) {
 registerDrop('day-plan', ({ id, index }) => {
   const c = store.getCard(id);
   if (!c) return false;
-  if (!(c.tool === 'taskly' && c.meta?.columnId === 'todo') && todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full.'); return false; }
+  if (!(c.tool === 'taskly' && c.meta?.columnId === 'todo') && todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full.', { code: 'TASKLY_COLUMN_FULL' }); return false; }
   routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'todo', order: index ?? 0 }, log: 'Added to today’s plan' });
   reorder(todoCards(), id, index);
 });
@@ -447,7 +447,7 @@ const schedMeta = (c, patch) => {
 function placeSched(id, patch, label) {
   const c = store.getCard(id);
   if (!c) return false;
-  if (patch.date && patch.date < todayKey()) { toast('Timely only looks forward. Pick today or later.'); return false; }
+  if (patch.date && patch.date < todayKey()) { toast('Timely only looks forward. Pick today or later.', { code: 'TIMELY_PAST_DATE' }); return false; }
   if (c.tool !== 'timely') return routeCard(id, { tool: 'timely', type: 'event', meta: schedMeta(c, patch) });
   store.updateCard(id, { type: 'event', meta: schedMeta(c, patch) }, { replaceMeta: true, log: !!label, logLabel: label });
 }

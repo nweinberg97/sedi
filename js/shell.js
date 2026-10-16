@@ -24,9 +24,17 @@ export function navigate(route) {
 
 // ---------- Header ----------
 export function buildHeader() {
+  // Help opens Navoro's in-app guide (navoro/navoro.js, runs fully on this device).
+  // data-navoro-trigger hands the button to Navoro, which shows it once it's ready.
+  const help = h('button', {
+    class: 'icon-btn help-btn', 'aria-label': 'Help', title: 'Help', 'aria-expanded': 'false', 'aria-haspopup': 'dialog',
+    'data-navoro-trigger': '', hidden: true,
+  }, icon('help'));
   const header = h('header', { class: 'topbar' },
     h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home', onclick: e => spinAtom(e.currentTarget) }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
-    h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', onclick: toggleDrawer }, icon('menu')));
+    h('div', { class: 'topbar-actions' },
+      help,
+      h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', onclick: toggleDrawer }, icon('menu'))));
   return header;
 }
 
@@ -37,8 +45,8 @@ function toggleDrawer(force) {
   $('.menu-btn').setAttribute('aria-expanded', String(open));
 }
 export function buildDrawer() {
-  const item = (ic, label, sub, onclick, cls = '') =>
-    h('button', { class: `drawer-item ${cls}`, onclick: () => { toggleDrawer(false); onclick?.(); } },
+  const item = (ic, label, sub, onclick, cls = '', navoroId = null) =>
+    h('button', { class: `drawer-item ${cls}`, 'aria-label': label, 'data-navoro-id': navoroId, onclick: () => { toggleDrawer(false); onclick?.(); } },
       icon(ic), h('span', { class: 'drawer-text' }, h('span', {}, label), sub ? h('small', {}, sub) : null));
   const fileInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: e => importFile(e.target.files[0], e.target) });
   drawer = h('aside', { class: 'drawer', 'aria-label': 'Menu' },
@@ -51,7 +59,7 @@ export function buildDrawer() {
       item('file', 'Google account', 'Create Google Docs from Brainly', openGooglePanel),
       item('bell', 'Apple Reminders', 'Set up the Shortcuts bridge', openRemindersSetup),
       h('div', { class: 'drawer-sep' }),
-      item('trash', 'Clear storage', 'Erase everything on this device', clearStorage, 'danger')),
+      item('trash', 'Clear storage', 'Erase everything on this device', clearStorage, 'danger', 'menu.clear')),
     fileInput);
   document.addEventListener('pointerdown', e => {
     if (drawer.classList.contains('open') && !drawer.contains(e.target) && !e.target.closest('.menu-btn')) toggleDrawer(false);
@@ -70,7 +78,7 @@ async function importFile(file, input) {
   if (!file) return;
   let data;
   try { data = JSON.parse(await file.text()); } catch { toast('That file isn’t valid JSON.'); return; }
-  if (data?.app !== 'sedi') { toast('That file isn’t a Sedi export.'); return; }
+  if (data?.app !== 'sedi') { toast('That file isn’t a Sedi export.', { code: 'IMPORT_NOT_SEDI' }); return; }
   modal({
     title: 'Import data',
     body: h('p', { class: 'muted' }, `${data.cards.length} cards from ${new Date(data.exportedAt).toLocaleString()}. Merge keeps your current cards and adds or updates from the file. Replace swaps everything for the file’s contents.`),
@@ -117,7 +125,7 @@ export function buildNavigator() {
   for (const r of NAV_ORDER) {
     panel.append(h('a', {
       class: 'nav-pill', href: `#/${r}`, title: LABELS[r],
-      dataset: { route: r, springRoute: r }, 'aria-label': LABELS[r],
+      dataset: { route: r, springRoute: r }, 'aria-label': LABELS[r], 'data-navoro-id': `nav.${r}`,
     }, icon(NAV_ICONS[r]), h('span', { class: 'nav-label' }, LABELS[r])));
   }
   const trigger = h('button', { class: 'navigator-trigger', 'aria-label': 'Hide tool buttons', 'aria-expanded': 'true', onclick: () => toggleNav() },
@@ -155,13 +163,13 @@ export function buildUniversal() {
   const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
-    if (uniFull()) { toast('The board is full. Route or clear a card first.'); return; }
+    if (uniFull()) { toast('The board is full. Route or clear a card first.', { code: 'UNIVERSAL_FULL' }); return; }
     const list = universalCards();
     store.createCard({ type: 'note', title: quick.value.trim(), tool: 'universal', meta: { order: list.length } });
     quick.value = '';
   });
   uniCount = h('span', { class: 'uni-count' });
-  uniList = h('div', { class: 'uni-list', dataset: { drop: 'universal', accept: 'card' }, 'data-list': '' });
+  uniList = h('div', { class: 'uni-list', dataset: { drop: 'universal', accept: 'card' }, 'data-list': '', 'data-navoro-sensitive': '' });
   uniPanel = h('section', { class: 'universal-panel', 'aria-label': 'Universal Board' },
     h('div', { class: 'uni-head' }, h('h2', {}, 'Universal Board'), uniCount),
     withMic(quick, { label: 'Dictate to the Universal Board' }), uniList,
@@ -215,7 +223,7 @@ export function renderUniversal() {
 
 // ---------- Trash ----------
 export function buildTrash() {
-  const bin = h('div', { class: 'trash', dataset: { drop: 'trash', accept: 'card bfolder lfolder' }, 'aria-label': 'Trash: drag cards here to delete' }, icon('trash'));
+  const bin = h('div', { class: 'trash', dataset: { drop: 'trash', accept: 'card bfolder lfolder' }, 'aria-label': 'Trash', title: 'Drag cards here to delete' }, icon('trash'));
   registerDrop('trash', ({ kind, id }) => {
     if (kind === 'card') trashCard(id);
     else if (kind === 'bfolder') import('./brainly.js').then(m => m.trashFolder(id));
