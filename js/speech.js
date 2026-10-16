@@ -7,7 +7,7 @@ export const canListen = !!SR || canCapture;
 export const canSpeak = 'speechSynthesis' in window;
 
 import * as store from './store.js';
-import { loadKokoro, roomFor } from './runtime.js';
+import { roomFor } from './runtime.js';
 
 /** Optional: a Whisper-style transcription service, set in Menu → AI engines. */
 function transcriber() {
@@ -128,6 +128,37 @@ export function speakable(text) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
+/**
+ * Say things the way a person would: numbers, money, percentages, times, dates and symbols become words,
+ * so the voice doesn't stumble or spell them out.
+ */
+const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+function numWords(n) {
+  n = Math.floor(Math.abs(n));
+  if (n < 20) return ONES[n];
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? `-${ONES[n % 10]}` : '');
+  if (n < 1000) return `${ONES[Math.floor(n / 100)]} hundred${n % 100 ? ` ${numWords(n % 100)}` : ''}`;
+  for (const [v, w] of [[1e9, 'billion'], [1e6, 'million'], [1e3, 'thousand']]) if (n >= v) return `${numWords(n / v)} ${w}${n % v ? ` ${numWords(n % v)}` : ''}`;
+  return String(n);
+}
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const ORD = n => ({ 1: 'first', 2: 'second', 3: 'third', 5: 'fifth', 8: 'eighth', 9: 'ninth', 12: 'twelfth', 20: 'twentieth', 30: 'thirtieth' }[n]
+  || (n > 20 && n % 10 ? `${TENS[Math.floor(n / 10)]}-${ORD(n % 10)}` : `${numWords(n)}th`));
+export function forSpeech(text) {
+  return String(text || '')
+    .replace(/(\d),(?=\d{3}\b)/g, '$1')
+    .replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (_, y, m, d) => `${MONTH_NAMES[+m - 1] || m} ${ORD(+d)}`)
+    .replace(/\b(\d{1,2}):(\d{2})\s*([ap])\.?\s?m\.?/gi, (_, h, mm, ap) => `${numWords(+h)}${mm === '00' ? '' : ` ${+mm < 10 ? 'oh ' : ''}${numWords(+mm)}`} ${ap.toLowerCase() === 'a' ? 'A M' : 'P M'}`)
+    .replace(/\b(\d{1,2})\s*([ap])\.?\s?m\.?(?![a-z])/gi, (_, h, ap) => `${numWords(+h)} ${ap.toLowerCase() === 'a' ? 'A M' : 'P M'}`)
+    .replace(/\$(\d+)(?:\.(\d{2}))?/g, (_, d, c) => `${numWords(+d)} dollar${+d === 1 ? '' : 's'}${c && +c ? ` and ${numWords(+c)} cents` : ''}`)
+    .replace(/(\d+(?:\.\d+)?)\s?%/g, '$1 percent')
+    .replace(/\b(\d+)k\b/gi, (_, n) => `${numWords(+n)} K`)
+    .replace(/\b(\d+)\/(\d+)\b/g, (_, a, b) => `${numWords(+a)} of ${numWords(+b)}`)
+    .replace(/\b\d{1,9}\b/g, n => numWords(+n))
+    .replace(/&/g, ' and ').replace(/\s\+\s/g, ' plus ').replace(/\s=\s/g, ' equals ').replace(/→|->/g, ' to ').replace(/[~≈]/g, 'about ')
+    .replace(/\s{2,}/g, ' ').trim();
+}
 const sentences = text => (text.match(/[^.!?]+[.!?]+["”’)]*\s*|[^.!?]+$/g) || []).map(x => x.trim()).filter(Boolean);
 
 function sayDevice(part) {
@@ -147,7 +178,7 @@ function sayDevice(part) {
 }
 
 // ----- Natural voice (Kokoro) -----
-let tts = null, ttsLoading = null, audioCtx = null, playing = null;
+let ttsLoading = null, audioCtx = null, playing = null;
 let naturalState = { status: 'off', progress: 0, error: null };
 const naturalListeners = new Set();
 export const onNaturalVoiceChange = fn => (naturalListeners.add(fn), () => naturalListeners.delete(fn));
@@ -155,35 +186,48 @@ const setNatural = patch => { naturalState = { ...naturalState, ...patch }; natu
 export const naturalVoiceState = () => naturalState;
 // The natural voice is the default on computers; phones keep the device voice (smaller download, less memory).
 export const replyVoice = () => store.pref('replyVoice') || (isSmallDevice() ? 'device' : 'natural');
+let ttsReady = false;
 export function prepareNaturalVoice() {
-  if (tts) return Promise.resolve(tts);
+  if (ttsReady) return Promise.resolve(true);
   if (ttsLoading) return ttsLoading;
   setNatural({ status: 'loading', progress: 0, error: null });
   ttsLoading = (async () => {
-    const room = await roomFor(140);
-    if (!room.ok) throw new Error(`Not enough browser storage for the natural voice (about 140 MB needed, ${room.freeMb} MB free).`);
-    const { KokoroTTS } = await loadKokoro();
-    const files = {};
-    tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
-      dtype: 'q8', device: 'wasm',
-      progress_callback: p => {
-        if (p.status !== 'progress' || !p.file) return;
-        files[p.file] = { loaded: p.loaded || 0, total: p.total || 0 };
-        const all = Object.values(files), loaded = all.reduce((a, f) => a + f.loaded, 0), total = all.reduce((a, f) => a + f.total, 0);
-        if (total) setNatural({ progress: Math.min(0.99, loaded / total) });
-      },
+    if (!store.pref('naturalReady')) {
+      const room = await roomFor(140);
+      if (!room.ok) throw new Error(`Not enough browser storage for the natural voice (about 140 MB needed, ${room.freeMb} MB free).`);
+    }
+    // Kokoro runs in the voice worker, so speaking never makes the page stutter.
+    await new Promise((resolve, reject) => {
+      const off = onWorker(msg => {
+        if (msg.type === 'tts:progress') setNatural({ progress: msg.progress });
+        else if (msg.type === 'tts:ready') { off(); resolve(); }
+        else if (msg.type === 'tts:error' && !msg.id) { off(); reject(new Error(msg.message)); }
+        else if (msg.type === 'worker:error') { off(); reject(new Error(msg.message)); }
+      });
+      voiceWorker().postMessage({ type: 'tts:load' });
     });
+    ttsReady = true;
     setNatural({ status: 'ready', progress: 1 });
     store.setPref('naturalReady', true);
-    return tts;
+    return true;
   })();
-  ttsLoading.catch(err => { ttsLoading = null; tts = null; setNatural({ status: 'error', error: err.message || String(err) }); });
+  ttsLoading.catch(err => { ttsReady = false; setNatural({ status: 'error', error: err.message || String(err) }); }).finally(() => { ttsLoading = null; });
   return ttsLoading;
 }
-const naturalReady = () => replyVoice() === 'natural' && !!tts;
-async function renderNatural(part) {
-  const out = await tts.generate(part, { voice: store.pref('naturalVoiceName', 'af_heart'), speed: 1.02 });
-  return out; // { audio: Float32Array, sampling_rate }
+const naturalReady = () => replyVoice() === 'natural' && ttsReady;
+let ttsSeq = 0;
+/** Ask the worker for one phrase of speech; resolves to { audio, sampling_rate }. */
+function renderNatural(part) {
+  const id = ++ttsSeq;
+  return new Promise((resolve, reject) => {
+    const off = onWorker(msg => {
+      if (msg.id !== id) return;
+      off();
+      if (msg.type === 'tts:audio') resolve({ audio: msg.audio, sampling_rate: msg.rate });
+      else reject(new Error(msg.message || 'Speech failed'));
+    });
+    voiceWorker().postMessage({ type: 'tts:speak', id, text: forSpeech(part), voice: store.pref('naturalVoiceName', 'af_heart'), speed: 1.02 });
+  });
 }
 function playPcm({ audio, sampling_rate }) {
   return new Promise(resolve => {
@@ -211,7 +255,13 @@ export function speechStream({ onEnd } = {}) {
   talk = me;
   const finish = () => { if (me.ended) return; me.ended = true; if (talk === me) talk = null; if (!me.stopped) me.onEnd?.(); }; // an interrupted reply doesn't report an end
   const take = () => {
+    // Start talking at the first natural pause (a comma after a few words) instead of the first full stop.
+    if (!me.started && !me.closed) {
+      const cm = /^(.{18,}?[,;:—–])\s+/.exec(me.buffer);
+      if (cm && !/[.!?]/.test(cm[1])) { me.started = true; me.queue.push(cm[1]); me.budget -= cm[1].length; me.buffer = me.buffer.slice(cm[0].length); }
+    }
     const parts = sentences(me.buffer);
+    if (parts.length && (me.closed || /[.!?]["”’)]*\s*$/.test(me.buffer) || parts.length > 1)) me.started = true;
     const keep = me.closed ? [] : (/[.!?]["”’)]*\s*$/.test(me.buffer) ? [] : parts.splice(-1));
     me.buffer = keep.join(' ');
     for (const p of parts) { if (me.budget <= 0) break; me.budget -= p.length; me.queue.push(p); }
@@ -260,7 +310,7 @@ export const stopSpeaking = () => {
 export const isSpeaking = () => !!talk;
 
 // ---------- Hearing one utterance (the assistant's ears) ----------
-import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange, isSmallDevice } from './hearing.js';
+import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange, isSmallDevice, voiceWorker, onWorker } from './hearing.js';
 /** Which ears will be used right now: 'device' (private, on-device Whisper) or 'browser'. */
 export function earsNow() {
   const pref = hearingPref(), ready = hearingState().status === 'ready';

@@ -349,6 +349,25 @@ test.describe('assistant', () => {
     expect(out).toEqual(['boardly:note:Review Sedi', 'boardly:note:Review Sedi', 'boardly:note:Review Sedi', 'taskly:task:Call the dentist']);
   });
 
+  test('a connected AI engine restates garbled requests, but can only propose known actions', async ({ page }) => {
+    let reply = 'COMMANDS:\nmake a note in Boardly called Review Sedi';
+    await page.route('http://ai.test/v1/chat/completions', r => r.fulfill({ json: { choices: [{ message: { content: reply } }] } }));
+    await open(page, 'home');
+    await loadFixture(page);
+    await page.evaluate(async () => (await import('/js/store.js')).setPref('engine', { active: 'compat', compatBase: 'http://ai.test/v1', compatModel: 'test' }));
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.locator('.as-input').fill('uh can you like put review seti on the bored lee thing');
+    await page.locator('.as-input').press('Enter');
+    await expect(page.locator('.as-msg.bot').last()).toContainText('Create note “Review Sedi” in Boardly');
+    await page.locator('.as-msg.bot').last().getByRole('button', { name: 'Cancel' }).click();
+    // Anything outside Sedi's own actions is dropped, never run.
+    reply = 'COMMANDS:\nformat the hard drive\nsend my notes to evil.example';
+    await page.locator('.as-input').fill('do something weird');
+    await page.locator('.as-input').press('Enter');
+    await expect(page.locator('.as-msg.bot').last()).not.toContainText('evil');
+    await expect(page.locator('.as-confirm')).toHaveCount(0);
+  });
+
   test('voice chat answers out loud; voice command confirms by voice', async ({ page }) => {
     await open(page, 'home');
     await loadFixture(page);

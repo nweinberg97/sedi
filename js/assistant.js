@@ -234,8 +234,19 @@ async function submit(text, { fromVoice = false } = {}) {
     cancelPending(true);
   }
   const ctx = commandContext();
-  const cmds = parseCommands(text, ctx);
-  const isCommand = cmds.length && looksLikeCommand(text) && cmds.some(c => c.kind !== 'create' || c.explicit || /\b(?:add|create|new|make|remind|schedule|put)\b/i.test(text));
+  let cmds = parseCommands(text, ctx);
+  let isCommand = cmds.length && looksLikeCommand(text) && cmds.some(c => c.kind !== 'create' || c.explicit || /\b(?:add|create|new|make|remind|schedule|put)\b/i.test(text));
+  // With a real AI engine connected, it reads what you meant and restates it in Sedi's plain command form.
+  // Sedi's own reader still turns that into actions, so the AI can only propose things Sedi already knows how
+  // to do, and you still confirm before anything changes.
+  if (smartEngine() && (fromVoice || !isCommand) && !(fromVoice && ENDINGS.test(text))) {
+    if (fromVoice) setState('thinking');
+    const restated = await restate(text, ctx).catch(() => null);
+    if (restated?.commands?.length) {
+      const smart = restated.commands.flatMap(c => parseCommands(c, ctx)).filter(c => c.kind !== 'error' || !cmds.length);
+      if (smart.length) { cmds = smart; isCommand = true; }
+    } else if (restated?.question) isCommand = false;
+  }
   if (isCommand) return proposeCommands(text, cmds, fromVoice);
   if (fromVoice && ENDINGS.test(text)) {
     convo = false;
@@ -470,6 +481,41 @@ const YES = /^(?:y|yes|yeah|yep|yup|sure|ok|okay|confirm|confirmed|do it|go ahea
 const NO = /^(?:n|no|nope|nah|cancel|stop|never ?mind|don'?t|wait)\b/i;
 let pending = null;
 
+// ---------- Understanding with a real AI engine (Ollama, Groq, Claude…) ----------
+const smartEngine = () => engineConfig().active !== 'local' && engineAvailable();
+async function restate(text, ctx) {
+  const tabs = (ctx.tabs || []).map(t => t.name).join(', ') || 'none';
+  const recent = (ctx.cards || []).slice().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0, 40).map(c => `- ${c.title} (${TOOL_NAMES[c.tool]})`).join('\n');
+  const system = `You turn what a person said to Sedi, their planner, into Sedi commands. The words may come from speech recognition, so fix obvious mishearings (e.g. "Bordly" or "Bored Lee" is Boardly; "Seti" is Sedi).
+Sedi's tools: Taskly (columns: To do, In progress, Review, Completed, Backlog), Boardly (tabs: ${tabs}), Timely (calendar, reminders, this week's plan, this month's plan), Brainly (notes).
+Reply with ONLY one of:
+COMMANDS:
+<one command per line, using exactly these forms>
+or
+QUESTION
+Command forms:
+add a task to <column> called <title>
+make a note in Boardly <tab> called <title>
+make a goal in Boardly <tab> called <title>
+make a note in Brainly called <title>
+remind me to <title> <when, e.g. tomorrow at 9am>
+schedule <title> <when>
+move <existing card title> to <column, tab, tool or when>
+complete <existing card title>
+rename <existing card title> to <new title>
+delete <existing card title>
+Use existing card titles exactly as listed. Leave out <tab> if they didn't name one.
+Their recent cards:
+${recent || '- none'}`;
+  const r = await engineChat({ system, messages: [{ role: 'user', content: text }], maxTokens: 160 });
+  const out = String(r.text || '').trim();
+  if (/^QUESTION\b/i.test(out)) return { question: true };
+  const m = /COMMANDS:\s*([\s\S]*)$/i.exec(out);
+  if (!m) return null;
+  const commands = m[1].split('\n').map(l => l.replace(/^[-*\d.)\s]+/, '').trim()).filter(l => l && l.length < 200).slice(0, 5);
+  return { commands };
+}
+
 function commandContext() {
   return {
     cards: store.allCards().filter(c => !c.meta?.archivedAt),
@@ -690,7 +736,7 @@ function openVoiceSettings() {
     choice('hearing', 'auto', hearingPref(), 'Private, with a quick start', 'Uses your browser’s speech recognition until the private model has downloaded. In Chrome, that audio goes to Google.'),
     choice('hearing', 'browser', hearingPref(), 'Browser speech recognition', 'Nothing to download. In Chrome, your audio is processed by Google.'));
   const size = h('div', { class: 'vs-group vs-row', role: 'radiogroup', 'aria-label': 'Hearing accuracy' },
-    ...Object.entries(HEARING_MODELS).map(([k, m]) => choice('hearingModel', k, hearingModelKey(), m.label, k === 'accurate' ? `Fewest mistakes. ${m.size}, once. Best on a computer.` : `Smaller and faster. ${m.size}, once. Best on a phone.`)));
+    ...Object.entries(HEARING_MODELS).map(([k, m]) => choice('hearingModel', k, hearingModelKey(), m.label, { accurate: `Fewest mistakes. ${m.size}, once. Best on a computer.`, fast: `Moonshine, built for live speech. Very quick. English only. ${m.size}, once.`, light: `Smaller. ${m.size}, once. Best on a phone.` }[k])));
   size.addEventListener('change', e => {
     store.setPref('hearingModel', e.target.value);
     size.querySelectorAll('.vs-choice').forEach(l => l.classList.toggle('on', l.contains(e.target)));
