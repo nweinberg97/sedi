@@ -2607,14 +2607,13 @@ textarea.field-input { min-height: 0; }
   :root { --header-h: 52px; --tabbar-h: 62px; }
   body { font-size: var(--fs-md); }
 
-  /* Header: brand left; Universal Board + menu on the right, inside the safe area */
+  /* Header: brand left; Help + menu on the right, inside the safe area */
   .topbar { height: calc(var(--header-h) + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) max(8px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
-  .universal { top: calc(env(safe-area-inset-top, 0px) + 8px); right: calc(max(8px, env(safe-area-inset-right, 0px)) + 44px); z-index: 52; }
-  /* Make room for the Help (?) button between the Universal Board and the menu once it's shown. */
-  body:has(.help-btn:not([hidden])) .universal { right: calc(max(8px, env(safe-area-inset-right, 0px)) + 88px); }
+  /* The Universal Board sits just under the header (as on desktop), so the header's right side is Help + menu. */
+  .universal { top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 10px); right: max(12px, env(safe-area-inset-right, 0px)); z-index: 45; }
   .universal-trigger { width: 36px !important; height: 36px !important; }
   .universal-trigger svg { width: 18px !important; height: 18px !important; }
-  .universal-panel { position: fixed !important; left: 12px !important; right: 12px !important; top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 8px) !important; width: auto !important; max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 40px); }
+  .universal-panel { position: fixed !important; left: 12px !important; right: 12px !important; top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 54px) !important; width: auto !important; max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 86px); }
 
   /* Bottom tab bar */
   .navigator { position: fixed !important; inset: auto 0 0 0 !important; transform: none !important; z-index: 49; display: block; }
