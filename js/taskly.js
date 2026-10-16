@@ -111,13 +111,13 @@ export function render() {
   // First pass builds columns so we can measure the real space before placing cards.
   if (!board.children.length) {
     for (const col of COLUMNS) {
-      const body = h('div', { class: 'col-body' });
+      const body = h('div', { class: 'col-body', 'data-navoro-sensitive': '' });
       const count = h('span', { class: 'col-count' });
       const head = h('header', { class: 'col-head' }, h('span', { class: 'col-icon' }, icon(col.icon)), h('h2', {}, col.name), count);
       if (col.id === 'completed') head.append(h('button', { class: 'col-clear', 'aria-label': 'Clear completed', title: 'Clear completed (moves them to the trash, you can Undo)', onclick: clearCompleted }, icon('trash'), h('span', { class: 'col-clear-label' }, 'Clear')));
       const add = h('button', { class: 'col-add', 'aria-label': `Add a task to ${col.name}`, onclick: () => startAdd(col.id) }, icon('plus'), 'Add task');
       board.append(h('section', {
-        class: `taskly-col col-${col.id}`, dataset: { drop: 'taskly-col', accept: 'card', col: col.id }, 'data-list': '',
+        class: `taskly-col col-${col.id}`, dataset: { drop: 'taskly-col', accept: 'card', col: col.id }, 'data-list': '', 'data-navoro-id': `taskly.col-${col.id}`, 'aria-label': col.name,
       }, head, add, body));
     }
   }
@@ -160,7 +160,7 @@ export function completeTask(id) {
 }
 /** Add a To do card made from something else (a Brainly link, PDF or file). Returns the card, or null when To do is full. */
 export function addTaskFrom({ title, description = '', meta = {} }) {
-  if (colCards('todo').length >= capOf('todo')) { toast('To do is full. Finish, move or delete a task first.'); return null; }
+  if (colCards('todo').length >= capOf('todo')) { toast('To do is full. Finish, move or delete a task first.', { code: 'TASKLY_COLUMN_FULL' }); return null; }
   const card = store.createCard({ type: 'task', tool: 'taskly', title, description, meta: { ...meta, columnId: 'todo', order: -1, ...columnMeta(null, 'todo') } });
   reorder(colCards('todo'), card.id, 0);
   return card;
@@ -209,12 +209,12 @@ function edit(id) {
   openEditor(id, {
     title: 'Edit task',
     extra: card => {
-      select = h('select', { class: 'field-input', 'aria-label': 'Column' }, COLUMNS.map(col => h('option', { value: col.id, selected: card.meta?.columnId === col.id }, col.name)));
+      select = h('select', { class: 'field-input', 'aria-label': 'Column', 'data-navoro-id': 'task.column' }, COLUMNS.map(col => h('option', { value: col.id, selected: card.meta?.columnId === col.id }, col.name)));
       return h('div', {}, h('label', { class: 'field-label' }, 'Column'), select);
     },
     collect: (refs, card) => {
       if (select.value === card.meta?.columnId) return {};
-      if (select.value !== 'completed' && colCards(select.value).length >= capOf(select.value)) { toast('That column is full.'); return {}; }
+      if (select.value !== 'completed' && colCards(select.value).length >= capOf(select.value)) { toast('That column is full.', { code: 'TASKLY_COLUMN_FULL' }); return {}; }
       const meta = { ...card.meta, columnId: select.value, order: 999, ...columnMeta(card, select.value) };
       if (select.value === 'completed') setTimeout(() => makeRoomInCompleted(id), 0);
       return { meta };
@@ -228,7 +228,7 @@ function startAdd(colId) {
   if (colCards(colId).length >= capacity(body) && colId !== 'completed') {
     section.classList.add('shake');
     setTimeout(() => section.classList.remove('shake'), 400);
-    toast('This column is full. Finish, move or delete a card first.');
+    toast('This column is full. Finish, move or delete a card first.', { code: 'TASKLY_COLUMN_FULL' });
     return;
   }
   if (body.querySelector('.task-input')) return body.querySelector('.task-input').focus();

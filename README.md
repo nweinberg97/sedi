@@ -70,6 +70,13 @@ The name comes from Hebrew *seder* (order) and Latin *sedēre* (to sit, to settl
 | **Clear-outs** | Drag a card to the trash, with Undo. Past one-off events archive themselves after 30 days. |
 | **Your data** | Menu → Download data saves everything, files included, as one `.json` file. Import brings it back. |
 
+## In-app help
+
+The **(?) Help** button in the top right, next to the menu, answers "how do I…?" and points at the actual button, step by step, in Sedi's own blue. It's powered by [Navoro](https://github.com/nweinberg97/Navoro) and runs entirely in your browser: no server, nothing sent anywhere, and it works offline like the rest of Sedi.
+
+- **What it knows:** [`docs/help-center.md`](docs/help-center.md), a guide to every feature. After editing it, rebuild the knowledge file from the Navoro repo with `npm run navoro-pack -- /path/to/sedi/navoro.config.json` (writes `navoro/navoro-pack.json`).
+- **What it can't see:** anything you've written. [`navoro.config.json`](navoro.config.json) blocks cards, notes, links, plans, editors and the assistant; it reads only button names, the current tool and error codes. Help → *What Navoro read on this page* shows exactly what it saw.
+
 ## Links
 
 - **The app:** https://nweinberg97.github.io/sedi/
