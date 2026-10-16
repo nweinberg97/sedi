@@ -190,6 +190,14 @@ body[data-route="home"] .topbar { background: rgba(255, 255, 255, 0.14); border-
   transition: opacity 0.16s, transform 0.22s var(--ease);
 }
 .universal.open .universal-panel { opacity: 1; transform: none; pointer-events: auto; }
+/* Draggable Universal Board: the panel opens toward the side of the screen with room. */
+.universal-trigger { touch-action: none; cursor: grab; }
+.universal.moving .universal-trigger { cursor: grabbing; transform: scale(1.08); transition: none; }
+.universal.moving { transition: none; }
+.universal-panel { height: min(470px, var(--uni-room, calc(100vh - 210px))); }
+.universal.uni-left .universal-panel { right: auto; left: 0; transform-origin: top left; }
+.universal.uni-up .universal-panel { top: auto; bottom: 54px; transform-origin: bottom right; }
+.universal.uni-up.uni-left .universal-panel { transform-origin: bottom left; }
 body.is-dragging .universal.open .universal-panel { pointer-events: auto; }
 .uni-head { display: flex; align-items: baseline; justify-content: space-between; }
 .uni-head h2 { font-size: var(--fs-md); font-weight: 600; }
@@ -2613,7 +2621,8 @@ textarea.field-input { min-height: 0; }
   .universal { top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 10px); right: max(12px, env(safe-area-inset-right, 0px)); z-index: 45; }
   .universal-trigger { width: 36px !important; height: 36px !important; }
   .universal-trigger svg { width: 18px !important; height: 18px !important; }
-  .universal-panel { position: fixed !important; left: 12px !important; right: 12px !important; top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 54px) !important; width: auto !important; max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 86px); }
+  .universal-panel { position: fixed !important; left: 12px !important; right: 12px !important; top: calc(var(--uni-trigger-bottom, calc(var(--header-h) + env(safe-area-inset-top, 0px) + 46px)) + 8px) !important; width: auto !important; max-height: min(calc(100dvh - var(--header-h) - var(--tabbar-h) - 86px), var(--uni-room, 100dvh)); }
+  .universal.uni-up .universal-panel { top: auto !important; bottom: calc(100dvh - var(--uni-trigger-top, 0px) + 8px) !important; }
 
   /* Bottom tab bar */
   .navigator { position: fixed !important; inset: auto 0 0 0 !important; transform: none !important; z-index: 49; display: block; }
@@ -2906,3 +2915,8 @@ textarea.field-input { min-height: 0; }
 .vi-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
 .vs-group.vs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 @media (max-width: 520px) { .vs-group.vs-row { grid-template-columns: 1fr; } }
+
+/* Movable controls: the dashed "home" circle shown while dragging the atom or the Universal Board. */
+.home-spot { position: fixed; z-index: 44; border: 2px dashed rgba(17, 17, 17, 0.28); border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.15s, transform 0.15s, background 0.15s, border-color 0.15s; }
+.home-spot.show { opacity: 1; }
+.home-spot.hot { border-color: #59b2ec; background: rgba(89, 178, 236, 0.14); transform: scale(1.14); }

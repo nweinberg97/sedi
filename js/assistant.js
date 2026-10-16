@@ -3,7 +3,7 @@
 // (and an AI engine when one is on), and turns plain language into changes you confirm first.
 
 import * as store from './store.js';
-import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime, popover, closePopovers } from './util.js';
+import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime, popover, closePopovers, homeSpot } from './util.js';
 import { TOOL_NAMES, typeIcon, byOrder, routeCard, flatten, trashCard } from './cards.js';
 import { navigate, revealCard } from './shell.js';
 import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, rememberAsk, forgetAsk, openEnginesPanel } from './engines.js';
@@ -179,6 +179,15 @@ function positionTray() {
 function makeDraggable() {
   const pos = store.pref('assistantPos');
   if (pos) Object.assign(token.style, { left: pos.x + 'px', top: pos.y + 'px', transform: 'none', bottom: 'auto' });
+  const spot = homeSpot(() => {
+    const saved = token.style.cssText;
+    token.style.cssText = 'transition: none';
+    const r = token.getBoundingClientRect();
+    token.style.cssText = saved;
+    return r;
+  });
+  const sendHome = () => { token.removeAttribute('style'); store.setPref('assistantPos', null); if (!tray.hidden) positionTray(); };
+  addEventListener('sedi:reset-positions', sendHome);
   let start = null;
   token.addEventListener('pointerdown', e => {
     const r = token.getBoundingClientRect();
@@ -188,14 +197,21 @@ function makeDraggable() {
   token.addEventListener('pointermove', e => {
     if (!start) return;
     if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 5) return;
+    if (matchMedia('(max-width: 700px)').matches) return; // phones: the atom is pinned above the tab bar
+    if (!start.moved) spot.show();
     start.moved = true;
     const x = clamp(e.clientX - start.ox, 8, innerWidth - 56), y = clamp(e.clientY - start.oy, 64, innerHeight - 56);
     Object.assign(token.style, { left: x + 'px', top: y + 'px', transform: 'none', bottom: 'auto' });
+    spot.near(token.getBoundingClientRect());
     if (!tray.hidden) positionTray();
   });
   token.addEventListener('pointerup', () => {
     if (!start) return;
-    if (start.moved) { const r = token.getBoundingClientRect(); store.setPref('assistantPos', { x: r.left, y: r.top }); }
+    if (start.moved) {
+      const r = token.getBoundingClientRect();
+      if (spot.near(r)) sendHome(); else store.setPref('assistantPos', { x: r.left, y: r.top });
+      spot.hide();
+    }
     else { toggle(); token.classList.remove('spin'); void token.offsetWidth; token.classList.add('spin'); setTimeout(() => token.classList.remove('spin'), 1100); }
     start = null;
   });

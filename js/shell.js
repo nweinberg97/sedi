@@ -1,7 +1,7 @@
 // Sedi — persistent chrome: header + menu drawer, tool navigator, Universal Board, trash bin, routing.
 
 import * as store from './store.js';
-import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp } from './util.js';
+import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp, homeSpot } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, reorder, byOrder, trashCard, typeIcon, openEditor, truncate, cardChrome, withMic } from './cards.js';
 import { openBrainPanel } from './brain.js';
@@ -44,6 +44,10 @@ function toggleDrawer(force) {
   drawer.classList.toggle('open', open);
   $('.menu-btn').setAttribute('aria-expanded', String(open));
 }
+function resetPositions() {
+  dispatchEvent(new Event('sedi:reset-positions'));
+  toast('Buttons are back in their places');
+}
 export function buildDrawer() {
   const item = (ic, label, sub, onclick, cls = '', navoroId = null) =>
     h('button', { class: `drawer-item ${cls}`, 'aria-label': label, 'data-navoro-id': navoroId, onclick: () => { toggleDrawer(false); onclick?.(); } },
@@ -58,6 +62,7 @@ export function buildDrawer() {
       item('atom', 'AI engines', 'On-device by default; add others if you like', openEnginesPanel),
       item('file', 'Google account', 'Create Google Docs from Brainly', openGooglePanel),
       item('bell', 'Apple Reminders', 'Set up the Shortcuts bridge', openRemindersSetup),
+      item('home', 'Reset button positions', 'Put moved buttons back in place', resetPositions),
       h('div', { class: 'drawer-sep' }),
       item('trash', 'Clear storage', 'Erase everything on this device', clearStorage, 'danger', 'menu.clear')),
     fileInput);
@@ -159,7 +164,7 @@ const UNI_ITEM_H = 46;
 let uniPanel, uniList, uniCount;
 export function buildUniversal() {
   // SD-H1: a dark 44px circle with a small spiral galaxy, the "universal" place cards pass through.
-  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', title: 'Universal Board', 'aria-expanded': 'false', onclick: () => toggleUniversal() }, icon('galaxy'));
+  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', title: 'Universal Board (drag to move)', 'aria-expanded': 'false', onclick: () => { if (!uniJustDragged) toggleUniversal(); } }, icon('galaxy'));
   const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
@@ -175,6 +180,7 @@ export function buildUniversal() {
     withMic(quick, { label: 'Dictate to the Universal Board' }), uniList,
     h('p', { class: 'uni-hint' }, 'Drop cards here, switch tools, then drag them out.'));
   const wrap = h('div', { class: 'universal' }, trigger, uniPanel);
+  makeUniversalDraggable(wrap, trigger);
   document.addEventListener('pointerdown', e => {
     if (!wrap.classList.contains('open') || wrap.contains(e.target) || e.target.closest('.modal-backdrop, .popover, .toast, [data-drag]')) return;
     toggleUniversal(false);
@@ -196,9 +202,91 @@ export function buildUniversal() {
 export function toggleUniversal(force) {
   const wrap = uniPanel.parentElement;
   const open = typeof force === 'boolean' ? force : !wrap.classList.contains('open');
+  if (open) placeUniversalPanel(wrap);
   wrap.classList.toggle('open', open);
   wrap.querySelector('.universal-trigger').setAttribute('aria-expanded', String(open));
   if (open) renderUniversal();
+}
+
+// The Universal Board button can be dragged anywhere (like the assistant's atom) and remembers
+// where it was left. Its panel opens toward whichever side of the screen has room.
+let uniJustDragged = false;
+const cssPx = name => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
+function uniBounds(size) {
+  const top = cssPx('--header-h') + 6, bottom = innerHeight - cssPx('--tabbar-h') - size - 8;
+  return { minX: 8, maxX: innerWidth - size - 8, minY: top, maxY: Math.max(top, bottom) };
+}
+function placeUniversal(wrap, trigger, x, y) {
+  const b = uniBounds(trigger.offsetWidth || 44);
+  const cx = Math.min(Math.max(x, b.minX), b.maxX), cy = Math.min(Math.max(y, b.minY), b.maxY);
+  Object.assign(wrap.style, { left: cx + 'px', top: cy + 'px', right: 'auto' });
+  return { x: cx, y: cy };
+}
+function placeUniversalPanel(wrap) {
+  const r = wrap.querySelector('.universal-trigger').getBoundingClientRect();
+  const up = r.top + r.height / 2 > innerHeight / 2;
+  wrap.classList.toggle('uni-up', up);
+  wrap.classList.toggle('uni-left', r.left + r.width / 2 < innerWidth / 2);
+  const room = up ? r.top - cssPx('--header-h') - 20 : innerHeight - r.bottom - cssPx('--tabbar-h') - 20;
+  wrap.style.setProperty('--uni-room', Math.max(200, Math.round(room)) + 'px');
+  wrap.style.setProperty('--uni-trigger-top', Math.round(r.top) + 'px');
+  wrap.style.setProperty('--uni-trigger-bottom', Math.round(r.bottom) + 'px');
+}
+function sendUniversalHome(wrap) {
+  wrap.style.removeProperty('left'); wrap.style.removeProperty('top'); wrap.style.removeProperty('right');
+  store.setPref('universalPos', null);
+  if (wrap.classList.contains('open')) placeUniversalPanel(wrap);
+}
+function makeUniversalDraggable(wrap, trigger) {
+  requestAnimationFrame(() => {
+    const pos = store.pref('universalPos');
+    if (pos) placeUniversal(wrap, trigger, pos.x, pos.y);
+  });
+  // Where it lives by default: measured with the drag position removed (no transition).
+  const spot = homeSpot(() => {
+    const saved = wrap.style.cssText;
+    wrap.style.transition = 'none'; wrap.style.removeProperty('left'); wrap.style.removeProperty('top'); wrap.style.removeProperty('right');
+    const r = trigger.getBoundingClientRect();
+    wrap.style.cssText = saved;
+    return r;
+  });
+  addEventListener('sedi:reset-positions', () => sendUniversalHome(wrap));
+  let start = null;
+  trigger.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const r = trigger.getBoundingClientRect();
+    start = { x: e.clientX, y: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, moved: false, id: e.pointerId };
+    trigger.setPointerCapture(e.pointerId);
+  });
+  trigger.addEventListener('pointermove', e => {
+    if (!start || e.pointerId !== start.id) return;
+    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
+    if (!start.moved) { start.moved = true; wrap.classList.add('moving'); spot.show(); }
+    placeUniversal(wrap, trigger, e.clientX - start.ox, e.clientY - start.oy);
+    spot.near(trigger.getBoundingClientRect());
+    if (wrap.classList.contains('open')) placeUniversalPanel(wrap);
+  });
+  const end = () => {
+    if (!start) return;
+    if (start.moved) {
+      const r = trigger.getBoundingClientRect();
+      if (spot.near(r)) sendUniversalHome(wrap);
+      else store.setPref('universalPos', { x: Math.round(r.left), y: Math.round(r.top) });
+      spot.hide();
+      wrap.classList.remove('moving');
+      uniJustDragged = true;
+      setTimeout(() => { uniJustDragged = false; }, 0);
+    }
+    start = null;
+  };
+  trigger.addEventListener('pointerup', end);
+  trigger.addEventListener('pointercancel', end);
+  // Keep it on screen when the window changes size (or the phone rotates).
+  addEventListener('resize', () => {
+    const pos = store.pref('universalPos');
+    if (pos) placeUniversal(wrap, trigger, pos.x, pos.y);
+    if (wrap.classList.contains('open')) placeUniversalPanel(wrap);
+  });
 }
 const universalCards = () => store.cardsWhere(c => c.tool === 'universal').sort(byOrder);
 function uniCapacity() {

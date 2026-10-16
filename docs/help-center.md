@@ -132,6 +132,28 @@ Prerequisites: The card is in the Review column.
 2. Type into **Add to Universal Board** and press Enter. The mic next to it lets you dictate.
 3. Later, drag the card out into any tool.
 
+## How to move the Universal Board button
+
+1. Drag **Universal Board**, the dark round button, anywhere on the screen. It remembers where you leave it, and its panel opens toward the side with room.
+2. To put it back, drag it toward its usual spot under the top-right corner. A dashed circle shows where; drop it there and it snaps into place.
+
+## How to move the assistant
+
+Prerequisites: On a computer. On phones the assistant stays above the tab bar.
+
+1. Drag **Talk to Sedi (⌘K to type)**, the atom, anywhere on the screen.
+2. To put it back, drag it to the dashed circle at the bottom centre.
+
+## How to put moved buttons back
+
+1. Click **Open menu** in the top right.
+2. Click **Reset button positions**. The assistant and the Universal Board go back to their usual places.
+
+## How to move the help panel
+
+1. Drag the help panel by its top bar to anywhere on the screen.
+2. Double-click the top bar, or drop it on the dashed outline, to put it back.
+
 ## How to switch tools while dragging a card
 
 1. Start dragging a card.
