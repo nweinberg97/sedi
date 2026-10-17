@@ -3036,3 +3036,29 @@ body[data-route="home"] .universal-trigger, body[data-route="home"] .universal-p
 .home-spot { position: fixed; z-index: 44; border: 2px dashed rgba(17, 17, 17, 0.28); border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.15s, transform 0.15s, background 0.15s, border-color 0.15s; }
 .home-spot.show { opacity: 1; }
 .home-spot.hot { border-color: #59b2ec; background: rgba(89, 178, 236, 0.14); transform: scale(1.14); }
+
+/* Home: the clock in a rounded rectangle of Apple-style liquid glass. The clock itself is unchanged.
+   Clear centre; the rim reads as a thick lens: a soft band of light just inside the edge, crisp speculars on the
+   upper-left and lower-right, and (in Chromium) the sky bent slightly at the edges with a faint colour fringe. */
+.home.calm .clock-glass {
+  position: relative; isolation: isolate; display: inline-flex; align-self: center; justify-content: center;
+  padding: 10px 46px 16px; border-radius: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
+    inset 2px 2.5px 1px -1.5px rgba(255, 255, 255, 0.95),
+    inset -2px -2.5px 1px -1.5px rgba(255, 255, 255, 0.7),
+    inset 0 0 20px 1px rgba(255, 255, 255, 0.20),
+    inset 8px 12px 24px -14px rgba(255, 255, 255, 0.55),
+    inset -8px -12px 24px -14px rgba(255, 255, 255, 0.32),
+    0 14px 34px -18px rgba(10, 40, 90, 0.28);
+}
+.home.calm .clock-glass.lg-fallback { -webkit-backdrop-filter: blur(2px) brightness(1.04); backdrop-filter: blur(2px) brightness(1.04); }
+/* the highlight that follows the pointer */
+.home.calm .clock-glass::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2;
+  background: radial-gradient(160px 90px at var(--mx, 24%) var(--my, 8%), rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 70%);
+  transition: background-position 0.3s;
+}
+.home.calm .clock-glass .clock-time { position: relative; z-index: 1; }
+@media (max-width: 700px) { .home.calm .clock-glass { padding: 6px 28px 10px; border-radius: 30px; } }

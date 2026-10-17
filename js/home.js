@@ -14,6 +14,7 @@ export function mount(el) {
   root = el;
   clockTime = h('div', { class: 'clock-time', 'aria-live': 'off' });
   clockDate = h('div', { class: 'clock-date' });
+  const clockGlass = h('div', { class: 'clock-glass' }, clockTime);
   weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', onclick: e => openWeatherMenu(e.currentTarget) });
   // SD-H5: one white column with tabs. Next up is the default; Recent activity is the second tab.
   listEl = h('div', { class: 'home-stack' });
@@ -22,7 +23,7 @@ export function mount(el) {
   // Calm and spacious: the time sits on the sky with nothing around it; the date and weather share one quiet line;
   // what's next reads as a few airy rows rather than a card.
   root.replaceChildren(h('div', { class: 'home calm' }, h('div', { class: 'home-col' },
-    h('section', { class: 'hero' }, clockTime, h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
+    h('section', { class: 'hero' }, clockGlass, h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
     h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl))));
   tickClock();
   timer = setInterval(tickClock, 1000);
@@ -30,6 +31,7 @@ export function mount(el) {
   loadWeather(false);
   weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
   render();
+  glassCleanup = mountLiquidGlass(clockGlass, { refract: false });
 }
 export function unmount() { clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
 
