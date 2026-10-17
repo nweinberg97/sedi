@@ -140,6 +140,13 @@ export function buildNavigator() {
   let openedForDrag = false;
   trigger.addEventListener('pointerenter', () => { if (document.body.classList.contains('is-dragging') && !wrap.classList.contains('open')) { openedForDrag = true; toggleNav(true, false); } });
   onDragEnd(() => { if (openedForDrag) { openedForDrag = false; toggleNav(store.pref('navOpen', true), false); } });
+  // On Home the tools stay out of sight and fade in as the pointer heads toward them.
+  addEventListener('pointermove', e => {
+    if (document.body.dataset.route !== 'home' || e.pointerType === 'touch') return;
+    const reveal = Math.max(0, Math.min(1, (360 - (innerWidth - e.clientX)) / 220));
+    wrap.style.setProperty('--nav-reveal', reveal.toFixed(2));
+    wrap.classList.toggle('revealed', reveal > 0.85);
+  }, { passive: true });
   return wrap;
 }
 export function markActiveRoute(route) {
