@@ -3038,19 +3038,28 @@ body[data-route="home"] .universal-trigger, body[data-route="home"] .universal-p
 .home-spot.hot { border-color: #59b2ec; background: rgba(89, 178, 236, 0.14); transform: scale(1.14); }
 
 /* Home: clear liquid glass around the time only (the date and weather stay on the sky).
-   Almost no fill: the glass is drawn by its edges, light catching the top rim, a faint sheen and a soft shadow. */
+   Glass is read through light, not an outline: a specular glint on the upper-left rim that fades around the edge,
+   a thicker, slightly darker lower edge, light pooling inside the rim, and the sky seen through it a touch brighter. */
 .home.calm .clock-time {
-  display: inline-block; position: relative; align-self: center;
-  padding: 0.12em 0.28em 0.14em 0.3em; border-radius: 0.32em;
+  display: inline-block; position: relative; isolation: isolate; align-self: center;
+  padding: 0.12em 0.28em 0.14em 0.3em; border-radius: 0.34em;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.02) 42%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.05) 100%);
-  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
-  border: 1px solid rgba(255, 255, 255, 0.34);
+    radial-gradient(120% 80% at 15% -15%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 50%),   /* soft sheen from the top-left */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 55%, rgba(10, 50, 100, 0.03));
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.7),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.22),
-    inset 1px 0 0 rgba(255, 255, 255, 0.12), inset -1px 0 0 rgba(255, 255, 255, 0.12),
-    0 18px 40px -26px rgba(14, 40, 80, 0.28);
+    inset 3px 4px 10px -3px rgba(255, 255, 255, 0.7),   /* light pooling inside the upper-left rim */
+    inset -2px -4px 10px -3px rgba(255, 255, 255, 0.28), /* a fainter return on the lower-right */
+    inset 0 -14px 24px -18px rgba(8, 40, 90, 0.18),      /* thickness at the bottom edge */
+    0 1px 1px rgba(10, 40, 80, 0.06),
+    0 22px 44px -28px rgba(10, 40, 80, 0.32);            /* resting just above the sky */
+}
+/* the rim: bright where the light hits (upper-left), nearly gone along the sides, catching again at the lower-right */
+.home.calm .clock-time::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.55) 16%, rgba(255, 255, 255, 0.10) 42%, rgba(255, 255, 255, 0.08) 64%, rgba(255, 255, 255, 0.6) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
 .home.calm .hero { gap: 14px; }
 @media (prefers-reduced-transparency: reduce) { .home.calm .clock-time { -webkit-backdrop-filter: none; backdrop-filter: none; } }
