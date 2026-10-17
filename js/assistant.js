@@ -28,7 +28,7 @@ let spokeAlready = false;
 export function buildAssistant() {
   token = h('button', { class: 'assistant-token', 'aria-label': 'Talk to Sedi (⌘K to type)', 'aria-expanded': 'false' }, icon('atom'));
   output = h('div', { class: 'as-output', 'aria-live': 'polite' });
-  input = h('input', { class: 'as-input', placeholder: 'Type a message, or a change like “move passport to in progress”', 'aria-label': 'Message the assistant' });
+  input = h('input', { class: 'as-input', placeholder: 'Ask, or tell Sedi what to change', 'aria-label': 'Message the assistant' });
   statusEl = h('span', { class: 'as-status' });
   earsChip = h('span', { class: 'as-ears' });
   orb = h('button', { class: 'as-orb', type: 'button', 'aria-label': 'Talk', onclick: onOrb }, h('span', { class: 'as-orb-ring' }), prepDots(), h('span', { class: 'as-orb-core' }, icon('mic')));
@@ -57,7 +57,14 @@ export function buildAssistant() {
     if (e.key === ' ' && !tray.hidden && tray.dataset.view === 'voice' && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && !e.target.isContentEditable) { e.preventDefault(); onOrb(); }
   });
   document.addEventListener('pointerdown', e => { if (!tray.hidden && !tray.contains(e.target) && !token.contains(e.target) && !e.target.closest('.modal-backdrop, .toast, .popover')) toggle(false); });
-  return h('div', { class: 'assistant' }, tray, token);
+  // First visit only: a quiet hint by the atom, so people discover they can just talk.
+  const hint = store.pref('voiceHintSeen') ? null : h('button', { class: 'atom-hint', type: 'button', onclick: () => { hint.remove(); store.setPref('voiceHintSeen', true); toggle(true); } },
+    h('b', {}, 'Tap and talk'), h('span', {}, '“Add a task to call mom”'), h('i', { 'aria-hidden': 'true' }));
+  if (hint) {
+    token.addEventListener('pointerdown', () => { hint.remove(); store.setPref('voiceHintSeen', true); }, { once: true });
+    setTimeout(() => hint.classList.add('in'), 1800);
+  }
+  return h('div', { class: 'assistant' }, tray, token, hint);
 }
 
 function paintStatus() {
@@ -250,8 +257,19 @@ async function submit(text, { fromVoice = false } = {}) {
     cancelPending(true);
   }
   const ctx = commandContext();
-  const cmds = parseCommands(text, ctx);
-  const isCommand = cmds.length && looksLikeCommand(text) && cmds.some(c => c.kind !== 'create' || c.explicit || /\b(?:add|create|new|make|remind|schedule|put)\b/i.test(text));
+  let cmds = parseCommands(text, ctx);
+  let isCommand = cmds.length && looksLikeCommand(text) && cmds.some(c => c.kind !== 'create' || c.explicit || /\b(?:add|create|new|make|remind|schedule|put)\b/i.test(text));
+  // With a real AI engine connected, it reads what you meant and restates it in Sedi's plain command form.
+  // Sedi's own reader still turns that into actions, so the AI can only propose things Sedi already knows how
+  // to do, and you still confirm before anything changes.
+  if (smartEngine() && (fromVoice || !isCommand) && !(fromVoice && ENDINGS.test(text))) {
+    if (fromVoice) setState('thinking');
+    const restated = await restate(text, ctx).catch(() => null);
+    if (restated?.commands?.length) {
+      const smart = restated.commands.flatMap(c => parseCommands(c, ctx)).filter(c => c.kind !== 'error' || !cmds.length);
+      if (smart.length) { cmds = smart; isCommand = true; }
+    } else if (restated?.question) isCommand = false;
+  }
   if (isCommand) return proposeCommands(text, cmds, fromVoice);
   if (fromVoice && ENDINGS.test(text)) {
     convo = false;
@@ -351,7 +369,7 @@ function startListening({ followUp = false } = {}) {
 const SEARCH_STOP = new Set(('the and for what how are any about with my me show find search look looking did have has had is was were where which who when does do can you please sedi '
   + 'anything something everything all write wrote written saved save related regarding info information there that this those these from into stuff thing things '
   + 'notes note cards card tasks task items item links link goals goal reminders reminder events event list lists got get').split(' '));
-const stem = w => w.replace(/(?:ies)$/, 'y').replace(/(?:ing|ed|es|s)$/, '');
+const stem = w => w.replace(/(?:ies)$/, 'y').replace(/(?:ing|ed|es|s)$/, '').replace(/([b-df-hj-np-tv-z])\1$/, '$1'); // running → run
 /** Rank your cards for a question. Words like "notes" or "tasks" narrow the search to that kind instead of matching titles. */
 function search(q, n = 5) {
   const lower = q.toLowerCase();
@@ -426,7 +444,7 @@ async function answer(q, { voice = false } = {}) {
   if (/\b(next|today|agenda|schedule|plan for|on my plate)\b/.test(lower)) {
     const items = nextUpItems(5);
     text = items.length ? `Here’s what’s next:\n${items.map(i => `- ${i.card.title} (${i.label})`).join('\n')}` : 'Nothing is lined up. Your To do column and today’s schedule are clear.';
-    say(h('div', {}, renderText(text), items.length ? itemList(items.map(i => i.card)) : null));
+    say(h('div', {}, h('p', {}, items.length ? 'Here’s what’s next:' : text), items.length ? itemList(items.map(i => i.card)) : null));
     return text;
   }
   if (/\b(summary|overview|status|how many|counts?)\b/.test(lower)) {
@@ -485,6 +503,41 @@ async function answer(q, { voice = false } = {}) {
 const YES = /^(?:y|yes|yeah|yep|yup|sure|ok|okay|confirm|confirmed|do it|go ahead|go|correct|right|please do|sounds good)\b/i;
 const NO = /^(?:n|no|nope|nah|cancel|stop|never ?mind|don'?t|wait)\b/i;
 let pending = null;
+
+// ---------- Understanding with a real AI engine (Ollama on your Mac, or Claude) ----------
+const smartEngine = () => engineConfig().active !== 'local' && engineAvailable();
+async function restate(text, ctx) {
+  const tabs = (ctx.tabs || []).map(t => t.name).join(', ') || 'none';
+  const recent = (ctx.cards || []).slice().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0, 40).map(c => `- ${c.title} (${TOOL_NAMES[c.tool]})`).join('\n');
+  const system = `You turn what a person said to Sedi, their planner, into Sedi commands. The words may come from speech recognition, so fix obvious mishearings (e.g. "Bordly" or "Bored Lee" is Boardly; "Seti" is Sedi).
+Sedi's tools: Taskly (columns: To do, In progress, Review, Completed, Backlog), Boardly (tabs: ${tabs}), Timely (calendar, reminders, this week's plan, this month's plan), Brainly (notes).
+Reply with ONLY one of:
+COMMANDS:
+<one command per line, using exactly these forms>
+or
+QUESTION
+Command forms:
+add a task to <column> called <title>
+make a note in Boardly <tab> called <title>
+make a goal in Boardly <tab> called <title>
+make a note in Brainly called <title>
+remind me to <title> <when, e.g. tomorrow at 9am>
+schedule <title> <when>
+move <existing card title> to <column, tab, tool or when>
+complete <existing card title>
+rename <existing card title> to <new title>
+delete <existing card title>
+Use existing card titles exactly as listed. Leave out <tab> if they didn't name one.
+Their recent cards:
+${recent || '- none'}`;
+  const r = await engineChat({ system, messages: [{ role: 'user', content: text }], maxTokens: 160 });
+  const out = String(r.text || '').trim();
+  if (/^QUESTION\b/i.test(out)) return { question: true };
+  const m = /COMMANDS:\s*([\s\S]*)$/i.exec(out);
+  if (!m) return null;
+  const commands = m[1].split('\n').map(l => l.replace(/^[-*\d.)\s]+/, '').trim()).filter(l => l && l.length < 200).slice(0, 5);
+  return { commands };
+}
 
 function commandContext() {
   return {
@@ -583,7 +636,7 @@ function cancelPending(silent = false) {
   const { text, labels, box, voice: pendingVoice } = pending;
   pending = null;
   store.appendCommandLog({ text, action: labels.join('; '), result: 'cancelled' });
-  box.replaceChildren(h('p', { class: 'muted' }, silent ? 'Skipped.' : 'Cancelled.'));
+  box.replaceChildren(h('p', { class: 'muted' }, silent ? 'Not done, since you moved on. Say it again if you still want it.' : 'Cancelled.'));
   if (!silent && pendingVoice) talkBack('Okay, I won’t.');
 }
 
@@ -706,7 +759,7 @@ function openVoiceSettings() {
     choice('hearing', 'auto', hearingPref(), 'Private, with a quick start', 'Uses your browser’s speech recognition until the private model has downloaded. In Chrome, that audio goes to Google.'),
     choice('hearing', 'browser', hearingPref(), 'Browser speech recognition', 'Nothing to download. In Chrome, your audio is processed by Google.'));
   const size = h('div', { class: 'vs-group vs-row', role: 'radiogroup', 'aria-label': 'Hearing accuracy' },
-    ...Object.entries(HEARING_MODELS).map(([k, m]) => choice('hearingModel', k, hearingModelKey(), m.label, k === 'accurate' ? `Fewest mistakes. ${m.size}, once. Best on a computer.` : `Smaller and faster. ${m.size}, once. Best on a phone.`)));
+    ...Object.entries(HEARING_MODELS).map(([k, m]) => choice('hearingModel', k, hearingModelKey(), m.label, { accurate: `Fewest mistakes. ${m.size}, once. Best on a computer.`, fast: `Moonshine, built for live speech. Very quick. English only. ${m.size}, once.`, light: `Smaller. ${m.size}, once. Best on a phone.` }[k])));
   size.addEventListener('change', e => {
     store.setPref('hearingModel', e.target.value);
     size.querySelectorAll('.vs-choice').forEach(l => l.classList.toggle('on', l.contains(e.target)));

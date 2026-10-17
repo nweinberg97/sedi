@@ -14,30 +14,41 @@ export function mount(el) {
   root = el;
   clockTime = h('div', { class: 'clock-time', 'aria-live': 'off' });
   clockDate = h('div', { class: 'clock-date' });
+  const clockGlass = h('div', { class: 'clock-glass' }, clockTime);
   weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', onclick: e => openWeatherMenu(e.currentTarget) });
   // SD-H5: one white column with tabs. Next up is the default; Recent activity is the second tab.
   listEl = h('div', { class: 'home-stack' });
-  tabBar = h('div', { class: 'segmented home-tabs', role: 'tablist' });
-  const seeAll = h('button', { class: 'chip ghost see-all-btn', onclick: () => (homeTab() === 'next' ? openNextUpList() : openActivityList()) }, 'See all');
-  root.replaceChildren(h('div', { class: 'home' }, h('div', { class: 'home-col' },
-    h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
+  tabBar = h('div', { class: 'home-tabs quiet-tabs', role: 'tablist' });
+  const seeAll = h('button', { class: 'see-all-btn', onclick: () => (homeTab() === 'next' ? openNextUpList() : openActivityList()) }, 'See all');
+  // Calm and spacious: the time sits on the sky with nothing around it; the date and weather share one quiet line;
+  // what's next reads as a few airy rows rather than a card.
+  root.replaceChildren(h('div', { class: 'home calm' }, h('div', { class: 'home-col' },
+    h('section', { class: 'hero' }, clockGlass, h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
     h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl))));
   tickClock();
   timer = setInterval(tickClock, 1000);
   renderWeather();
   loadWeather(false);
   weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
-  glassCleanup = mountLiquidGlass(root.querySelector('.clock-glass'), { refract: false });
   render();
+  glassCleanup = mountLiquidGlass(clockGlass, { refract: false });
 }
-export function unmount() { clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
+export function unmount() { delete document.body.dataset.sky; clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
 
 function tickClock() {
   const d = new Date();
   const hh = d.getHours() % 12 || 12;
-  clockTime.textContent = `${hh}:${pad(d.getMinutes())}`;
+  const t = `${hh}:${pad(d.getMinutes())}`;
+  if (clockTime.textContent !== t) {
+    // the time changes with a quiet fade, not a jump
+    if (clockTime.textContent) { clockTime.classList.remove('turn'); void clockTime.offsetWidth; clockTime.classList.add('turn'); }
+    clockTime.textContent = t;
+  }
+  // a living sky: it follows the real time of day (the preview can pin one with window.__sky)
+  const hr = d.getHours();
+  document.body.dataset.sky = window.__sky || (hr >= 5 && hr < 8 ? 'dawn' : hr >= 8 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night');
   clockTime.dataset.ampm = d.getHours() < 12 ? 'am' : 'pm';
-  clockDate.textContent = fmtLongDate(d);
+  clockDate.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 // ---------- Next Up + Recent ----------
@@ -52,6 +63,18 @@ export function nextUpItems(limit = 3) {
       : m.start != null ? fmtMinutes(m.start) : m.slot ? SLOT_LABELS[m.slot] : 'Today';
     if (m.recurrence) label += ' · routine';
     items.push({ card: occ.card, label });
+  }
+  // Always show a full set: fill with the next to-dos, then what's coming up in the next few days.
+  const seen = new Set(items.map(i => i.card.id));
+  const add = (card, label) => { if (items.length < limit && !seen.has(card.id)) { seen.add(card.id); items.push({ card, label }); } };
+  store.cardsWhere(c => c.tool === 'taskly' && c.meta?.columnId === 'todo').sort(byOrder).slice(1).forEach(c => add(c, 'To do'));
+  for (let i = 1; i <= 7 && items.length < limit; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const day = i === 1 ? 'Tomorrow' : d.toLocaleDateString(undefined, { weekday: 'short' });
+    for (const occ of occurrencesOn(todayKeyOf(d))) {
+      const m = occ.card.meta || {};
+      add(occ.card, m.start != null ? `${day} ${fmtMinutes(m.start)}` : day);
+    }
   }
   return items.slice(0, limit);
 }
@@ -145,15 +168,16 @@ function renderWeather() {
   const place = store.pref('coords')?.name;
   if (w?.temp != null) {
     const { emoji, label } = describe(w.code, w.isDay);
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${Math.round(w.temp)}°C ${label}`));
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${Math.round(w.temp)}°`));
+    weatherEl.setAttribute('aria-label', `${Math.round(w.temp)}°C, ${label}`);
     weatherEl.title = `${place ? `${place}. ` : ''}${navigator.onLine ? `Updated ${relTime(w.at)}` : `Offline, last updated ${relTime(w.at)}`}. Click to change location.`;
   } else if (store.pref('weatherState') === 'loading') {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌤️'), h('span', { class: 'muted' }, 'Getting weather…'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, '…'));
   } else if (store.pref('weatherState') === 'error') {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌡️'), h('span', {}, 'Weather unavailable'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, 'Add weather'));
     weatherEl.title = 'Click to try again or set your city';
   } else {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '📍'), h('span', {}, 'Set your city for weather'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, 'Add weather'));
     weatherEl.title = 'Choose a city, or use your location';
   }
 }

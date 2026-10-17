@@ -2915,8 +2915,269 @@ textarea.field-input { min-height: 0; }
 .vi-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
 .vs-group.vs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 @media (max-width: 520px) { .vs-group.vs-row { grid-template-columns: 1fr; } }
+.vs-group.vs-row { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 620px) { .vs-group.vs-row { grid-template-columns: 1fr; } }
+
+/* =====================================================================
+   Navigator handle: out of the way until you want it.
+   Open: it's hidden, and fades in as a small glass pill when you hover the tool column.
+   Closed: a slim glass edge that grows into the pill on hover, so the tools are always one tap away.
+   ===================================================================== */
+.navigator-trigger {
+  width: 22px; height: 44px; border-radius: 11px; display: grid; place-items: center; align-self: center;
+  background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(14px) saturate(1.6); backdrop-filter: blur(14px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.85); box-shadow: 0 1px 2px rgba(17, 17, 17, 0.05), 0 6px 16px -10px rgba(30, 50, 90, 0.45);
+  opacity: 0; transform: translateX(4px); transition: opacity 0.2s ease, transform 0.25s var(--ease), width 0.25s var(--ease), height 0.25s var(--ease), background 0.15s;
+}
+.navigator .tri {
+  width: 8px; height: 12px; background: var(--ink-2); transform: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='M2 1.5 L6.5 6 L2 10.5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='M2 1.5 L6.5 6 L2 10.5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.navigator:not(.open) .tri { background: var(--ink-2); transform: scaleX(-1); }
+.navigator.open .tri { transform: none; }
+.navigator.open:hover .navigator-trigger, .navigator-trigger:focus-visible { opacity: 1; transform: none; }
+.navigator-trigger:hover { background: #fff; }
+.navigator-trigger:hover .tri { background: var(--ink); }
+/* closed: a slim glass edge */
+.navigator:not(.open) .navigator-trigger { opacity: 0.75; width: 6px; height: 56px; border-radius: 3px; transform: none; }
+.navigator:not(.open) .navigator-trigger .tri { opacity: 0; transition: opacity 0.15s; }
+.navigator:not(.open):hover .navigator-trigger { opacity: 1; width: 22px; height: 44px; border-radius: 11px; }
+.navigator:not(.open):hover .navigator-trigger .tri { opacity: 1; }
+/* a little reach area so the edge is easy to find with the pointer */
+.navigator:not(.open)::before { content: ""; position: absolute; right: -8px; top: 50%; width: 36px; height: 96px; translate: 0 -50%; }
+@media (hover: none) { .navigator.open .navigator-trigger { opacity: 0.8; transform: none; } }
+
+/* =====================================================================
+   Home, calm and spacious. The time rests on the sky with no box around it, the date and weather
+   share one quiet line, and what's next reads as a few airy rows between two hairlines.
+   ===================================================================== */
+.home.calm { gap: 0; padding-bottom: 8vh; }
+.home.calm .home-col { gap: 44px; width: min(520px, calc(100vw - 48px)); }
+.home.calm .hero { gap: 6px; margin: 0; }
+.home.calm .clock-time {
+  font-size: clamp(88px, 12vw, 156px); font-weight: 200; letter-spacing: -0.045em; line-height: 0.95;
+  color: rgba(14, 32, 58, 0.9); font-variant-numeric: tabular-nums; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.home.calm .clock-time::after { font-size: 0.18em; font-weight: 400; letter-spacing: 0.02em; color: rgba(14, 32, 58, 0.5); margin-left: 0.3em; vertical-align: 0.62em; }
+.home.calm .hero-line { display: flex; align-items: center; justify-content: center; gap: 10px; color: rgba(14, 32, 58, 0.62); font-size: var(--fs-md); letter-spacing: 0.01em; }
+.home.calm .clock-date { font-size: inherit; font-weight: 500; color: inherit; }
+.home.calm .hero-dot { opacity: 0.6; }
+.home.calm .weather { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; margin: 0 -8px; border-radius: var(--r-pill); background: transparent; color: inherit; font: inherit; font-weight: 500; box-shadow: none; border: 0; height: auto; }
+.home.calm .weather:hover { background: rgba(255, 255, 255, 0.35); }
+.home.calm .weather .muted { color: inherit; opacity: 0.8; }
+.home.calm .wx-emoji { font-size: 1.05em; }
+
+.home.calm .home-panel { width: 100%; min-width: 0; background: transparent; box-shadow: none; padding: 0; border-radius: 0; }
+.home.calm .home-panel-head { padding: 0 4px 10px; }
+.quiet-tabs { display: flex; gap: 16px; }
+.quiet-tabs button { padding: 2px 0; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(14, 32, 58, 0.42); background: none; border: 0; border-radius: 0; height: auto; transition: color 0.15s; }
+.quiet-tabs button:hover { color: rgba(14, 32, 58, 0.7); }
+.quiet-tabs button.on { color: rgba(14, 32, 58, 0.88); background: none; box-shadow: none; }
+.home.calm .see-all-btn { font-size: var(--fs-xs); font-weight: 500; color: rgba(14, 32, 58, 0.5); padding: 2px 0; background: none; border: 0; height: auto; }
+.home.calm .see-all-btn:hover { color: rgba(14, 32, 58, 0.85); }
+.home.calm .home-stack { gap: 0; border-top: 1px solid rgba(14, 32, 58, 0.12); border-bottom: 1px solid rgba(14, 32, 58, 0.12); }
+.home.calm .home-card {
+  min-height: 56px; padding: 10px 8px 10px 4px; gap: 14px; border-radius: 0; background: transparent; border: 0;
+  border-bottom: 1px solid rgba(14, 32, 58, 0.07); transition: background 0.2s ease, padding 0.2s ease;
+}
+.home.calm .home-card:last-child { border-bottom: 0; }
+.home.calm .home-card:hover { background: rgba(255, 255, 255, 0.34); padding-left: 10px; border-radius: 14px; }
+.home.calm .home-card .type-icon { color: rgba(14, 32, 58, 0.45); width: 16px; height: 16px; }
+.home.calm .home-card-title { font-size: var(--fs-md); color: rgba(14, 32, 58, 0.9); font-weight: 450; }
+.home.calm .home-card .card-snippet { color: rgba(14, 32, 58, 0.5); font-size: var(--fs-xs); }
+.home.calm .home-card-label { color: rgba(14, 32, 58, 0.55); font-size: var(--fs-sm); }
+.home.calm .home-card > .icon-btn { opacity: 0; transition: opacity 0.15s; color: rgba(14, 32, 58, 0.6); }
+.home.calm .home-card:hover > .icon-btn, .home.calm .home-card:focus-within > .icon-btn { opacity: 1; }
+.home.calm .home-empty { padding: 18px 4px; color: rgba(14, 32, 58, 0.55); text-align: center; }
+@media (hover: none) { .home.calm .home-card > .icon-btn { opacity: 0.7; } }
+@media (max-width: 700px) {
+  .home.calm .home-col { gap: 28px; }
+  .home.calm .clock-time { font-size: 84px; }
+}
+.home.calm .home-card { position: relative; }
+.home.calm .home-card > .icon-btn { position: absolute; right: 4px; top: 50%; translate: 0 -50%; }
+.home.calm .home-card-label { transition: margin 0.2s ease; }
+.home.calm .home-card:hover .home-card-label, .home.calm .home-card:focus-within .home-card-label { margin-right: 30px; }
+@media (hover: none) { .home.calm .home-card-label { margin-right: 30px; } }
+
+/* Moving an item on the day: a soft outline shows exactly where it will land, with its new time. */
+.slot-ghost.moving { background: color-mix(in srgb, var(--timely) 12%, transparent); border: 1.5px dashed color-mix(in srgb, var(--timely) 70%, white); border-radius: 10px; z-index: 5; }
+.slot-ghost.moving .slot-ghost-pill svg { display: none; }
+/* No accidental text selection while dragging across the calendar or the boards */
+body.is-dragging, body.is-dragging * { user-select: none !important; -webkit-user-select: none !important; }
+.week-cell, .month-cell, .event-block, .t-chip, .tile, .task-card { -webkit-user-select: none; user-select: none; }
+[contenteditable="true"], [contenteditable="true"] * { -webkit-user-select: text !important; user-select: text !important; }
+.slot-ghost.moving { display: flex; justify-content: flex-end; align-items: flex-start; } .slot-ghost.moving .slot-ghost-pill { margin: 4px 6px 0 auto; background: var(--timely); color: #fff; }
+
+/* First-visit hint by the atom */
+.atom-hint {
+  position: fixed; left: 50%; bottom: 112px; translate: -50% 8px; z-index: 47; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.85); box-shadow: 0 18px 40px -22px rgba(30, 50, 90, 0.55); color: var(--ink); opacity: 0;
+  transition: opacity 0.4s ease, translate 0.5s cubic-bezier(.2, .9, .25, 1.15); pointer-events: none;
+}
+.atom-hint.in { opacity: 1; translate: -50% 0; pointer-events: auto; }
+.atom-hint b { font-size: var(--fs-sm); font-weight: 600; }
+.atom-hint span { font-size: var(--fs-xs); color: var(--muted); }
+.atom-hint i { position: absolute; bottom: -6px; left: 50%; width: 12px; height: 12px; translate: -50% 0; rotate: 45deg; background: inherit; border-right: 1px solid rgba(255, 255, 255, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.85); }
+@media (max-width: 700px) { .atom-hint { left: auto; right: 14px; translate: 0 8px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 84px); } .atom-hint.in { translate: 0 0; } .atom-hint i { left: auto; right: 22px; translate: 0 0; } }
+
+/* Home is just the time, your day and the voice. The tools fade in as your pointer heads their way;
+   the Universal Board and the trash only appear inside the tools. */
+body[data-route="home"] .universal-trigger, body[data-route="home"] .universal-panel, body[data-route="home"] .trash { display: none !important; }
+@media (hover: hover) and (min-width: 701px) {
+  body[data-route="home"] .navigator { opacity: var(--nav-reveal, 0); transition: opacity 0.25s ease; }
+  body[data-route="home"] .navigator.revealed, body[data-route="home"] .navigator:focus-within { opacity: 1; }
+  body[data-route="home"] .navigator:not(.revealed):not(:focus-within) { pointer-events: none; }
+}
 
 /* Movable controls: the dashed "home" circle shown while dragging the atom or the Universal Board. */
 .home-spot { position: fixed; z-index: 44; border: 2px dashed rgba(17, 17, 17, 0.28); border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.15s, transform 0.15s, background 0.15s, border-color 0.15s; }
 .home-spot.show { opacity: 1; }
 .home-spot.hot { border-color: #59b2ec; background: rgba(89, 178, 236, 0.14); transform: scale(1.14); }
+
+/* Home: the clock in a rounded rectangle of Apple-style liquid glass. The clock itself is unchanged.
+   Clear centre; the rim reads as a thick lens: a soft band of light just inside the edge, crisp speculars on the
+   upper-left and lower-right, and (in Chromium) the sky bent slightly at the edges with a faint colour fringe. */
+.home.calm .clock-glass {
+  position: relative; isolation: isolate; display: inline-flex; align-self: center; justify-content: center;
+  padding: 10px 46px 16px; border-radius: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55),
+    inset 2px 2.5px 1px -1.5px rgba(255, 255, 255, 0.95),
+    inset -2px -2.5px 1px -1.5px rgba(255, 255, 255, 0.7),
+    inset 0 0 20px 1px rgba(255, 255, 255, 0.20),
+    inset 8px 12px 24px -14px rgba(255, 255, 255, 0.55),
+    inset -8px -12px 24px -14px rgba(255, 255, 255, 0.32),
+    0 14px 34px -18px rgba(10, 40, 90, 0.28);
+}
+.home.calm .clock-glass.lg-fallback { -webkit-backdrop-filter: blur(2px) brightness(1.04); backdrop-filter: blur(2px) brightness(1.04); }
+/* the highlight that follows the pointer */
+.home.calm .clock-glass::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2;
+  background: radial-gradient(160px 90px at var(--mx, 24%) var(--my, 8%), rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 70%);
+  transition: background-position 0.3s;
+}
+.home.calm .clock-glass .clock-time { position: relative; z-index: 1; }
+@media (max-width: 700px) { .home.calm .clock-glass { padding: 6px 28px 10px; border-radius: 30px; } }
+
+/* =====================================================================
+   Home v2: a living sky that follows the time of day, with text and glass that adapt to it.
+   ===================================================================== */
+body[data-route="home"] { transition: background 1.2s ease; }
+body[data-route="home"][data-sky="dawn"] { background: linear-gradient(to bottom, #8fb4e0 0%, #c9c3dc 38%, #f6cdb9 72%, #fde9da 100%); background-attachment: fixed; }
+body[data-route="home"][data-sky="dusk"] { background: linear-gradient(to bottom, #2f3f7c 0%, #6c5590 34%, #c9708a 66%, #f4a774 100%); background-attachment: fixed; }
+body[data-route="home"][data-sky="night"] {
+  background:
+    radial-gradient(1.2px 1.2px at 33.1% 12.3%, rgba(255,255,255,0.35), transparent 100%),
+    radial-gradient(1.2px 1.2px at 53.4% 26.9%, rgba(255,255,255,0.7), transparent 100%),
+    radial-gradient(1.8px 1.8px at 22.6% 7.8%, rgba(255,255,255,0.37), transparent 100%),
+    radial-gradient(2.2px 2.2px at 10.7% 30.9%, rgba(255,255,255,0.32), transparent 100%),
+    radial-gradient(1.2px 1.2px at 23.4% 44.7%, rgba(255,255,255,0.44), transparent 100%),
+    radial-gradient(1.2px 1.2px at 40.1% 68.4%, rgba(255,255,255,0.29), transparent 100%),
+    radial-gradient(2.2px 2.2px at 14.8% 30.5%, rgba(255,255,255,0.31), transparent 100%),
+    radial-gradient(1.4px 1.4px at 31.6% 57.5%, rgba(255,255,255,0.21), transparent 100%),
+    radial-gradient(1.2px 1.2px at 56.8% 14.8%, rgba(255,255,255,0.6), transparent 100%),
+    radial-gradient(1.4px 1.4px at 8.0% 6.1%, rgba(255,255,255,0.62), transparent 100%),
+    radial-gradient(1.8px 1.8px at 53.0% 54.9%, rgba(255,255,255,0.38), transparent 100%),
+    radial-gradient(1.4px 1.4px at 45.5% 22.4%, rgba(255,255,255,0.63), transparent 100%),
+    radial-gradient(2.2px 2.2px at 25.4% 41.1%, rgba(255,255,255,0.43), transparent 100%),
+    radial-gradient(2.2px 2.2px at 35.0% 32.5%, rgba(255,255,255,0.68), transparent 100%),
+    radial-gradient(1.6px 1.6px at 13.3% 30.4%, rgba(255,255,255,0.33), transparent 100%),
+    radial-gradient(1.2px 1.2px at 48.9% 4.7%, rgba(255,255,255,0.78), transparent 100%),
+    radial-gradient(1.6px 1.6px at 57.0% 61.5%, rgba(255,255,255,0.27), transparent 100%),
+    radial-gradient(1.8px 1.8px at 35.6% 35.8%, rgba(255,255,255,0.27), transparent 100%),
+    radial-gradient(1.2px 1.2px at 11.0% 20.4%, rgba(255,255,255,0.32), transparent 100%),
+    radial-gradient(1.8px 1.8px at 69.3% 46.0%, rgba(255,255,255,0.32), transparent 100%),
+    radial-gradient(1.2px 1.2px at 39.0% 47.5%, rgba(255,255,255,0.55), transparent 100%),
+    radial-gradient(1.8px 1.8px at 36.1% 43.5%, rgba(255,255,255,0.25), transparent 100%),
+    radial-gradient(1.4px 1.4px at 75.8% 10.8%, rgba(255,255,255,0.54), transparent 100%),
+    radial-gradient(1.4px 1.4px at 90.0% 35.8%, rgba(255,255,255,0.43), transparent 100%),
+    radial-gradient(1.8px 1.8px at 54.7% 62.1%, rgba(255,255,255,0.42), transparent 100%),
+    radial-gradient(1.6px 1.6px at 28.7% 30.2%, rgba(255,255,255,0.57), transparent 100%),
+    radial-gradient(1.2px 1.2px at 38.5% 17.7%, rgba(255,255,255,0.39), transparent 100%),
+    radial-gradient(1.8px 1.8px at 24.3% 17.9%, rgba(255,255,255,0.72), transparent 100%),
+    radial-gradient(1.4px 1.4px at 19.5% 21.2%, rgba(255,255,255,0.5), transparent 100%),
+    radial-gradient(1.4px 1.4px at 37.4% 40.5%, rgba(255,255,255,0.51), transparent 100%),
+    radial-gradient(1.2px 1.2px at 51.5% 44.0%, rgba(255,255,255,0.4), transparent 100%),
+    radial-gradient(2.2px 2.2px at 85.6% 66.7%, rgba(255,255,255,0.26), transparent 100%),
+    radial-gradient(1.8px 1.8px at 40.3% 9.0%, rgba(255,255,255,0.36), transparent 100%),
+    radial-gradient(1.4px 1.4px at 8.5% 16.2%, rgba(255,255,255,0.36), transparent 100%),
+    radial-gradient(2.2px 2.2px at 59.7% 9.0%, rgba(255,255,255,0.41), transparent 100%),
+    radial-gradient(1.2px 1.2px at 11.7% 26.7%, rgba(255,255,255,0.3), transparent 100%),
+    radial-gradient(1.6px 1.6px at 22.0% 27.6%, rgba(255,255,255,0.71), transparent 100%),
+    radial-gradient(1.2px 1.2px at 59.8% 34.2%, rgba(255,255,255,0.61), transparent 100%),
+    radial-gradient(1.8px 1.8px at 97.3% 33.7%, rgba(255,255,255,0.39), transparent 100%),
+    radial-gradient(1.6px 1.6px at 15.8% 53.0%, rgba(255,255,255,0.36), transparent 100%),
+    radial-gradient(1.4px 1.4px at 68.4% 37.1%, rgba(255,255,255,0.64), transparent 100%),
+    radial-gradient(2.2px 2.2px at 52.7% 12.0%, rgba(255,255,255,0.81), transparent 100%),
+    radial-gradient(1.2px 1.2px at 74.8% 22.3%, rgba(255,255,255,0.63), transparent 100%),
+    radial-gradient(1.4px 1.4px at 27.1% 26.9%, rgba(255,255,255,0.44), transparent 100%),
+    radial-gradient(2.2px 2.2px at 23.4% 38.8%, rgba(255,255,255,0.37), transparent 100%),
+    radial-gradient(1.4px 1.4px at 23.4% 57.2%, rgba(255,255,255,0.44), transparent 100%),
+    radial-gradient(60% 40% at 50% 115%, rgba(90, 120, 200, 0.35), transparent 70%),
+    linear-gradient(to bottom, #070f24 0%, #0f1d3f 45%, #1d3060 100%);
+  background-attachment: fixed;
+}
+/* light text on the darker skies */
+body[data-sky="dusk"] .home.calm, body[data-sky="night"] .home.calm { --hx: 255, 255, 255; }
+body[data-sky="dusk"] .home.calm .clock-time, body[data-sky="night"] .home.calm .clock-time { color: rgba(255, 255, 255, 0.95); text-shadow: 0 1px 18px rgba(0, 0, 30, 0.25); }
+body[data-sky="dusk"] .home.calm .clock-time::after, body[data-sky="night"] .home.calm .clock-time::after { color: rgba(255, 255, 255, 0.6); }
+body[data-sky="dusk"] .home.calm .hero-line, body[data-sky="night"] .home.calm .hero-line { color: rgba(255, 255, 255, 0.75); }
+body[data-sky="dusk"] .quiet-tabs button, body[data-sky="night"] .quiet-tabs button { color: rgba(255, 255, 255, 0.45); }
+body[data-sky="dusk"] .quiet-tabs button.on, body[data-sky="night"] .quiet-tabs button.on,
+body[data-sky="dusk"] .quiet-tabs button:hover, body[data-sky="night"] .quiet-tabs button:hover { color: rgba(255, 255, 255, 0.92); }
+body[data-sky="dusk"] .home.calm .see-all-btn, body[data-sky="night"] .home.calm .see-all-btn { color: rgba(255, 255, 255, 0.6); }
+body[data-sky="dusk"] .home.calm .home-stack, body[data-sky="night"] .home.calm .home-stack { border-color: rgba(255, 255, 255, 0.16); }
+body[data-sky="dusk"] .home.calm .home-card, body[data-sky="night"] .home.calm .home-card { border-bottom-color: rgba(255, 255, 255, 0.08); }
+body[data-sky="dusk"] .home.calm .home-card:hover, body[data-sky="night"] .home.calm .home-card:hover { background: rgba(255, 255, 255, 0.08); }
+body[data-sky="dusk"] .home.calm .home-card-title, body[data-sky="night"] .home.calm .home-card-title { color: rgba(255, 255, 255, 0.92); }
+body[data-sky="dusk"] .home.calm .home-card .card-snippet, body[data-sky="night"] .home.calm .home-card .card-snippet,
+body[data-sky="dusk"] .home.calm .home-card-label, body[data-sky="night"] .home.calm .home-card-label,
+body[data-sky="dusk"] .home.calm .home-card .type-icon, body[data-sky="night"] .home.calm .home-card .type-icon,
+body[data-sky="dusk"] .home.calm .home-card > .icon-btn, body[data-sky="night"] .home.calm .home-card > .icon-btn { color: rgba(255, 255, 255, 0.55); }
+body[data-route="home"][data-sky="dusk"] .topbar, body[data-route="home"][data-sky="night"] .topbar { background: transparent; border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; color: #fff; }
+body[data-route="home"][data-sky="dusk"] .topbar svg, body[data-route="home"][data-sky="night"] .topbar svg,
+body[data-route="home"][data-sky="dusk"] .topbar .icon-btn, body[data-route="home"][data-sky="night"] .topbar .icon-btn { color: #fff; }
+/* glass on a dark sky: same lens, a touch more presence at the rim */
+body[data-sky="night"] .home.calm .clock-glass, body[data-sky="dusk"] .home.calm .clock-glass { background: rgba(255, 255, 255, 0.06); }
+/* glass on a bright sky: white light can't show against white, so the glass is read through a faintly darker rim,
+   one crisp highlight and a firmer shadow, with no white haze inside */
+body[data-sky="day"] .home.calm .clock-glass, body[data-sky="dawn"] .home.calm .clock-glass {
+  /* a faint smoky body, a touch darker than the sky, so the white light on its edges reads crisply, as it does at night */
+  background: linear-gradient(180deg, rgba(12, 42, 92, 0.13) 0%, rgba(12, 42, 92, 0.06) 55%, rgba(12, 42, 92, 0.10) 100%);
+  -webkit-backdrop-filter: blur(6px) saturate(115%); backdrop-filter: blur(6px) saturate(115%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),          /* the rim */
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.95),          /* light along the top edge */
+    inset 1.5px 0 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 0 rgba(255, 255, 255, 0.35),
+    inset 3px 4px 10px -3px rgba(255, 255, 255, 0.55),  /* light pooling inside the upper-left rim */
+    inset -3px -4px 12px -4px rgba(255, 255, 255, 0.30),
+    0 1px 2px rgba(10, 40, 90, 0.10),
+    0 20px 44px -22px rgba(10, 40, 90, 0.40);
+}
+body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .home.calm .clock-glass::before {
+  background: radial-gradient(240px 110px at var(--mx, 20%) var(--my, 0%), rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0) 70%);
+}
+
+/* Home settles in: the clock first, then the line beneath, then what's next */
+@keyframes home-rise { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.home.calm .clock-glass { animation: home-rise 0.9s cubic-bezier(.2,.7,.2,1) both; }
+.home.calm .hero-line { animation: home-rise 0.9s 0.12s cubic-bezier(.2,.7,.2,1) both; }
+.home.calm .home-panel { animation: home-rise 0.9s 0.24s cubic-bezier(.2,.7,.2,1) both; }
+/* the time changes with a quiet fade */
+@keyframes time-turn { from { opacity: 0.25; filter: blur(3px); } to { opacity: 1; filter: none; } }
+.home.calm .clock-time.turn { animation: time-turn 0.7s ease both; }
+@media (prefers-reduced-motion: reduce) { .home.calm .clock-glass, .home.calm .hero-line, .home.calm .home-panel, .home.calm .clock-time.turn { animation: none; } }
+/* phones: the tab bar turns to dark glass on the darker skies */
+@media (max-width: 700px) {
+  body[data-route="home"][data-sky="dusk"] .navigator-panel { background: rgba(40, 30, 60, 0.35); }
+  body[data-route="home"][data-sky="dusk"] .navigator-panel, body[data-route="home"][data-sky="night"] .navigator-panel { background: rgba(10, 18, 40, 0.55); border-color: rgba(255, 255, 255, 0.08); -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%); }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill:not(.active), body[data-route="home"][data-sky="night"] .navigator .nav-pill:not(.active) { color: rgba(255, 255, 255, 0.45) !important; }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill:not(.active) *, body[data-route="home"][data-sky="night"] .navigator .nav-pill:not(.active) * { color: rgba(255, 255, 255, 0.45) !important; }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill.active, body[data-route="home"][data-sky="night"] .navigator .nav-pill.active { color: #fff !important; }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill.active *, body[data-route="home"][data-sky="night"] .navigator .nav-pill.active * { color: #fff !important; }
+}
