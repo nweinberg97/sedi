@@ -22,10 +22,8 @@ export function mount(el) {
   // Calm and spacious: the time sits on the sky with nothing around it; the date and weather share one quiet line;
   // what's next reads as a few airy rows rather than a card.
   root.replaceChildren(h('div', { class: 'home calm' }, h('div', { class: 'home-col' },
-    h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)),
-      h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
+    h('section', { class: 'hero' }, clockTime, h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
     h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl))));
-  glassCleanup = mountLiquidGlass(root.querySelector('.clock-glass'), { refract: false });
   tickClock();
   timer = setInterval(tickClock, 1000);
   renderWeather();
@@ -59,18 +57,6 @@ export function nextUpItems(limit = 3) {
   return items.slice(0, limit);
 }
 
-/** Home's three tiles: when (or why) on top, then what. */
-function tile(card, label) {
-  const el = h('div', { class: 'home-tile', tabindex: 0, role: 'button', 'aria-label': `${card.title}${label ? `, ${label}` : ''}` },
-    h('div', { class: 'home-tile-top' }, typeIcon(card.type), label ? h('span', { class: 'home-tile-label' }, label) : null),
-    h('div', { class: 'home-tile-title' }, card.title),
-    notesSnippet(card));
-  const go = () => revealCard(card.id);
-  el.addEventListener('click', go);
-  el.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-  return el;
-}
-
 function row(card, label) {
   const el = h('div', { class: 'home-card', tabindex: 0, role: 'button' },
     typeIcon(card.type),
@@ -94,11 +80,11 @@ export function render() {
   }, l)));
   if (tab === 'next') {
     const next = nextUpItems(3);
-    listEl.replaceChildren(...(next.length ? next.map(i => tile(i.card, i.label))
+    listEl.replaceChildren(...(next.length ? next.map(i => row(i.card, i.label))
       : [h('p', { class: 'home-empty' }, 'Nothing scheduled. Add a task in Taskly or a block in Timely.')]));
   } else {
     const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
-    listEl.replaceChildren(...(recent.length ? recent.map(c => tile(c, relTime(c.updatedAt)))
+    listEl.replaceChildren(...(recent.length ? recent.map(c => row(c, relTime(c.updatedAt)))
       : [h('p', { class: 'home-empty' }, 'Your latest changes will show up here.')]));
   }
 }
