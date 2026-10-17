@@ -3036,3 +3036,25 @@ body[data-route="home"] .universal-trigger, body[data-route="home"] .universal-p
 .home-spot { position: fixed; z-index: 44; border: 2px dashed rgba(17, 17, 17, 0.28); border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.15s, transform 0.15s, background 0.15s, border-color 0.15s; }
 .home-spot.show { opacity: 1; }
 .home-spot.hot { border-color: #59b2ec; background: rgba(89, 178, 236, 0.14); transform: scale(1.14); }
+
+/* Home: a single pane of clear liquid glass around the clock. Barely tinted, softly blurring the sky behind it,
+   with light catching its top edge. Nothing else on Home sits in glass, so the clock stays the one quiet focal point. */
+.home.calm .hero {
+  position: relative; isolation: isolate; align-self: center;
+  padding: 30px 52px 26px; border-radius: 40px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.10) 100%);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),      /* light on the top edge */
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 24px rgba(255, 255, 255, 0.10),     /* a little depth inside the glass */
+    0 20px 50px -34px rgba(14, 40, 80, 0.22);     /* resting on the sky, barely */
+}
+/* a soft sheen across the upper half, like a curved surface */
+.home.calm .hero::before {
+  content: ""; position: absolute; inset: 1px; border-radius: inherit; pointer-events: none; z-index: -1;
+  background: radial-gradient(120% 70% at 30% 0%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 60%);
+}
+@media (max-width: 700px) { .home.calm .hero { padding: 22px 30px 20px; border-radius: 32px; } }
+@media (prefers-reduced-transparency: reduce) { .home.calm .hero { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(255, 255, 255, 0.4); } }
