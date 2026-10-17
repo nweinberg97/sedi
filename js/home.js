@@ -54,6 +54,18 @@ export function nextUpItems(limit = 3) {
     if (m.recurrence) label += ' · routine';
     items.push({ card: occ.card, label });
   }
+  // Always show a full set: fill with the next to-dos, then what's coming up in the next few days.
+  const seen = new Set(items.map(i => i.card.id));
+  const add = (card, label) => { if (items.length < limit && !seen.has(card.id)) { seen.add(card.id); items.push({ card, label }); } };
+  store.cardsWhere(c => c.tool === 'taskly' && c.meta?.columnId === 'todo').sort(byOrder).slice(1).forEach(c => add(c, 'To do'));
+  for (let i = 1; i <= 7 && items.length < limit; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const day = i === 1 ? 'Tomorrow' : d.toLocaleDateString(undefined, { weekday: 'short' });
+    for (const occ of occurrencesOn(todayKeyOf(d))) {
+      const m = occ.card.meta || {};
+      add(occ.card, m.start != null ? `${day} ${fmtMinutes(m.start)}` : day);
+    }
+  }
   return items.slice(0, limit);
 }
 
