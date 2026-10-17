@@ -33,12 +33,20 @@ export function mount(el) {
   render();
   glassCleanup = mountLiquidGlass(clockGlass, { refract: false });
 }
-export function unmount() { clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
+export function unmount() { delete document.body.dataset.sky; clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
 
 function tickClock() {
   const d = new Date();
   const hh = d.getHours() % 12 || 12;
-  clockTime.textContent = `${hh}:${pad(d.getMinutes())}`;
+  const t = `${hh}:${pad(d.getMinutes())}`;
+  if (clockTime.textContent !== t) {
+    // the time changes with a quiet fade, not a jump
+    if (clockTime.textContent) { clockTime.classList.remove('turn'); void clockTime.offsetWidth; clockTime.classList.add('turn'); }
+    clockTime.textContent = t;
+  }
+  // a living sky: it follows the real time of day (the preview can pin one with window.__sky)
+  const hr = d.getHours();
+  document.body.dataset.sky = window.__sky || (hr >= 5 && hr < 8 ? 'dawn' : hr >= 8 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night');
   clockTime.dataset.ampm = d.getHours() < 12 ? 'am' : 'pm';
   clockDate.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }

@@ -3062,3 +3062,122 @@ body[data-route="home"] .universal-trigger, body[data-route="home"] .universal-p
 }
 .home.calm .clock-glass .clock-time { position: relative; z-index: 1; }
 @media (max-width: 700px) { .home.calm .clock-glass { padding: 6px 28px 10px; border-radius: 30px; } }
+
+/* =====================================================================
+   Home v2: a living sky that follows the time of day, with text and glass that adapt to it.
+   ===================================================================== */
+body[data-route="home"] { transition: background 1.2s ease; }
+body[data-route="home"][data-sky="dawn"] { background: linear-gradient(to bottom, #8fb4e0 0%, #c9c3dc 38%, #f6cdb9 72%, #fde9da 100%); background-attachment: fixed; }
+body[data-route="home"][data-sky="dusk"] { background: linear-gradient(to bottom, #2f3f7c 0%, #6c5590 34%, #c9708a 66%, #f4a774 100%); background-attachment: fixed; }
+body[data-route="home"][data-sky="night"] {
+  background:
+    radial-gradient(1.2px 1.2px at 33.1% 12.3%, rgba(255,255,255,0.35), transparent 100%),
+    radial-gradient(1.2px 1.2px at 53.4% 26.9%, rgba(255,255,255,0.7), transparent 100%),
+    radial-gradient(1.8px 1.8px at 22.6% 7.8%, rgba(255,255,255,0.37), transparent 100%),
+    radial-gradient(2.2px 2.2px at 10.7% 30.9%, rgba(255,255,255,0.32), transparent 100%),
+    radial-gradient(1.2px 1.2px at 23.4% 44.7%, rgba(255,255,255,0.44), transparent 100%),
+    radial-gradient(1.2px 1.2px at 40.1% 68.4%, rgba(255,255,255,0.29), transparent 100%),
+    radial-gradient(2.2px 2.2px at 14.8% 30.5%, rgba(255,255,255,0.31), transparent 100%),
+    radial-gradient(1.4px 1.4px at 31.6% 57.5%, rgba(255,255,255,0.21), transparent 100%),
+    radial-gradient(1.2px 1.2px at 56.8% 14.8%, rgba(255,255,255,0.6), transparent 100%),
+    radial-gradient(1.4px 1.4px at 8.0% 6.1%, rgba(255,255,255,0.62), transparent 100%),
+    radial-gradient(1.8px 1.8px at 53.0% 54.9%, rgba(255,255,255,0.38), transparent 100%),
+    radial-gradient(1.4px 1.4px at 45.5% 22.4%, rgba(255,255,255,0.63), transparent 100%),
+    radial-gradient(2.2px 2.2px at 25.4% 41.1%, rgba(255,255,255,0.43), transparent 100%),
+    radial-gradient(2.2px 2.2px at 35.0% 32.5%, rgba(255,255,255,0.68), transparent 100%),
+    radial-gradient(1.6px 1.6px at 13.3% 30.4%, rgba(255,255,255,0.33), transparent 100%),
+    radial-gradient(1.2px 1.2px at 48.9% 4.7%, rgba(255,255,255,0.78), transparent 100%),
+    radial-gradient(1.6px 1.6px at 57.0% 61.5%, rgba(255,255,255,0.27), transparent 100%),
+    radial-gradient(1.8px 1.8px at 35.6% 35.8%, rgba(255,255,255,0.27), transparent 100%),
+    radial-gradient(1.2px 1.2px at 11.0% 20.4%, rgba(255,255,255,0.32), transparent 100%),
+    radial-gradient(1.8px 1.8px at 69.3% 46.0%, rgba(255,255,255,0.32), transparent 100%),
+    radial-gradient(1.2px 1.2px at 39.0% 47.5%, rgba(255,255,255,0.55), transparent 100%),
+    radial-gradient(1.8px 1.8px at 36.1% 43.5%, rgba(255,255,255,0.25), transparent 100%),
+    radial-gradient(1.4px 1.4px at 75.8% 10.8%, rgba(255,255,255,0.54), transparent 100%),
+    radial-gradient(1.4px 1.4px at 90.0% 35.8%, rgba(255,255,255,0.43), transparent 100%),
+    radial-gradient(1.8px 1.8px at 54.7% 62.1%, rgba(255,255,255,0.42), transparent 100%),
+    radial-gradient(1.6px 1.6px at 28.7% 30.2%, rgba(255,255,255,0.57), transparent 100%),
+    radial-gradient(1.2px 1.2px at 38.5% 17.7%, rgba(255,255,255,0.39), transparent 100%),
+    radial-gradient(1.8px 1.8px at 24.3% 17.9%, rgba(255,255,255,0.72), transparent 100%),
+    radial-gradient(1.4px 1.4px at 19.5% 21.2%, rgba(255,255,255,0.5), transparent 100%),
+    radial-gradient(1.4px 1.4px at 37.4% 40.5%, rgba(255,255,255,0.51), transparent 100%),
+    radial-gradient(1.2px 1.2px at 51.5% 44.0%, rgba(255,255,255,0.4), transparent 100%),
+    radial-gradient(2.2px 2.2px at 85.6% 66.7%, rgba(255,255,255,0.26), transparent 100%),
+    radial-gradient(1.8px 1.8px at 40.3% 9.0%, rgba(255,255,255,0.36), transparent 100%),
+    radial-gradient(1.4px 1.4px at 8.5% 16.2%, rgba(255,255,255,0.36), transparent 100%),
+    radial-gradient(2.2px 2.2px at 59.7% 9.0%, rgba(255,255,255,0.41), transparent 100%),
+    radial-gradient(1.2px 1.2px at 11.7% 26.7%, rgba(255,255,255,0.3), transparent 100%),
+    radial-gradient(1.6px 1.6px at 22.0% 27.6%, rgba(255,255,255,0.71), transparent 100%),
+    radial-gradient(1.2px 1.2px at 59.8% 34.2%, rgba(255,255,255,0.61), transparent 100%),
+    radial-gradient(1.8px 1.8px at 97.3% 33.7%, rgba(255,255,255,0.39), transparent 100%),
+    radial-gradient(1.6px 1.6px at 15.8% 53.0%, rgba(255,255,255,0.36), transparent 100%),
+    radial-gradient(1.4px 1.4px at 68.4% 37.1%, rgba(255,255,255,0.64), transparent 100%),
+    radial-gradient(2.2px 2.2px at 52.7% 12.0%, rgba(255,255,255,0.81), transparent 100%),
+    radial-gradient(1.2px 1.2px at 74.8% 22.3%, rgba(255,255,255,0.63), transparent 100%),
+    radial-gradient(1.4px 1.4px at 27.1% 26.9%, rgba(255,255,255,0.44), transparent 100%),
+    radial-gradient(2.2px 2.2px at 23.4% 38.8%, rgba(255,255,255,0.37), transparent 100%),
+    radial-gradient(1.4px 1.4px at 23.4% 57.2%, rgba(255,255,255,0.44), transparent 100%),
+    radial-gradient(60% 40% at 50% 115%, rgba(90, 120, 200, 0.35), transparent 70%),
+    linear-gradient(to bottom, #070f24 0%, #0f1d3f 45%, #1d3060 100%);
+  background-attachment: fixed;
+}
+/* light text on the darker skies */
+body[data-sky="dusk"] .home.calm, body[data-sky="night"] .home.calm { --hx: 255, 255, 255; }
+body[data-sky="dusk"] .home.calm .clock-time, body[data-sky="night"] .home.calm .clock-time { color: rgba(255, 255, 255, 0.95); text-shadow: 0 1px 18px rgba(0, 0, 30, 0.25); }
+body[data-sky="dusk"] .home.calm .clock-time::after, body[data-sky="night"] .home.calm .clock-time::after { color: rgba(255, 255, 255, 0.6); }
+body[data-sky="dusk"] .home.calm .hero-line, body[data-sky="night"] .home.calm .hero-line { color: rgba(255, 255, 255, 0.75); }
+body[data-sky="dusk"] .quiet-tabs button, body[data-sky="night"] .quiet-tabs button { color: rgba(255, 255, 255, 0.45); }
+body[data-sky="dusk"] .quiet-tabs button.on, body[data-sky="night"] .quiet-tabs button.on,
+body[data-sky="dusk"] .quiet-tabs button:hover, body[data-sky="night"] .quiet-tabs button:hover { color: rgba(255, 255, 255, 0.92); }
+body[data-sky="dusk"] .home.calm .see-all-btn, body[data-sky="night"] .home.calm .see-all-btn { color: rgba(255, 255, 255, 0.6); }
+body[data-sky="dusk"] .home.calm .home-stack, body[data-sky="night"] .home.calm .home-stack { border-color: rgba(255, 255, 255, 0.16); }
+body[data-sky="dusk"] .home.calm .home-card, body[data-sky="night"] .home.calm .home-card { border-bottom-color: rgba(255, 255, 255, 0.08); }
+body[data-sky="dusk"] .home.calm .home-card:hover, body[data-sky="night"] .home.calm .home-card:hover { background: rgba(255, 255, 255, 0.08); }
+body[data-sky="dusk"] .home.calm .home-card-title, body[data-sky="night"] .home.calm .home-card-title { color: rgba(255, 255, 255, 0.92); }
+body[data-sky="dusk"] .home.calm .home-card .card-snippet, body[data-sky="night"] .home.calm .home-card .card-snippet,
+body[data-sky="dusk"] .home.calm .home-card-label, body[data-sky="night"] .home.calm .home-card-label,
+body[data-sky="dusk"] .home.calm .home-card .type-icon, body[data-sky="night"] .home.calm .home-card .type-icon,
+body[data-sky="dusk"] .home.calm .home-card > .icon-btn, body[data-sky="night"] .home.calm .home-card > .icon-btn { color: rgba(255, 255, 255, 0.55); }
+body[data-route="home"][data-sky="dusk"] .topbar, body[data-route="home"][data-sky="night"] .topbar { background: transparent; border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; color: #fff; }
+body[data-route="home"][data-sky="dusk"] .topbar svg, body[data-route="home"][data-sky="night"] .topbar svg,
+body[data-route="home"][data-sky="dusk"] .topbar .icon-btn, body[data-route="home"][data-sky="night"] .topbar .icon-btn { color: #fff; }
+/* glass on a dark sky: same lens, a touch more presence at the rim */
+body[data-sky="night"] .home.calm .clock-glass, body[data-sky="dusk"] .home.calm .clock-glass { background: rgba(255, 255, 255, 0.06); }
+/* glass on a bright sky: white light can't show against white, so the glass is read through a faintly darker rim,
+   one crisp highlight and a firmer shadow, with no white haze inside */
+body[data-sky="day"] .home.calm .clock-glass, body[data-sky="dawn"] .home.calm .clock-glass {
+  /* a faint smoky body, a touch darker than the sky, so the white light on its edges reads crisply, as it does at night */
+  background: linear-gradient(180deg, rgba(12, 42, 92, 0.13) 0%, rgba(12, 42, 92, 0.06) 55%, rgba(12, 42, 92, 0.10) 100%);
+  -webkit-backdrop-filter: blur(6px) saturate(115%); backdrop-filter: blur(6px) saturate(115%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),          /* the rim */
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.95),          /* light along the top edge */
+    inset 1.5px 0 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 0 rgba(255, 255, 255, 0.35),
+    inset 3px 4px 10px -3px rgba(255, 255, 255, 0.55),  /* light pooling inside the upper-left rim */
+    inset -3px -4px 12px -4px rgba(255, 255, 255, 0.30),
+    0 1px 2px rgba(10, 40, 90, 0.10),
+    0 20px 44px -22px rgba(10, 40, 90, 0.40);
+}
+body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .home.calm .clock-glass::before {
+  background: radial-gradient(240px 110px at var(--mx, 20%) var(--my, 0%), rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0) 70%);
+}
+
+/* Home settles in: the clock first, then the line beneath, then what's next */
+@keyframes home-rise { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.home.calm .clock-glass { animation: home-rise 0.9s cubic-bezier(.2,.7,.2,1) both; }
+.home.calm .hero-line { animation: home-rise 0.9s 0.12s cubic-bezier(.2,.7,.2,1) both; }
+.home.calm .home-panel { animation: home-rise 0.9s 0.24s cubic-bezier(.2,.7,.2,1) both; }
+/* the time changes with a quiet fade */
+@keyframes time-turn { from { opacity: 0.25; filter: blur(3px); } to { opacity: 1; filter: none; } }
+.home.calm .clock-time.turn { animation: time-turn 0.7s ease both; }
+@media (prefers-reduced-motion: reduce) { .home.calm .clock-glass, .home.calm .hero-line, .home.calm .home-panel, .home.calm .clock-time.turn { animation: none; } }
+/* phones: the tab bar turns to dark glass on the darker skies */
+@media (max-width: 700px) {
+  body[data-route="home"][data-sky="dusk"] .navigator-panel { background: rgba(40, 30, 60, 0.35); }
+  body[data-route="home"][data-sky="dusk"] .navigator-panel, body[data-route="home"][data-sky="night"] .navigator-panel { background: rgba(10, 18, 40, 0.55); border-color: rgba(255, 255, 255, 0.08); -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%); }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill:not(.active), body[data-route="home"][data-sky="night"] .navigator .nav-pill:not(.active) { color: rgba(255, 255, 255, 0.45) !important; }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill:not(.active) *, body[data-route="home"][data-sky="night"] .navigator .nav-pill:not(.active) * { color: rgba(255, 255, 255, 0.45) !important; }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill.active, body[data-route="home"][data-sky="night"] .navigator .nav-pill.active { color: #fff !important; }
+  body[data-route="home"][data-sky="dusk"] .navigator .nav-pill.active *, body[data-route="home"][data-sky="night"] .navigator .nav-pill.active * { color: #fff !important; }
+}
