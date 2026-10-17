@@ -178,9 +178,10 @@ export function download(filename, content, type = 'application/json') {
 }
 
 // ---------- Toasts ----------
-export function toast(message, { action, onAction, duration = 3200 } = {}) {
+export function toast(message, { action, onAction, duration = 3200, code = null } = {}) {
   const host = $('#toasts');
-  const el = h('div', { class: 'toast', role: 'status' }, h('span', {}, message));
+  // `code` marks the toast as a recognisable error state (data-navoro-error) for in-app guidance.
+  const el = h('div', { class: 'toast', role: 'status', 'data-navoro-error': code }, h('span', {}, message));
   if (action) {
     el.append(h('button', { class: 'toast-action', onclick: () => { onAction?.(); dismiss(); } }, action));
   }
@@ -201,7 +202,7 @@ document.addEventListener('pointerdown', e => {
 }, true);
 export function modal({ title, body, actions = [], wide = false, onClose, className = '' }) {
   const backdrop = h('div', { class: 'modal-backdrop' });
-  const box = h('div', { class: `modal ${wide ? 'wide' : ''} ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Dialog' });
+  const box = h('div', { class: `modal ${wide ? 'wide' : ''} ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Dialog', 'data-navoro-sensitive': '' });
   if (lastTap && Date.now() - lastTap.t < 1500) {
     box.style.setProperty('--from-x', `${Math.round(lastTap.x - innerWidth / 2)}px`);
     box.style.setProperty('--from-y', `${Math.round(lastTap.y - innerHeight / 2)}px`);
@@ -316,6 +317,7 @@ export const ICONS = {
   sparkle: S('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M7 17l2-2M15 9l2-2"/>'),
   grip: S('<circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/>'),
   menu: S('<path d="M4 8h16M4 16h16"/>'),
+  help: S('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.86.83c0 1.67-2.46 2.27-2.46 3.77"/><circle cx="12" cy="16.9" r="0.9" fill="currentColor" stroke="none"/>'),
   universe: S('<circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="10" ry="3.4" transform="rotate(-20 12 12)"/><path d="M5 4.5v1.6M4.2 5.3h1.6M19 17.6v1.6M18.2 18.4h1.6" stroke-width="1.3"/>'),
   home: S('<path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>'),
   trash: S('<path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l.9 12.2h9.2l.9-12.2"/><path d="M10.2 10.5v5.5M13.8 10.5v5.5"/>'),
@@ -380,3 +382,33 @@ export const ICONS = {
 
 /** Phones show free-form canvases (Boardly, Brainly notes) as a tidy list, so positions are left alone there. */
 export const listMode = () => matchMedia('(max-width: 700px)').matches;
+
+// ---------- Movable controls: a way home ----------
+// While a movable control (the assistant's atom, the Universal Board) is dragged, a dashed
+// circle marks where it normally lives. Dropping it near there snaps it back exactly, so a
+// control that's "put back" never ends up a few pixels off. 'sedi:reset-positions' (Menu →
+// Reset button positions) sends every movable control home at once.
+export const SNAP_HOME_PX = 56;
+export function homeSpot(measureHome) {
+  let ghost = null, home = null;
+  const centre = r => [r.left + r.width / 2, r.top + r.height / 2];
+  return {
+    show() {
+      home = measureHome();
+      if (!home || !home.width) return;
+      ghost ??= h('div', { class: 'home-spot', 'aria-hidden': 'true' });
+      Object.assign(ghost.style, { left: home.left + 'px', top: home.top + 'px', width: home.width + 'px', height: home.height + 'px' });
+      document.body.append(ghost);
+      requestAnimationFrame(() => ghost?.classList.add('show'));
+    },
+    near(rect) {
+      if (!home || !home.width) return false;
+      const [ax, ay] = centre(rect), [bx, by] = centre(home);
+      const hot = Math.hypot(ax - bx, ay - by) < SNAP_HOME_PX;
+      ghost?.classList.toggle('hot', hot);
+      return hot;
+    },
+    hide() { ghost?.classList.remove('show', 'hot'); ghost?.remove(); home = null; },
+  };
+}
+

@@ -1,7 +1,7 @@
 // Sedi service worker: caches the app shell so Sedi opens instantly and works fully offline.
 // Bump VERSION whenever app files change so browsers pick up the new build.
 
-const VERSION = 'sedi-v1.13.0';
+const VERSION = 'sedi-v1.14.0';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './brain/master_library.json',
@@ -9,6 +9,7 @@ const SHELL = [
   './js/taskly.js', './js/boardly.js', './js/timely.js', './js/brainly.js', './js/speech.js', './js/hearing.js', './js/runtime.js', './js/voice-worker.js', './js/assistant.js',
   './js/brain.js', './js/onboarding.js', './js/commands.js', './js/glass.js', './js/dotfield.js',
   './js/engines.js', './js/google.js', './js/summaries.js',
+  './navoro/navoro.js', './navoro/navoro-pack.json',
 ];
 const RUNTIME = 'sedi-runtime'; // Sovereign Brain runtime files from the CDN
 

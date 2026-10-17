@@ -1,0 +1,24 @@
+{
+  "name": "Sedi",
+  "docs": ["docs/help-center.md"],
+  "privacy": {
+    "observe": ["route", "pageTitle", "elements", "visibleErrors"],
+    "neverCollect": [
+      { "selector": ".col-body, .task-card, .task-input", "reason": "Taskly cards and the task being typed" },
+      { "selector": ".board-canvas, .tile, .boardly-tabs .tab-name", "reason": "Boardly goals, tasks, notes and category names" },
+      { "selector": ".timely-body", "reason": "Timely events, plans, reminders, projects and goals" },
+      { "selector": ".brain-canvas, .links-dash .link-list, .lf-stack, .search-results, .search-input", "reason": "Brainly notes, links, files and searches" },
+      { "selector": ".glass-folder, .glass-backdrop, .item-peek, .note-peek, .peek", "reason": "Folder windows and previews show your content" },
+      { "selector": ".uni-list, .uni-input, .home-stack, .modal-list", "reason": "Universal Board, Home lists and list dialogs" },
+      { "selector": ".modal, .popover", "reason": "Editors, forms and dialogs hold what you type" },
+      { "selector": ".assistant-tray, .as-output, .as-input", "reason": "Assistant conversations stay private" },
+      { "selector": ".card-snippet, .dictate-bubble, .drag-ghost", "reason": "Note previews, live dictation and dragged cards" }
+    ]
+  },
+  "launcher": {
+    "greeting": "Stuck on something in Sedi? Ask, and I'll point to it.",
+    "suggestions": ["How do I add a reminder?", "How do I move a card to another tool?", "How do I download my data?"]
+  },
+  "supportUrl": "https://github.com/nweinberg97/sedi/issues",
+  "out": "navoro/navoro-pack.json"
+}

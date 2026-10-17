@@ -79,6 +79,10 @@ h1, h2, h3, h4, p { margin: 0; }
   border-bottom: 1px solid var(--line);
 }
 body[data-route="home"] .topbar { background: rgba(255, 255, 255, 0.14); border-bottom-color: rgba(255, 255, 255, 0.35); }
+.topbar-actions { display: flex; align-items: center; gap: 4px; }
+/* Help (?) opens the Navoro guide; Navoro un-hides it once it has loaded. */
+.help-btn[hidden] { display: none; }
+.help-btn[aria-expanded="true"] { background: rgba(0, 0, 0, 0.06); color: var(--ink); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: var(--fs-lg); letter-spacing: -0.01em; }
 .brand-atom { width: 24px; height: 24px; stroke-width: 1.3; transition: transform 0.6s var(--ease); }
 .brand:hover .brand-atom { transform: rotate(60deg); }
@@ -186,6 +190,14 @@ body[data-route="home"] .topbar { background: rgba(255, 255, 255, 0.14); border-
   transition: opacity 0.16s, transform 0.22s var(--ease);
 }
 .universal.open .universal-panel { opacity: 1; transform: none; pointer-events: auto; }
+/* Draggable Universal Board: the panel opens toward the side of the screen with room. */
+.universal-trigger { touch-action: none; cursor: grab; }
+.universal.moving .universal-trigger { cursor: grabbing; transform: scale(1.08); transition: none; }
+.universal.moving { transition: none; }
+.universal-panel { height: min(470px, var(--uni-room, calc(100vh - 210px))); }
+.universal.uni-left .universal-panel { right: auto; left: 0; transform-origin: top left; }
+.universal.uni-up .universal-panel { top: auto; bottom: 54px; transform-origin: bottom right; }
+.universal.uni-up.uni-left .universal-panel { transform-origin: bottom left; }
 body.is-dragging .universal.open .universal-panel { pointer-events: auto; }
 .uni-head { display: flex; align-items: baseline; justify-content: space-between; }
 .uni-head h2 { font-size: var(--fs-md); font-weight: 600; }
@@ -2603,12 +2615,14 @@ textarea.field-input { min-height: 0; }
   :root { --header-h: 52px; --tabbar-h: 62px; }
   body { font-size: var(--fs-md); }
 
-  /* Header: brand left; Universal Board + menu on the right, inside the safe area */
+  /* Header: brand left; Help + menu on the right, inside the safe area */
   .topbar { height: calc(var(--header-h) + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) max(8px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
-  .universal { top: calc(env(safe-area-inset-top, 0px) + 8px); right: calc(max(8px, env(safe-area-inset-right, 0px)) + 44px); z-index: 52; }
+  /* The Universal Board sits just under the header (as on desktop), so the header's right side is Help + menu. */
+  .universal { top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 10px); right: max(12px, env(safe-area-inset-right, 0px)); z-index: 45; }
   .universal-trigger { width: 36px !important; height: 36px !important; }
   .universal-trigger svg { width: 18px !important; height: 18px !important; }
-  .universal-panel { position: fixed !important; left: 12px !important; right: 12px !important; top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 8px) !important; width: auto !important; max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 40px); }
+  .universal-panel { position: fixed !important; left: 12px !important; right: 12px !important; top: calc(var(--uni-trigger-bottom, calc(var(--header-h) + env(safe-area-inset-top, 0px) + 46px)) + 8px) !important; width: auto !important; max-height: min(calc(100dvh - var(--header-h) - var(--tabbar-h) - 86px), var(--uni-room, 100dvh)); }
+  .universal.uni-up .universal-panel { top: auto !important; bottom: calc(100dvh - var(--uni-trigger-top, 0px) + 8px) !important; }
 
   /* Bottom tab bar */
   .navigator { position: fixed !important; inset: auto 0 0 0 !important; transform: none !important; z-index: 49; display: block; }
@@ -3017,3 +3031,8 @@ body[data-route="home"] .universal-trigger, body[data-route="home"] .universal-p
   body[data-route="home"] .navigator.revealed, body[data-route="home"] .navigator:focus-within { opacity: 1; }
   body[data-route="home"] .navigator:not(.revealed):not(:focus-within) { pointer-events: none; }
 }
+
+/* Movable controls: the dashed "home" circle shown while dragging the atom or the Universal Board. */
+.home-spot { position: fixed; z-index: 44; border: 2px dashed rgba(17, 17, 17, 0.28); border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.15s, transform 0.15s, background 0.15s, border-color 0.15s; }
+.home-spot.show { opacity: 1; }
+.home-spot.hot { border-color: #59b2ec; background: rgba(89, 178, 236, 0.14); transform: scale(1.14); }

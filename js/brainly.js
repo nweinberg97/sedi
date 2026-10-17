@@ -59,7 +59,7 @@ export function mount(el) {
   searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') { searchInput.value = ''; runSearch(); } });
   searchInput.addEventListener('focus', () => { if (query()) results.hidden = false; });
   document.addEventListener('pointerdown', e => { if (results && !e.target.closest('.search')) results.hidden = true; });
-  canvas = h('div', { class: 'brain-canvas', dataset: { drop: 'brainly-canvas', accept: 'card bfolder' }, 'data-canvas': '' });
+  canvas = h('div', { class: 'brain-canvas', dataset: { drop: 'brainly-canvas', accept: 'card bfolder' }, 'data-canvas': '', 'data-navoro-sensitive': '' });
   dash = h('aside', { class: 'links-dash', 'aria-label': 'My links' });
   root.replaceChildren(h('div', { class: 'view brainly' },
     h('div', { class: 'view-head brainly-head' },
@@ -128,7 +128,7 @@ function favicon(c) {
 
 function renderDash() {
   const q = query();
-  const input = h('input', { class: 'field-input sm', placeholder: 'Paste a link', 'aria-label': 'Paste a link', 'data-keep': 'link-input' });
+  const input = h('input', { class: 'field-input sm', placeholder: 'Paste a link', 'aria-label': 'Paste a link', 'data-keep': 'link-input', 'data-navoro-id': 'brainly.paste-link' });
   input.addEventListener('keydown', e => {
     e.stopPropagation();
     if (e.key === 'Enter' && input.value.trim()) { addLink(input.value.trim()); input.value = ''; }
@@ -345,11 +345,11 @@ async function addTextFile(file, lfid = null) {
 /** Any file: PDFs and text open in Sedi; everything else is kept on this device and opens in its own app. */
 async function addUpload(file, lfid = null) {
   if (!file) return;
-  if (file.size > MAX_UPLOAD) return toast(`“${file.name}” is ${fmtSize(file.size)}. The upload limit is 25 MB per file.`);
+  if (file.size > MAX_UPLOAD) return toast(`“${file.name}” is ${fmtSize(file.size)}. The upload limit is 25 MB per file.`, { code: 'UPLOAD_TOO_LARGE' });
   if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') return addPdf(file, lfid);
   if ((/\.(txt|md|markdown)$/i.test(file.name) || file.type === 'text/plain' || file.type === 'text/markdown') && file.size <= 2e6) return addTextFile(file, lfid);
   const fileId = uuid();
-  try { await store.putFile(fileId, file); } catch { return toast('Couldn’t save that file on this device. It may be out of space.'); }
+  try { await store.putFile(fileId, file); } catch { return toast('Couldn’t save that file on this device. It may be out of space.', { code: 'STORAGE_FULL' }); }
   store.createCard({ type: 'link', tool: 'brainly', title: file.name.replace(/\.[^.]+$/, ''), description: '',
     meta: { upload: { fileId, name: file.name, size: file.size, type: file.type || '' }, linkFolderId: lfid, order: links(lfid).length } });
   toast(`Added ${file.name}`);
@@ -365,7 +365,7 @@ async function openUpload(up, download = false) {
 /** SD-F2: PDFs are saved on this device and included in Download data. */
 async function addPdf(file, lfid) {
   if (!file) return;
-  if (file.size > MAX_PDF) return toast(`${file.name} is over 25 MB. Smaller PDFs only, please.`);
+  if (file.size > MAX_PDF) return toast(`${file.name} is over 25 MB. Smaller PDFs only, please.`, { code: 'UPLOAD_TOO_LARGE' });
   const fileId = uuid();
   try { await store.putFile(fileId, file); } catch { return toast('Couldn’t save that PDF on this device.'); }
   store.createCard({ type: 'link', tool: 'brainly', title: file.name.replace(/\.pdf$/i, ''), description: '', meta: { pdf: { fileId, name: file.name, size: file.size }, linkFolderId: lfid, order: links(lfid).length } });
@@ -758,10 +758,10 @@ const docKind = url => Object.entries(DOC_KINDS).find(([, v]) => v.test.test(url
 export function openNote(id, isNew = false) {
   const c = store.getCard(id);
   if (!c) return;
-  const title = h('input', { class: 'field-input title-input', value: isNew ? '' : c.title, placeholder: 'Title', 'aria-label': 'Note title' });
+  const title = h('input', { class: 'field-input title-input', value: isNew ? '' : c.title, placeholder: 'Title', 'aria-label': 'Note title', 'data-navoro-id': 'note.title' });
   withMic(title, { label: 'Dictate the title', subtle: true });
   const emojiBtn = h('button', { class: 'note-emoji lg', 'aria-label': 'Change emoji', onclick: e => pickEmoji(e.currentTarget, v => { store.updateCard(id, { meta: { emoji: v } }); emojiBtn.textContent = v; }) }, c.meta?.emoji || smartEmoji(c.title));
-  const editor = h('div', { class: 'rich-editor', contenteditable: 'true', 'aria-label': 'Note body', role: 'textbox', 'aria-multiline': 'true' });
+  const editor = h('div', { class: 'rich-editor', contenteditable: 'true', 'aria-label': 'Note body', role: 'textbox', 'aria-multiline': 'true', 'data-navoro-id': 'note.body' });
   editor.innerHTML = /<\/?[a-z][\s\S]*>/i.test(c.description || '') ? sanitize(c.description) : (c.description || '').split('\n').map(l => `<div>${escapeHtml(l) || '<br>'}</div>`).join('');
   const cmd = (name, val) => { editor.focus(); document.execCommand(name, false, val); };
   const interim = h('span', { class: 'interim' });
