@@ -51,8 +51,8 @@ export async function roomFor(mb) {
   try {
     const { usage = 0, quota = 0 } = await navigator.storage.estimate();
     if (!quota) return { ok: true };
-    const free = (quota - usage) / 1048576;
-    return { ok: free > mb * 1.5 + 100, freeMb: Math.round(free) };
+    const free = (quota - usage) / 1048576, need = Math.round(mb + 150); // the download plus room to spare for your own data
+    return { ok: free > need, freeMb: Math.round(free), needMb: need };
   } catch { return { ok: true }; }
 }
 

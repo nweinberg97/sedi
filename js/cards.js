@@ -108,6 +108,15 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
   if (hasNotes(card)) el.title = el.title || 'Has notes';
   el.append(deleteButton(card.id), infoButton(onInfo));
   const dup = duplicateButton(card.id, onDuplicate);
+  // On touch screens there's no hover or double-click, so a single tap opens the card.
+  if (!el.dataset.tapOpen) {
+    el.dataset.tapOpen = '1';
+    el.addEventListener('click', e => {
+      if (!matchMedia('(hover: none)').matches) return;
+      if (e.defaultPrevented || e.target.closest('button, a, input, textarea, select, [contenteditable="true"], .resize-handle')) return;
+      onInfo(e);
+    });
+  }
   el.append(h('div', { class: 'card-tools' }, ...(compact ? [] : actions), dup));
   return el;
 }

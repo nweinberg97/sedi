@@ -17,17 +17,18 @@ export function mount(el) {
   weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', onclick: e => openWeatherMenu(e.currentTarget) });
   // SD-H5: one white column with tabs. Next up is the default; Recent activity is the second tab.
   listEl = h('div', { class: 'home-stack' });
-  tabBar = h('div', { class: 'segmented home-tabs', role: 'tablist' });
-  const seeAll = h('button', { class: 'chip ghost see-all-btn', onclick: () => (homeTab() === 'next' ? openNextUpList() : openActivityList()) }, 'See all');
-  root.replaceChildren(h('div', { class: 'home' }, h('div', { class: 'home-col' },
-    h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
+  tabBar = h('div', { class: 'home-tabs quiet-tabs', role: 'tablist' });
+  const seeAll = h('button', { class: 'see-all-btn', onclick: () => (homeTab() === 'next' ? openNextUpList() : openActivityList()) }, 'See all');
+  // Calm and spacious: the time sits on the sky with nothing around it; the date and weather share one quiet line;
+  // what's next reads as a few airy rows rather than a card.
+  root.replaceChildren(h('div', { class: 'home calm' }, h('div', { class: 'home-col' },
+    h('section', { class: 'hero' }, clockTime, h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
     h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl))));
   tickClock();
   timer = setInterval(tickClock, 1000);
   renderWeather();
   loadWeather(false);
   weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
-  glassCleanup = mountLiquidGlass(root.querySelector('.clock-glass'), { refract: false });
   render();
 }
 export function unmount() { clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
@@ -37,7 +38,7 @@ function tickClock() {
   const hh = d.getHours() % 12 || 12;
   clockTime.textContent = `${hh}:${pad(d.getMinutes())}`;
   clockTime.dataset.ampm = d.getHours() < 12 ? 'am' : 'pm';
-  clockDate.textContent = fmtLongDate(d);
+  clockDate.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 // ---------- Next Up + Recent ----------
@@ -145,15 +146,16 @@ function renderWeather() {
   const place = store.pref('coords')?.name;
   if (w?.temp != null) {
     const { emoji, label } = describe(w.code, w.isDay);
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${Math.round(w.temp)}°C ${label}`));
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${Math.round(w.temp)}°`));
+    weatherEl.setAttribute('aria-label', `${Math.round(w.temp)}°C, ${label}`);
     weatherEl.title = `${place ? `${place}. ` : ''}${navigator.onLine ? `Updated ${relTime(w.at)}` : `Offline, last updated ${relTime(w.at)}`}. Click to change location.`;
   } else if (store.pref('weatherState') === 'loading') {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌤️'), h('span', { class: 'muted' }, 'Getting weather…'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, '…'));
   } else if (store.pref('weatherState') === 'error') {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌡️'), h('span', {}, 'Weather unavailable'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, 'Add weather'));
     weatherEl.title = 'Click to try again or set your city';
   } else {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '📍'), h('span', {}, 'Set your city for weather'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, 'Add weather'));
     weatherEl.title = 'Choose a city, or use your location';
   }
 }

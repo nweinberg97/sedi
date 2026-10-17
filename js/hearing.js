@@ -17,7 +17,10 @@ export const HEARING_MODELS = {
   fast: { id: 'onnx-community/moonshine-base-ONNX', label: 'Fast', size: 'about 60–120 MB', mb: 130, englishOnly: true },
   light: { id: 'onnx-community/whisper-base', label: 'Light', size: 'about 80–150 MB', mb: 160 },
 };
-export const hearingModelKey = () => store.pref('hearingModel') || (isSmallDevice() ? 'light' : 'accurate');
+// The first conversation should start quickly: English speakers on a computer get Moonshine ("Fast", the smallest
+// download); everyone else gets Whisper Base. "Accurate" is one tap away in Voice and hearing.
+const english = () => (navigator.language || 'en').toLowerCase().startsWith('en');
+export const hearingModelKey = () => store.pref('hearingModel') || (!isSmallDevice() && english() ? 'fast' : 'light');
 export const hearingModel = () => HEARING_MODELS[hearingModelKey()] || HEARING_MODELS.accurate;
 /** True once the chosen model has been downloaded on this device. */
 export const hearingDownloaded = () => store.pref('hearingReady') === hearingModel().id;
@@ -63,7 +66,7 @@ export function prepareHearing() {
     // Model files go to the browser's Cache Storage, not IndexedDB. Check there's room first (a no-op once cached).
     if (!hearingDownloaded()) {
       const room = await roomFor(m.mb);
-      if (!room.ok) throw new Error(`Not enough browser storage for the private voice (about ${m.mb} MB needed, ${room.freeMb} MB free).`);
+      if (!room.ok) throw new Error(`Not enough browser storage for the private voice: it needs about ${room.needMb} MB free, and ${room.freeMb} MB is available.`);
     }
     const w = voiceWorker();
     await new Promise((resolve, reject) => {

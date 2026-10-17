@@ -28,7 +28,7 @@ let spokeAlready = false;
 export function buildAssistant() {
   token = h('button', { class: 'assistant-token', 'aria-label': 'Talk to Sedi (⌘K to type)', 'aria-expanded': 'false' }, icon('atom'));
   output = h('div', { class: 'as-output', 'aria-live': 'polite' });
-  input = h('input', { class: 'as-input', placeholder: 'Type a message, or a change like “move passport to in progress”', 'aria-label': 'Message the assistant' });
+  input = h('input', { class: 'as-input', placeholder: 'Ask, or tell Sedi what to change', 'aria-label': 'Message the assistant' });
   statusEl = h('span', { class: 'as-status' });
   earsChip = h('span', { class: 'as-ears' });
   orb = h('button', { class: 'as-orb', type: 'button', 'aria-label': 'Talk', onclick: onOrb }, h('span', { class: 'as-orb-ring' }), prepDots(), h('span', { class: 'as-orb-core' }, icon('mic')));
@@ -57,7 +57,14 @@ export function buildAssistant() {
     if (e.key === ' ' && !tray.hidden && tray.dataset.view === 'voice' && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && !e.target.isContentEditable) { e.preventDefault(); onOrb(); }
   });
   document.addEventListener('pointerdown', e => { if (!tray.hidden && !tray.contains(e.target) && !token.contains(e.target) && !e.target.closest('.modal-backdrop, .toast, .popover')) toggle(false); });
-  return h('div', { class: 'assistant' }, tray, token);
+  // First visit only: a quiet hint by the atom, so people discover they can just talk.
+  const hint = store.pref('voiceHintSeen') ? null : h('button', { class: 'atom-hint', type: 'button', onclick: () => { hint.remove(); store.setPref('voiceHintSeen', true); toggle(true); } },
+    h('b', {}, 'Tap and talk'), h('span', {}, '“Add a task to call mom”'), h('i', { 'aria-hidden': 'true' }));
+  if (hint) {
+    token.addEventListener('pointerdown', () => { hint.remove(); store.setPref('voiceHintSeen', true); }, { once: true });
+    setTimeout(() => hint.classList.add('in'), 1800);
+  }
+  return h('div', { class: 'assistant' }, tray, token, hint);
 }
 
 function paintStatus() {
@@ -346,7 +353,7 @@ function startListening({ followUp = false } = {}) {
 const SEARCH_STOP = new Set(('the and for what how are any about with my me show find search look looking did have has had is was were where which who when does do can you please sedi '
   + 'anything something everything all write wrote written saved save related regarding info information there that this those these from into stuff thing things '
   + 'notes note cards card tasks task items item links link goals goal reminders reminder events event list lists got get').split(' '));
-const stem = w => w.replace(/(?:ies)$/, 'y').replace(/(?:ing|ed|es|s)$/, '');
+const stem = w => w.replace(/(?:ies)$/, 'y').replace(/(?:ing|ed|es|s)$/, '').replace(/([b-df-hj-np-tv-z])\1$/, '$1'); // running → run
 /** Rank your cards for a question. Words like "notes" or "tasks" narrow the search to that kind instead of matching titles. */
 function search(q, n = 5) {
   const lower = q.toLowerCase();
@@ -421,7 +428,7 @@ async function answer(q, { voice = false } = {}) {
   if (/\b(next|today|agenda|schedule|plan for|on my plate)\b/.test(lower)) {
     const items = nextUpItems(5);
     text = items.length ? `Here’s what’s next:\n${items.map(i => `- ${i.card.title} (${i.label})`).join('\n')}` : 'Nothing is lined up. Your To do column and today’s schedule are clear.';
-    say(h('div', {}, renderText(text), items.length ? itemList(items.map(i => i.card)) : null));
+    say(h('div', {}, h('p', {}, items.length ? 'Here’s what’s next:' : text), items.length ? itemList(items.map(i => i.card)) : null));
     return text;
   }
   if (/\b(summary|overview|status|how many|counts?)\b/.test(lower)) {
@@ -613,7 +620,7 @@ function cancelPending(silent = false) {
   const { text, labels, box, voice: pendingVoice } = pending;
   pending = null;
   store.appendCommandLog({ text, action: labels.join('; '), result: 'cancelled' });
-  box.replaceChildren(h('p', { class: 'muted' }, silent ? 'Skipped.' : 'Cancelled.'));
+  box.replaceChildren(h('p', { class: 'muted' }, silent ? 'Not done, since you moved on. Say it again if you still want it.' : 'Cancelled.'));
   if (!silent && pendingVoice) talkBack('Okay, I won’t.');
 }
 

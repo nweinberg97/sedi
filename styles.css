@@ -2903,3 +2903,108 @@ textarea.field-input { min-height: 0; }
 @media (max-width: 520px) { .vs-group.vs-row { grid-template-columns: 1fr; } }
 .vs-group.vs-row { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 620px) { .vs-group.vs-row { grid-template-columns: 1fr; } }
+
+/* =====================================================================
+   Navigator handle: out of the way until you want it.
+   Open: it's hidden, and fades in as a small glass pill when you hover the tool column.
+   Closed: a slim glass edge that grows into the pill on hover, so the tools are always one tap away.
+   ===================================================================== */
+.navigator-trigger {
+  width: 22px; height: 44px; border-radius: 11px; display: grid; place-items: center; align-self: center;
+  background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(14px) saturate(1.6); backdrop-filter: blur(14px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.85); box-shadow: 0 1px 2px rgba(17, 17, 17, 0.05), 0 6px 16px -10px rgba(30, 50, 90, 0.45);
+  opacity: 0; transform: translateX(4px); transition: opacity 0.2s ease, transform 0.25s var(--ease), width 0.25s var(--ease), height 0.25s var(--ease), background 0.15s;
+}
+.navigator .tri {
+  width: 8px; height: 12px; background: var(--ink-2); transform: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='M2 1.5 L6.5 6 L2 10.5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpath d='M2 1.5 L6.5 6 L2 10.5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.navigator:not(.open) .tri { background: var(--ink-2); transform: scaleX(-1); }
+.navigator.open .tri { transform: none; }
+.navigator.open:hover .navigator-trigger, .navigator-trigger:focus-visible { opacity: 1; transform: none; }
+.navigator-trigger:hover { background: #fff; }
+.navigator-trigger:hover .tri { background: var(--ink); }
+/* closed: a slim glass edge */
+.navigator:not(.open) .navigator-trigger { opacity: 0.75; width: 6px; height: 56px; border-radius: 3px; transform: none; }
+.navigator:not(.open) .navigator-trigger .tri { opacity: 0; transition: opacity 0.15s; }
+.navigator:not(.open):hover .navigator-trigger { opacity: 1; width: 22px; height: 44px; border-radius: 11px; }
+.navigator:not(.open):hover .navigator-trigger .tri { opacity: 1; }
+/* a little reach area so the edge is easy to find with the pointer */
+.navigator:not(.open)::before { content: ""; position: absolute; right: -8px; top: 50%; width: 36px; height: 96px; translate: 0 -50%; }
+@media (hover: none) { .navigator.open .navigator-trigger { opacity: 0.8; transform: none; } }
+
+/* =====================================================================
+   Home, calm and spacious. The time rests on the sky with no box around it, the date and weather
+   share one quiet line, and what's next reads as a few airy rows between two hairlines.
+   ===================================================================== */
+.home.calm { gap: 0; padding-bottom: 8vh; }
+.home.calm .home-col { gap: 44px; width: min(520px, calc(100vw - 48px)); }
+.home.calm .hero { gap: 6px; margin: 0; }
+.home.calm .clock-time {
+  font-size: clamp(88px, 12vw, 156px); font-weight: 200; letter-spacing: -0.045em; line-height: 0.95;
+  color: rgba(14, 32, 58, 0.9); font-variant-numeric: tabular-nums; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.home.calm .clock-time::after { font-size: 0.18em; font-weight: 400; letter-spacing: 0.02em; color: rgba(14, 32, 58, 0.5); margin-left: 0.3em; vertical-align: 0.62em; }
+.home.calm .hero-line { display: flex; align-items: center; justify-content: center; gap: 10px; color: rgba(14, 32, 58, 0.62); font-size: var(--fs-md); letter-spacing: 0.01em; }
+.home.calm .clock-date { font-size: inherit; font-weight: 500; color: inherit; }
+.home.calm .hero-dot { opacity: 0.6; }
+.home.calm .weather { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; margin: 0 -8px; border-radius: var(--r-pill); background: transparent; color: inherit; font: inherit; font-weight: 500; box-shadow: none; border: 0; height: auto; }
+.home.calm .weather:hover { background: rgba(255, 255, 255, 0.35); }
+.home.calm .weather .muted { color: inherit; opacity: 0.8; }
+.home.calm .wx-emoji { font-size: 1.05em; }
+
+.home.calm .home-panel { width: 100%; min-width: 0; background: transparent; box-shadow: none; padding: 0; border-radius: 0; }
+.home.calm .home-panel-head { padding: 0 4px 10px; }
+.quiet-tabs { display: flex; gap: 16px; }
+.quiet-tabs button { padding: 2px 0; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(14, 32, 58, 0.42); background: none; border: 0; border-radius: 0; height: auto; transition: color 0.15s; }
+.quiet-tabs button:hover { color: rgba(14, 32, 58, 0.7); }
+.quiet-tabs button.on { color: rgba(14, 32, 58, 0.88); background: none; box-shadow: none; }
+.home.calm .see-all-btn { font-size: var(--fs-xs); font-weight: 500; color: rgba(14, 32, 58, 0.5); padding: 2px 0; background: none; border: 0; height: auto; }
+.home.calm .see-all-btn:hover { color: rgba(14, 32, 58, 0.85); }
+.home.calm .home-stack { gap: 0; border-top: 1px solid rgba(14, 32, 58, 0.12); border-bottom: 1px solid rgba(14, 32, 58, 0.12); }
+.home.calm .home-card {
+  min-height: 56px; padding: 10px 8px 10px 4px; gap: 14px; border-radius: 0; background: transparent; border: 0;
+  border-bottom: 1px solid rgba(14, 32, 58, 0.07); transition: background 0.2s ease, padding 0.2s ease;
+}
+.home.calm .home-card:last-child { border-bottom: 0; }
+.home.calm .home-card:hover { background: rgba(255, 255, 255, 0.34); padding-left: 10px; border-radius: 14px; }
+.home.calm .home-card .type-icon { color: rgba(14, 32, 58, 0.45); width: 16px; height: 16px; }
+.home.calm .home-card-title { font-size: var(--fs-md); color: rgba(14, 32, 58, 0.9); font-weight: 450; }
+.home.calm .home-card .card-snippet { color: rgba(14, 32, 58, 0.5); font-size: var(--fs-xs); }
+.home.calm .home-card-label { color: rgba(14, 32, 58, 0.55); font-size: var(--fs-sm); }
+.home.calm .home-card > .icon-btn { opacity: 0; transition: opacity 0.15s; color: rgba(14, 32, 58, 0.6); }
+.home.calm .home-card:hover > .icon-btn, .home.calm .home-card:focus-within > .icon-btn { opacity: 1; }
+.home.calm .home-empty { padding: 18px 4px; color: rgba(14, 32, 58, 0.55); text-align: center; }
+@media (hover: none) { .home.calm .home-card > .icon-btn { opacity: 0.7; } }
+@media (max-width: 700px) {
+  .home.calm .home-col { gap: 28px; }
+  .home.calm .clock-time { font-size: 84px; }
+}
+.home.calm .home-card { position: relative; }
+.home.calm .home-card > .icon-btn { position: absolute; right: 4px; top: 50%; translate: 0 -50%; }
+.home.calm .home-card-label { transition: margin 0.2s ease; }
+.home.calm .home-card:hover .home-card-label, .home.calm .home-card:focus-within .home-card-label { margin-right: 30px; }
+@media (hover: none) { .home.calm .home-card-label { margin-right: 30px; } }
+
+/* Moving an item on the day: a soft outline shows exactly where it will land, with its new time. */
+.slot-ghost.moving { background: color-mix(in srgb, var(--timely) 12%, transparent); border: 1.5px dashed color-mix(in srgb, var(--timely) 70%, white); border-radius: 10px; z-index: 5; }
+.slot-ghost.moving .slot-ghost-pill svg { display: none; }
+/* No accidental text selection while dragging across the calendar or the boards */
+body.is-dragging, body.is-dragging * { user-select: none !important; -webkit-user-select: none !important; }
+.week-cell, .month-cell, .event-block, .t-chip, .tile, .task-card { -webkit-user-select: none; user-select: none; }
+[contenteditable="true"], [contenteditable="true"] * { -webkit-user-select: text !important; user-select: text !important; }
+.slot-ghost.moving { display: flex; justify-content: flex-end; align-items: flex-start; } .slot-ghost.moving .slot-ghost-pill { margin: 4px 6px 0 auto; background: var(--timely); color: #fff; }
+
+/* First-visit hint by the atom */
+.atom-hint {
+  position: fixed; left: 50%; bottom: 112px; translate: -50% 8px; z-index: 47; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.9); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.85); box-shadow: 0 18px 40px -22px rgba(30, 50, 90, 0.55); color: var(--ink); opacity: 0;
+  transition: opacity 0.4s ease, translate 0.5s cubic-bezier(.2, .9, .25, 1.15); pointer-events: none;
+}
+.atom-hint.in { opacity: 1; translate: -50% 0; pointer-events: auto; }
+.atom-hint b { font-size: var(--fs-sm); font-weight: 600; }
+.atom-hint span { font-size: var(--fs-xs); color: var(--muted); }
+.atom-hint i { position: absolute; bottom: -6px; left: 50%; width: 12px; height: 12px; translate: -50% 0; rotate: 45deg; background: inherit; border-right: 1px solid rgba(255, 255, 255, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.85); }
+@media (max-width: 700px) { .atom-hint { left: auto; right: 14px; translate: 0 8px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 84px); } .atom-hint.in { translate: 0 0; } .atom-hint i { left: auto; right: 22px; translate: 0 0; } }

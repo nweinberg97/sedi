@@ -48,12 +48,15 @@ export function listen(opts = {}) {
   // Private by default: when the on-device ears are the ones to use, dictation goes through them too.
   if (earsNow() === 'device' && !transcriber()) {
     const { onInterim, onFinal, onEnd, onError } = opts;
-    const s = hearOnce({
-      onStatus: t => onInterim?.(t), onSpeech: () => onInterim?.('Listening…'),
-      onFinal: t => onFinal?.(t), onError, onEnd: () => onEnd?.(),
-    });
-    onInterim?.('Listening…');
-    return { stop() { s.stop(); } };
+    let s = null, stopped = false;
+    const go = () => {
+      if (stopped) return onEnd?.();
+      s = hearOnce({ onFinal: t => onFinal?.(t), onError, onEnd: () => onEnd?.(), onStatus: t => opts.onStatus?.(t) });
+    };
+    // First time only: say why there's a download before it starts (the same promise the assistant makes).
+    if (voiceNeedsConsent()) askVoiceConsent().then(ok => (ok ? go() : (stopped = true, onEnd?.())));
+    else go();
+    return { stop() { stopped = true; s?.stop(); } };
   }
   return listenBrowser(opts);
 }
@@ -194,7 +197,7 @@ export function prepareNaturalVoice() {
   ttsLoading = (async () => {
     if (!store.pref('naturalReady')) {
       const room = await roomFor(140);
-      if (!room.ok) throw new Error(`Not enough browser storage for the natural voice (about 140 MB needed, ${room.freeMb} MB free).`);
+      if (!room.ok) throw new Error(`Not enough browser storage for the natural voice: it needs about ${room.needMb} MB free, and ${room.freeMb} MB is available.`);
     }
     // Kokoro runs in the voice worker, so speaking never makes the page stutter.
     await new Promise((resolve, reject) => {
@@ -308,6 +311,27 @@ export const stopSpeaking = () => {
   try { playing?.stop(); } catch {} playing = null;
 };
 export const isSpeaking = () => !!talk;
+
+// ---------- First-time consent for the private voice download ----------
+import { hearingDownloaded, hearingModel } from './hearing.js';
+import { modal, h } from './util.js';
+export const voiceNeedsConsent = () => earsNow() === 'device' && hearingState().status !== 'ready' && !hearingDownloaded() && store.pref('voiceSetupOk') !== hearingModel().id;
+export function askVoiceConsent() {
+  return new Promise(resolve => {
+    let answered = false;
+    modal({
+      title: 'Private voice',
+      body: h('div', { class: 'voice-consent' },
+        h('p', {}, `Sedi turns your speech into text right here on this device, so nothing you say is sent anywhere. The first time, it downloads an open speech model (${hearingModel().size}). After that it works offline.`),
+        h('p', { class: 'muted small' }, 'Only the words are kept. Each recording lives briefly in memory and is wiped as soon as it’s turned into text.')),
+      actions: [
+        { label: 'Not now', kind: 'ghost', onClick: () => { answered = true; resolve(false); } },
+        { label: 'Set up private voice', kind: 'primary', onClick: () => { answered = true; store.setPref('voiceSetupOk', hearingModel().id); resolve(true); } },
+      ],
+      onClose: () => { if (!answered) resolve(false); },
+    });
+  });
+}
 
 // ---------- Hearing one utterance (the assistant's ears) ----------
 import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange, isSmallDevice, voiceWorker, onWorker } from './hearing.js';

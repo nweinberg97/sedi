@@ -7,7 +7,7 @@ import {
   h, icon, uuid, clamp, toast, modal, editInline, download, popover, closePopovers, hashStr,
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
 } from './util.js';
-import { registerDrop } from './dnd.js';
+import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet, withMic } from './cards.js';
 import { todoCards, todoCapacity, completeTask } from './taskly.js';
 import { tick, checkSound } from './sound.js';
@@ -289,17 +289,27 @@ function renderDay() {
     grid.append(ghost);
     const slotAt = e => clamp(Math.floor(((e.clientY - grid.getBoundingClientRect().top) / hourH) * 2) * 30, 0, 23 * 60 + 30);
     grid.addEventListener('pointermove', e => {
+      if (document.body.classList.contains('is-dragging') || resizing) return; // the drag preview owns the ghost then
       const onEmpty = e.target === grid || e.target.classList.contains('hour-row') || e.target.closest('.slot-ghost');
-      if (!onEmpty || document.body.classList.contains('is-dragging')) { ghost.hidden = true; return; }
+      if (!onEmpty) { ghost.hidden = true; return; }
       const start = slotAt(e);
       ghost.hidden = false;
       ghost.style.top = (start / 60) * hourH + 'px';
       ghost.style.height = hourH / 2 + 'px';
       ghost.querySelector('.slot-ghost-time').textContent = `Add at ${fmtMinutes(start)}`;
     });
-    grid.addEventListener('pointerleave', () => { ghost.hidden = true; });
+    grid.addEventListener('pointerleave', () => { if (!document.body.classList.contains('is-dragging')) ghost.hidden = true; });
+    // Adding is a deliberate click on an empty spot: press and release in place. Letting go after a drag or a
+    // resize (which the browser also reports as a click) never starts a new event.
+    let press = null;
+    grid.addEventListener('pointerdown', e => {
+      const onEmpty = e.target === grid || e.target.classList.contains('hour-row') || e.target.closest('.slot-ghost');
+      press = onEmpty && e.button === 0 ? { x: e.clientX, y: e.clientY, t: Date.now() } : null;
+    });
     grid.addEventListener('click', e => {
       if (e.target !== grid && !e.target.classList.contains('hour-row') && !e.target.closest('.slot-ghost')) return;
+      const p = press; press = null;
+      if (!p || Date.now() - lastMoveEnd < 450 || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6 || Date.now() - p.t > 700) return;
       ghost.hidden = true;
       addAt(slotAt(e));
     });
@@ -334,6 +344,7 @@ function eventBlock(c, hourH, key, done) {
   // Resize in 15-minute steps.
   el.querySelector('.resize-handle').addEventListener('pointerdown', e => {
     e.stopPropagation(); e.preventDefault();
+    resizing = true;
     const sy = e.clientY, sd = dur;
     const move = ev => {
       const nd = clamp(Math.round((sd + ((ev.clientY - sy) / hourH) * 60) / 15) * 15, 15, 24 * 60 - m.start);
@@ -343,6 +354,7 @@ function eventBlock(c, hourH, key, done) {
     };
     const up = () => {
       removeEventListener('pointermove', move); removeEventListener('pointerup', up);
+      resizing = false; lastMoveEnd = Date.now();
       if (el.dataset.nd && +el.dataset.nd !== dur) store.updateCard(c.id, { meta: { dur: +el.dataset.nd } });
     };
     addEventListener('pointermove', move); addEventListener('pointerup', up);
@@ -436,6 +448,37 @@ registerDrop('day-plan', ({ id, index }) => {
   if (!(c.tool === 'taskly' && c.meta?.columnId === 'todo') && todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full.'); return false; }
   routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'todo', order: index ?? 0 }, log: 'Added to today’s plan' });
   reorder(todoCards(), id, index);
+});
+
+// ---------- Moving things on the day: see exactly where it will land ----------
+let resizing = false, lastMoveEnd = 0, preview = null;
+onDragStart(d => {
+  if (d.kind !== 'card') return;
+  const c = store.getCard(d.id);
+  const dur = isSched(c) && c.meta.dur ? c.meta.dur : 60;
+  const move = () => {
+    const grid = document.querySelector('.day-grid');
+    const ghost = grid?.querySelector('.slot-ghost');
+    if (!grid || !ghost) return;
+    const r = grid.getBoundingClientRect(), sr = grid.parentElement.getBoundingClientRect();
+    const inside = d.x >= r.left && d.x <= r.right && d.y >= sr.top && d.y <= sr.bottom;
+    if (!inside) { ghost.hidden = true; ghost.classList.remove('moving'); return; }
+    const hourH = parseFloat(getComputedStyle(grid).getPropertyValue('--hour')) || 48;
+    const start = clamp(Math.round((((d.y - d.gy - r.top) / hourH) * 60) / 15) * 15, 0, 24 * 60 - 15);
+    ghost.hidden = false; ghost.classList.add('moving');
+    ghost.style.top = (start / 60) * hourH + 'px';
+    ghost.style.height = Math.max(20, (dur / 60) * hourH - 2) + 'px';
+    ghost.querySelector('.slot-ghost-time').textContent = `${fmtMinutes(start)}–${fmtMinutes(start + dur)}`;
+  };
+  preview = { move };
+  addEventListener('pointermove', move);
+});
+onDragEnd(() => {
+  lastMoveEnd = Date.now();
+  if (!preview) return;
+  removeEventListener('pointermove', preview.move);
+  preview = null;
+  document.querySelectorAll('.day-grid .slot-ghost').forEach(g => { g.hidden = true; g.classList.remove('moving'); });
 });
 
 // Scheduling drop zones
