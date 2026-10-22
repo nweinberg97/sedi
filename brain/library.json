@@ -1,158 +1,37 @@
 {
-  "version": 1,
-  "status": "draft",
-  "note": "Book notes for Sedi. Original summaries written in our own words, with no quotations. Each sheet credits its author and recommends reading the book. Sedi is not affiliated with any author or publisher. Draft: check each sheet against the book before publishing.",
+  "version": 2,
+  "series": "By Design",
   "books": [
     {
-      "id": "atomic-habits",
-      "emoji": "⚛️",
-      "title": "Atomic Habits",
-      "author": "James Clear",
-      "year": 2018,
-      "bigIdea": "Small habits compound. Instead of chasing big goals, build systems of tiny, repeatable actions, and let them shape who you believe you are.",
-      "ideas": [
-        "Systems over goals: winners and losers often share the same goal. What differs is the daily process.",
-        "Identity first: aim to become the kind of person who does the thing (“I’m a runner”), and let each repetition be a vote for that identity.",
-        "Four laws of behavior change: make a habit obvious, attractive, easy and satisfying. To break one, do the opposite: invisible, unattractive, difficult, unsatisfying.",
-        "Habit stacking: attach a new habit to one you already do. “After I pour my coffee, I’ll write one sentence.”",
-        "The two-minute rule: shrink a new habit until it takes two minutes or less, then let it grow.",
-        "Never miss twice: missing once is an accident; missing twice is the start of a new pattern."
-      ],
-      "tryThis": "Pick one habit you want. Write one line: “After I [current habit], I will [new habit, two-minute version].” Do it today.",
-      "inSedi": "Add it as a Routine in Timely so it shows up every day, and tick it off to keep the streak visible."
-    },
-    {
-      "id": "tiny-habits",
-      "emoji": "🌱",
-      "title": "Tiny Habits",
-      "author": "BJ Fogg",
-      "year": 2019,
-      "bigIdea": "Behavior happens when motivation, ability and a prompt meet at the same moment. Since motivation is unreliable, design for ability: make the habit so small you can do it on your worst day.",
-      "ideas": [
-        "The behavior model: a behavior happens when Motivation, Ability and a Prompt come together (B = MAP).",
-        "Start tiny: one push-up, one flossed tooth, one line in a journal. Small is easy, and easy repeats.",
-        "Anchor moments: place the new habit right after something you already do, which becomes the prompt.",
-        "Celebrate immediately: a quick feeling of success right after the action is what wires the habit in.",
-        "Match yourself with behaviors you actually want and can do, instead of ones you think you should."
-      ],
-      "tryThis": "Write a tiny habit recipe: “After I [anchor], I will [tiny behavior].” Right after you do it, celebrate in a way that feels real to you, like a fist pump or a quiet “yes”.",
-      "inSedi": "Put the recipe on your Health board in Boardly as a task card. When you tick it, let the little check sound be your celebration."
-    },
-    {
-      "id": "indistractable",
-      "emoji": "🎯",
-      "title": "Indistractable",
-      "author": "Nir Eyal",
-      "year": 2019,
-      "bigIdea": "Distraction is less about phones and more about escaping discomfort. Manage the feelings that pull you away, plan your time on purpose, and make the rest harder to reach.",
-      "ideas": [
-        "Traction is any action that moves you toward what you intend; distraction is any action that pulls you away from it.",
-        "Most distraction starts with an internal trigger: boredom, anxiety, uncertainty. Notice the feeling before you act on it.",
-        "Make time for traction: timebox your calendar around your values, so you know what you meant to be doing.",
-        "Hack back external triggers: turn off or remove the pings, notifications and interruptions that don’t serve you.",
-        "Use pacts to prevent distraction in advance, such as effort pacts (add friction), price pacts (put something at stake) and identity pacts (“I’m someone who…”)."
-      ],
-      "tryThis": "Next time you reach for your phone mid-task, pause and name the feeling first. Wait ten minutes before acting on it.",
-      "inSedi": "Use Timely’s day view to timebox tomorrow, including time for rest and people, not just work."
-    },
-    {
-      "id": "feel-good-productivity",
-      "emoji": "☀️",
-      "title": "Feel-Good Productivity",
-      "author": "Ali Abdaal",
-      "year": 2023,
-      "bigIdea": "Feeling good isn’t the reward for productivity; it’s the fuel. Bring more play, power and people into your work, clear what’s blocking you, and protect your energy so it lasts.",
-      "ideas": [
-        "Three energizers: play (curiosity and lightness), power (a sense of competence and control) and people (doing things with others).",
-        "Three blockers: uncertainty (not knowing why or what), fear (of failing or being judged) and inertia (not knowing how to start).",
-        "Three kinds of burnout to watch for: overexertion (doing too much), depletion (not recharging) and misalignment (doing what doesn’t fit you).",
-        "Lower the stakes: treating a task as an experiment, not a test, makes it easier to begin."
-      ],
-      "tryThis": "Take the task you’ve been avoiding and ask: which blocker is it, uncertainty, fear or inertia? Write one sentence that removes that blocker.",
-      "inSedi": "Move the task into Taskly’s To do with that one sentence in its details, so the next step is clear when you open it."
-    },
-    {
-      "id": "the-fun-habit",
-      "emoji": "🎈",
-      "title": "The Fun Habit",
-      "author": "Mike Rucker",
-      "year": 2023,
-      "bigIdea": "Fun isn’t frivolous. It’s a real part of wellbeing, and like any other habit, it can be planned and practiced instead of left to chance.",
-      "ideas": [
-        "Many of us treat fun as what happens after the work is done, so it rarely happens.",
-        "Look at where your time actually goes and how each part makes you feel; it’s often surprising.",
-        "Make room for fun deliberately, as you would for anything else that matters.",
-        "Novelty, play and doing things with other people tend to make experiences more enjoyable.",
-        "Small doses count: fun doesn’t need a holiday to be worth it."
-      ],
-      "tryThis": "Write down three things that reliably make you lose track of time in a good way. Put one of them on this week’s calendar.",
-      "inSedi": "Add it to Timely as an event with a real time, not an “if I have time” note."
-    },
-    {
-      "id": "the-organized-mind",
-      "emoji": "🗂️",
-      "title": "The Organized Mind",
-      "author": "Daniel J. Levitin",
-      "year": 2014,
-      "bigIdea": "Your attention and working memory are limited, and modern life overloads both. Move information out of your head into trusted external systems so your mind can focus.",
-      "ideas": [
-        "Offload: anything you’re trying to remember competes for limited attention. Write it down somewhere you trust.",
-        "Give things a home: designated places for physical items (keys, wallet) and for information save repeated searching.",
-        "Switching attention has a cost: multitasking feels productive but drains energy and adds errors.",
-        "Group similar decisions and tasks together to reduce the toll of constant small choices.",
-        "Let your mind wander on purpose: daydreaming and breaks help the brain recover and connect ideas."
-      ],
-      "tryThis": "Do a five-minute brain dump: write every open loop on your mind, without sorting. Then put each one in a single trusted place.",
-      "inSedi": "Dump everything onto the Universal Board, then drag each card to where it belongs: Taskly for to-dos, Timely for dated things, Brainly for ideas."
-    },
-    {
-      "id": "blue-zones-of-happiness",
-      "emoji": "🌍",
-      "title": "The Blue Zones of Happiness",
-      "author": "Dan Buettner",
-      "year": 2017,
-      "bigIdea": "The happiest places in the world shape their surroundings so that wellbeing is the easy default. Lasting happiness comes from pleasure, purpose and pride, built into your environment rather than relying on willpower.",
-      "ideas": [
-        "Three strands of happiness: pleasure (enjoying your days), purpose (meaning and living your values) and pride (satisfaction with your life as a whole).",
-        "Design your surroundings: community, workplace, home, social circle and finances shape happiness more than one-off efforts do.",
-        "Spend time with people who lift you up; happiness spreads through social circles.",
-        "Small environment changes (where you live, how you commute, what’s in your home) add up over years."
-      ],
-      "tryThis": "Pick one of the three strands that feels thin right now. Write one small change to your surroundings that would feed it.",
-      "inSedi": "Give each strand its own board in Boardly and set one goal on each."
-    },
-    {
-      "id": "designing-your-work-life",
-      "emoji": "🛠️",
-      "title": "Designing Your Work Life",
-      "author": "Bill Burnett and Dave Evans",
-      "year": 2020,
-      "bigIdea": "You can use design thinking to make the job you have better before deciding to leave it: reframe stuck beliefs, run small experiments, and aim for “good enough for now” instead of perfect.",
-      "ideas": [
-        "Reframe dysfunctional beliefs: “this job is terrible” becomes a question you can work on.",
-        "Good enough for now: accept that work is never finished or perfect, and keep improving it in small steps.",
-        "Prototype changes with low-risk experiments and conversations before making big moves.",
-        "Know what work means to you, so you can tell whether a role fits.",
-        "If you do leave, quit well: it protects your relationships and your reputation."
-      ],
-      "tryThis": "Write the one belief about your work that feels most stuck. Rewrite it as a question that starts with “How might I…?”.",
-      "inSedi": "Make that question a project in Timely’s Planning view and add one small experiment as its first task."
-    },
-    {
-      "id": "the-leading-brain",
-      "emoji": "🧠",
-      "title": "The Leading Brain",
-      "author": "Friederike Fabritius and Hans W. Hagemann",
-      "year": 2017,
-      "bigIdea": "Brain science gives practical rules for doing your best work: find the right level of challenge, manage emotions instead of suppressing them, and protect focus.",
-      "ideas": [
-        "There’s a performance sweet spot: too little challenge and you’re bored, too much and you freeze. Adjust the task or the stakes to reach it.",
-        "Reappraisal beats suppression: changing how you interpret a situation calms emotions better than pushing them down.",
-        "Focus is a limited resource; protect stretches of uninterrupted time for demanding work.",
-        "People differ in when and how they work best, so build work around those patterns where you can."
-      ],
-      "tryThis": "Rate today’s main task from 1 (bored) to 10 (overwhelmed). If it’s under 4, add a challenge or a deadline. If it’s over 7, break it into smaller steps.",
-      "inSedi": "Break an overwhelming task into small steps as a project in Timely’s Planning view."
+      "id": "tiny-habits", "emoji": "🌱", "title": "Tiny Habits", "author": "BJ Fogg", "year": 2019, "publisher": "Houghton Mifflin Harcourt",
+      "discipline": "Behavior design",
+      "about": "A practical method for changing behavior by starting very small, from the founder of Stanford's Behavior Design Lab.",
+      "authorBio": "BJ Fogg, PhD, founded the Behavior Design Lab at Stanford University.",
+      "principle": { "name": "Design for low motivation", "body": "Motivation rises and falls through the day. When we're tired, it's the first thing to go. A behavior designed to work on your lowest-energy day is far more likely to happen: make it easy, make it visible, anchor it, and make it feel rewarding." },
+      "framework": {
+        "name": "The Fogg Behavior Model", "formula": "B = MAP",
+        "intro": "A behavior happens when **Motivation**, **Ability** and a **Prompt** come together at the same moment. To design for a behavior, pull on those three levers.",
+        "parts": [
+          { "name": "Motivation", "tagline": "How much you want to do it", "what": "Shaped by what you already want, by rewards, by consequences, and by what people around you are doing.", "how": ["Celebrate right after the behavior so it feels good", "Match people with behaviors they already want"], "examples": [{ "label": "Physical", "text": "Confetti at the marathon finish line" }, { "label": "Digital", "text": "A badge after someone's first contribution" }, { "label": "Experience", "text": "Stairs that play a note with every step" }] },
+          { "name": "Ability", "tagline": "How easy it is to do", "what": "Behaviors get hard through complexity, effort, unfamiliarity, unclear instructions, missing resources or social risk.", "how": ["**Make it less hard:** remove friction, or make it the default", "**Make it easier:** shrink the action or break it into smaller steps"], "examples": [{ "label": "Physical", "text": "Seats in small circles so talking is natural" }, { "label": "Digital", "text": "A one-tap poll instead of a blank reply box" }, { "label": "Experience", "text": "One-word intros to break the ice" }] },
+          { "name": "Prompt", "tagline": "What reminds you to do it, right now", "what": "Fogg sorts prompts into three kinds: **person** prompts (a feeling or body signal), **context** prompts (something in the environment) and **action** prompts (a behavior you already do).", "how": ["**Anchor it:** attach the new behavior to something people already do", "**Make it visible:** put the cue where it can't be missed"], "examples": [{ "label": "Physical", "text": "A sign on the café door: “Joining the run?”" }, { "label": "Digital", "text": "“How do you want to show up today?” right after login" }, { "label": "Experience", "text": "Grab a coloured badge, find someone with the same colour" }] }
+        ],
+        "note": "Motivation is the least reliable lever. When designing, start with ability and prompts."
+      },
+      "system": {
+        "name": "The Tiny Design Test", "intro": "Run any idea through five levers.",
+        "steps": [
+          { "name": "Make it easy", "detail": "Shrink the action or lower the stakes." },
+          { "name": "Make it less hard", "detail": "Remove effort and barriers." },
+          { "name": "Make it visible", "detail": "Put cues in the environment so it's always in view." },
+          { "name": "Anchor a prompt", "detail": "Tie it to something people already do." },
+          { "name": "Celebrate completion", "detail": "Make finishing feel rewarding." }
+        ],
+        "example": { "title": "Café run club", "items": ["**Easy:** shorten the run from 5 km to 1 km", "**Less hard:** a QR code on the door for quick sign-up", "**Anchor:** the sign on the exit reminds people as they leave", "**Visible:** posters show the start time, route and social fun", "**Celebrate:** a big group cheer at the finish"] }
+      },
+      "reflect": ["How will you use this model to shape behavior for the better?", "How could you design for joy? For calm? For connection?"],
+      "practice": { "time": "30 min", "steps": ["Choose one outcome to design for: joy, connection, calm, movement…", "Pick a project or a personal habit you want to shape toward it.", "Run it through one lever of the Tiny Design Test.", "Share your design with someone and ask where they'd still feel friction."] },
+      "inSedi": "Write the habit as a recipe (“After I…, I will…”) and add it as a Routine in Timely. The check sound when you tick it is your celebration."
     }
   ]
 }

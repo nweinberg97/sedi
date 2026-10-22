@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>By Design · Sedi</title>
+<meta name="description" content="Free lessons on behavior design from great books: one principle, one framework, one system and one practice per book, with full credit to every author.">
+<link rel="icon" href="../icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,600&display=swap">
+<style>
+:root{
+  --violet:#8b5cf6; --violet-2:#8f58f9; --sky:#53b3fb; --aqua:#60e0e6;
+  --g1:linear-gradient(100deg,#8b54ff 0%,#7e8cf4 45%,#5fe1e6 100%);
+  --g2:linear-gradient(100deg,#52b4fd 0%,#7a84ef 55%,#925ce6 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.86); --ink-3:rgba(255,255,255,.7);
+  --card:rgba(255,255,255,.14); --card-line:rgba(255,255,255,.28);
+  --bg:#0f1024; --paper:#fff; --text:#16162a; --muted:#5f6274;
+  --f:"Jost","Futura","Avenir Next",system-ui,sans-serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --paper:#14152b; --text:#eceaf7; --muted:#a6a8bd; } }
+:root[data-theme="dark"]{ --paper:#14152b; --text:#eceaf7; --muted:#a6a8bd; }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--text);font:400 18px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+.two{display:grid;grid-template-columns:1.6fr 1fr;gap:48px;align-items:center}
+
+/* Intro */
+.hero{background:var(--g1);color:var(--ink);padding:96px 0 72px;text-align:center}
+.hero h1{font-weight:700;font-size:clamp(64px,12vw,148px);line-height:.95;letter-spacing:-.02em;margin:0}
+.hero .sub{font-style:italic;font-weight:500;font-size:clamp(20px,3vw,30px);margin:18px 0 0}
+.hero .intent{max-width:760px;margin:40px auto 0;font-weight:300;font-size:clamp(19px,2.2vw,24px);font-style:italic;color:var(--ink-2)}
+.shape{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:28px 0 0;padding:0;list-style:none}
+.shape li{border:1px solid var(--card-line);background:var(--card);border-radius:999px;padding:6px 16px;font-size:15px}
+.toolbar{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+.btn{font:500 16px var(--f);color:#2b1f64;background:#fff;border:0;border-radius:999px;padding:12px 22px;cursor:pointer;text-decoration:none}
+.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6)}
+.toc{background:var(--paper);padding:40px 0 8px}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.toc a{display:flex;gap:12px;align-items:baseline;padding:14px 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--text) 12%,transparent);color:var(--text);text-decoration:none}
+.toc a:hover{border-color:var(--violet)}
+.toc .n{font-weight:700;color:var(--violet);font-size:14px}
+.toc b{display:block;font-weight:500}
+.toc small{color:var(--muted)}
+.how{padding:24px 0 48px;color:var(--muted);font-size:16px}
+.how b{color:var(--text)}
+
+/* Lesson slides */
+.lesson{color:var(--ink);margin:0 0 4px}
+.lesson.g1 .slide{background:var(--g1)}
+.lesson.g2 .slide{background:var(--g2)}
+.slide{padding:80px 0;position:relative}
+.slide + .slide{border-top:1px solid rgba(255,255,255,.18)}
+.eyebrow,.kicker{font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:14px;color:var(--ink-3);margin:0 0 14px}
+.kicker{font-size:15px}
+.cover h2{font-weight:700;font-size:clamp(48px,7vw,88px);line-height:1;margin:0;letter-spacing:-.015em}
+.by{font-weight:500;font-size:22px;margin:12px 0 22px}
+.about{font-weight:300;font-size:clamp(20px,2.3vw,26px);line-height:1.45;margin:0}
+.bio{font-weight:300;font-size:16px;color:var(--ink-3);margin:18px 0 0}
+.chip-book{aspect-ratio:2/3;max-width:260px;justify-self:end;width:100%;border-radius:10px 18px 18px 10px;background:rgba(255,255,255,.96);color:#1c1640;padding:26px 22px;display:flex;flex-direction:column;box-shadow:0 30px 60px -20px rgba(30,10,80,.45), inset 10px 0 0 rgba(0,0,0,.06)}
+.cb-emoji{font-size:44px}
+.cb-title{font-weight:700;font-size:28px;line-height:1.05;margin-top:auto}
+.cb-author{font-weight:500;font-size:15px;color:#5b4fa8;margin-top:10px}
+h3{font-weight:700;font-size:clamp(34px,4.6vw,56px);line-height:1.05;margin:0 0 14px;letter-spacing:-.01em}
+.principle{font-weight:400;font-size:clamp(40px,6vw,72px);line-height:1.05;margin:0 0 26px;letter-spacing:-.01em}
+.lead{font-weight:300;font-size:clamp(19px,2.1vw,24px);line-height:1.5;max-width:820px;margin:0 0 8px;color:var(--ink-2)}
+.formula{font-weight:700;font-size:clamp(40px,6vw,72px);margin:0 0 10px;color:#fff;background:linear-gradient(90deg,#fff,#e2d6ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.parts{display:grid;gap:14px;margin-top:30px}
+.part{display:grid;grid-template-columns:56px 1fr;gap:18px;background:var(--card);border:1px solid var(--card-line);border-radius:20px;padding:24px 26px;backdrop-filter:blur(6px)}
+.part-num{font-weight:300;font-size:48px;line-height:1}
+.part h4{font-weight:700;font-size:26px;margin:2px 0 4px}
+.part .tag{font-style:italic;font-weight:300;font-size:20px;margin:0 0 10px;color:var(--ink-2)}
+.part p{margin:0 0 10px;font-weight:300}
+.mini{font-weight:600 !important;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:16px 0 6px !important}
+.part ul,.worked ul{margin:0;padding-left:20px;font-weight:300}
+.part li,.worked li{margin:0 0 6px}
+.part b,.lead b,.worked b,.steps b{font-weight:600}
+.ex{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.ex div{background:rgba(255,255,255,.12);border-radius:14px;padding:12px 14px}
+.ex span{display:block;font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.ex p{font-style:italic;font-size:16px;margin:0}
+.note{font-style:italic;font-weight:300;font-size:17px;max-width:760px;margin:22px 0 0;color:var(--ink-2)}
+.steps{list-style:none;counter-reset:s;margin:26px 0 0;padding:0;display:grid;gap:12px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:56px 1fr;column-gap:16px;align-items:baseline;font-size:20px}
+.steps li::before{content:counter(s);grid-row:span 2;font-weight:300;font-size:44px;line-height:1}
+.steps b{font-size:24px}
+.steps span{font-weight:300;color:var(--ink-2)}
+.worked{margin-top:28px;background:rgba(255,255,255,.95);color:#1c1640;border-radius:18px;padding:20px 24px}
+.worked .mini{color:#6a5bc4 !important;margin-top:0 !important}
+.reflect p{font-style:italic;font-weight:300;font-size:clamp(22px,2.6vw,30px);line-height:1.35;margin:0 0 18px}
+.practice{background:rgba(255,255,255,.95);color:#1c1640;border-radius:22px;padding:28px}
+.practice .kicker{color:#6a5bc4;display:flex;align-items:center;gap:10px}
+.pill{background:#efe9ff;color:#4b3aa8;border-radius:999px;padding:3px 10px;font-size:13px;letter-spacing:.04em}
+.practice ol{margin:0;padding-left:22px;font-size:18px}
+.practice li{margin:0 0 10px}
+.insedi{margin:18px 0 0;padding-top:14px;border-top:1px solid #e6e1f6;font-size:16px;color:#3b356a}
+.credit{background:var(--paper);color:var(--muted);font-size:15px;padding:22px 0 30px}
+.credit b{color:var(--text)}
+.end{padding:56px 0 80px}
+.end h2{font-weight:700;font-size:40px;margin:0 0 12px}
+.end ol{padding-left:22px}.end li{margin:0 0 6px}
+.end .muted{color:var(--muted);font-size:15px}
+a{color:inherit}
+
+@media (max-width:760px){
+  body{font-size:17px}
+  .wrap{padding:0 16px}
+  .two{grid-template-columns:1fr;gap:28px}
+  .chip-book{justify-self:start;max-width:170px;padding:16px 14px}
+  .cb-emoji{font-size:30px}.cb-title{font-size:20px}.cb-author{font-size:13px}
+  .slide{padding:52px 0}
+  .hero{padding:72px 0 52px}
+  .part{grid-template-columns:1fr;gap:4px;padding:20px}
+  .part-num{font-size:32px}
+  .ex{grid-template-columns:1fr}
+  .steps li{grid-template-columns:40px 1fr;font-size:18px}
+  .steps li::before{font-size:32px}
+  .steps b{font-size:20px}
+  .practice{padding:22px}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .toolbar,.toc,.how{display:none}
+  .slide{padding:36px 0;break-inside:avoid}
+  .lesson{break-before:page}
+  .part,.worked,.practice{break-inside:avoid}
+  @page{margin:0;size:A4 landscape}
+}
+</style></head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <h1>By Design</h1>
+    <p class="sub">Building a future that is more human</p>
+    <p class="intent">Weekly lessons for designers and design thinkers. Each one takes a book from a different discipline and turns it into something you can use: one principle, one framework, one system, and a practice to try today.</p>
+    <ul class="shape"><li>Learn frameworks, principles + systems</li><li>Put ideas into practice</li><li>Share and learn from others</li><li>Build a contributory culture</li></ul>
+    <div class="toolbar"><button class="btn" onclick="print()">Print or save as PDF</button><a class="btn ghost" href="./">About Sedi</a></div>
+  </div>
+</header>
+<nav class="toc" aria-label="Lessons"><div class="wrap"><ol>
+<li><a href="#tiny-habits"><span class="n">01</span><span><b>Tiny Habits</b><small>BJ Fogg</small></span></a></li>
+</ol></div></nav>
+<p class="how"><span class="wrap" style="display:block">Every lesson follows the same shape. <b>Principle</b>: the one idea to remember. <b>Framework</b>: the book's model, piece by piece. <b>System</b>: a repeatable way to apply it. <b>Reflect</b> and <b>Practice</b>: make it yours. These are our own summaries, written to send you to the books, not to replace them.</span></p>
+
+<section class="lesson g1" id="tiny-habits" aria-labelledby="tiny-habits-t">
+  <div class="slide cover">
+    <div class="wrap two">
+      <div>
+        <p class="eyebrow">Lesson 01 · Behavior design</p>
+        <h2 id="tiny-habits-t">Tiny Habits</h2>
+        <p class="by">BJ Fogg · 2019</p>
+        <p class="about">A practical method for changing behavior by starting very small, from the founder of Stanford's Behavior Design Lab.</p>
+        <p class="bio">BJ Fogg, PhD, founded the Behavior Design Lab at Stanford University.</p>
+      </div>
+      <div class="chip-book" aria-hidden="true"><span class="cb-emoji">🌱</span><span class="cb-title">Tiny Habits</span><span class="cb-author">BJ Fogg</span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="wrap">
+      <p class="kicker">Principle</p>
+      <p class="principle">Design for low motivation</p>
+      <p class="lead">Motivation rises and falls through the day. When we're tired, it's the first thing to go. A behavior designed to work on your lowest-energy day is far more likely to happen: make it easy, make it visible, anchor it, and make it feel rewarding.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="wrap">
+      <p class="kicker">Framework</p>
+      <h3>The Fogg Behavior Model</h3>
+      <p class="formula">B = MAP</p>
+      <p class="lead">A behavior happens when <b>Motivation</b>, <b>Ability</b> and a <b>Prompt</b> come together at the same moment. To design for a behavior, pull on those three levers.</p>
+      <div class="parts">
+      <article class="part">
+        <div class="part-num">1</div>
+        <div class="part-body">
+          <h4>Motivation</h4>
+          <p class="tag">How much you want to do it</p>
+          <p>Shaped by what you already want, by rewards, by consequences, and by what people around you are doing.</p>
+          <p class="mini">How to design for it</p><ul class=""><li>Celebrate right after the behavior so it feels good</li><li>Match people with behaviors they already want</li></ul>
+          <div class="ex"><div><span>Physical</span><p>Confetti at the marathon finish line</p></div><div><span>Digital</span><p>A badge after someone's first contribution</p></div><div><span>Experience</span><p>Stairs that play a note with every step</p></div></div>
+        </div>
+      </article>
+      <article class="part">
+        <div class="part-num">2</div>
+        <div class="part-body">
+          <h4>Ability</h4>
+          <p class="tag">How easy it is to do</p>
+          <p>Behaviors get hard through complexity, effort, unfamiliarity, unclear instructions, missing resources or social risk.</p>
+          <p class="mini">How to design for it</p><ul class=""><li><b>Make it less hard:</b> remove friction, or make it the default</li><li><b>Make it easier:</b> shrink the action or break it into smaller steps</li></ul>
+          <div class="ex"><div><span>Physical</span><p>Seats in small circles so talking is natural</p></div><div><span>Digital</span><p>A one-tap poll instead of a blank reply box</p></div><div><span>Experience</span><p>One-word intros to break the ice</p></div></div>
+        </div>
+      </article>
+      <article class="part">
+        <div class="part-num">3</div>
+        <div class="part-body">
+          <h4>Prompt</h4>
+          <p class="tag">What reminds you to do it, right now</p>
+          <p>Fogg sorts prompts into three kinds: <b>person</b> prompts (a feeling or body signal), <b>context</b> prompts (something in the environment) and <b>action</b> prompts (a behavior you already do).</p>
+          <p class="mini">How to design for it</p><ul class=""><li><b>Anchor it:</b> attach the new behavior to something people already do</li><li><b>Make it visible:</b> put the cue where it can't be missed</li></ul>
+          <div class="ex"><div><span>Physical</span><p>A sign on the café door: “Joining the run?”</p></div><div><span>Digital</span><p>“How do you want to show up today?” right after login</p></div><div><span>Experience</span><p>Grab a coloured badge, find someone with the same colour</p></div></div>
+        </div>
+      </article></div>
+      <p class="note"><b>Note:</b> Motivation is the least reliable lever. When designing, start with ability and prompts.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <div class="wrap">
+      <p class="kicker">System</p>
+      <h3>The Tiny Design Test</h3>
+      <p class="lead">Run any idea through five levers.</p>
+      <ol class="steps"><li><b>Make it easy</b><span>Shrink the action or lower the stakes.</span></li><li><b>Make it less hard</b><span>Remove effort and barriers.</span></li><li><b>Make it visible</b><span>Put cues in the environment so it's always in view.</span></li><li><b>Anchor a prompt</b><span>Tie it to something people already do.</span></li><li><b>Celebrate completion</b><span>Make finishing feel rewarding.</span></li></ol>
+      <div class="worked"><p class="mini">Example: Café run club</p><ul class=""><li><b>Easy:</b> shorten the run from 5 km to 1 km</li><li><b>Less hard:</b> a QR code on the door for quick sign-up</li><li><b>Anchor:</b> the sign on the exit reminds people as they leave</li><li><b>Visible:</b> posters show the start time, route and social fun</li><li><b>Celebrate:</b> a big group cheer at the finish</li></ul></div>
+    </div>
+  </div>
+
+  <div class="slide split">
+    <div class="wrap two">
+      <div>
+        <p class="kicker">Reflect</p>
+        <div class="reflect"><p>How will you use this model to shape behavior for the better?</p><p>How could you design for joy? For calm? For connection?</p></div>
+      </div>
+      <div class="practice">
+        <p class="kicker">Practice <span class="pill">30 min</span></p>
+        <ol><li>Choose one outcome to design for: joy, connection, calm, movement…</li><li>Pick a project or a personal habit you want to shape toward it.</li><li>Run it through one lever of the Tiny Design Test.</li><li>Share your design with someone and ask where they'd still feel friction.</li></ol>
+        <p class="insedi"><b>In Sedi:</b> Write the habit as a recipe (“After I…, I will…”) and add it as a Routine in Timely. The check sound when you tick it is your celebration.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="credit"><div class="wrap">
+    <p>Based on <i>Tiny Habits</i> by BJ Fogg (Houghton Mifflin Harcourt, 2019). Summarized in our own words for learning. This is a starting point, not a substitute: <b>read the book</b> for the research, stories and nuance behind every idea here.</p>
+  </div></footer>
+</section>
+<section class="end" id="credits"><div class="wrap">
+  <h2>Read the originals</h2>
+  <ol><li>BJ Fogg, <i>Tiny Habits</i>. Houghton Mifflin Harcourt, 2019.</li></ol>
+  <p class="muted">These lessons summarize and apply ideas from the books above in our own words. Named frameworks belong to their authors. Sedi and By Design aren't affiliated with, sponsored by or endorsed by any author or publisher.</p>
+</div></section>
+</body></html>
