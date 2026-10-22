@@ -58,13 +58,15 @@ export function buildAssistant() {
   });
   document.addEventListener('pointerdown', e => { if (!tray.hidden && !tray.contains(e.target) && !token.contains(e.target) && !e.target.closest('.modal-backdrop, .toast, .popover')) toggle(false); });
   // First visit only: a quiet hint by the atom, so people discover they can just talk.
-  const hint = store.pref('voiceHintSeen') ? null : h('button', { class: 'atom-hint', type: 'button', onclick: () => { hint.remove(); store.setPref('voiceHintSeen', true); toggle(true); } },
-    h('b', {}, 'Tap and talk'), h('span', {}, '“Add a task to call mom”'), h('i', { 'aria-hidden': 'true' }));
+  // It's only a label (taps pass through to whatever is underneath), worded for the device in hand.
+  const touch = matchMedia('(hover: none)').matches;
+  const hint = store.pref('voiceHintSeen') ? null : h('div', { class: 'atom-hint', 'aria-hidden': 'true' },
+    h('b', {}, touch ? 'Tap to type, hold to talk' : 'Click to type, hold to talk'), h('span', {}, '“Add a task to call mom”'), h('i'));
   if (hint) {
     token.addEventListener('pointerdown', () => { hint.remove(); store.setPref('voiceHintSeen', true); }, { once: true });
     setTimeout(() => hint.classList.add('in'), 1800);
-    // On a phone it sits over your cards, so let it fade after a while; it shows again next visit until you've tapped the atom.
-    if (matchMedia('(max-width: 700px)').matches) setTimeout(() => { hint.classList.remove('in'); setTimeout(() => hint.remove(), 400); }, 9000);
+    // It fades after a while; it shows again next visit until you've used the atom.
+    setTimeout(() => { hint.classList.remove('in'); setTimeout(() => hint.remove(), 400); }, touch ? 9000 : 15000);
   }
   return h('div', { class: 'assistant' }, tray, token, hint);
 }

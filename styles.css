@@ -3452,3 +3452,37 @@ body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .hom
   .day-layout > .day-plan, .period-layout > .day-plan { order: -1; }
   .day-scroll { height: min(60dvh, 620px); flex: none; }
 }
+
+/* Taskly: an over-full column (smaller screen, rotated iPad, a bigger device's backup) scrolls instead of hiding cards */
+.taskly-col.over .col-body { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.taskly-col.over .col-count { color: var(--danger); font-weight: 600; }
+.col-finished { width: 26px; height: 26px; display: inline-grid; place-items: center; border-radius: 50%; color: var(--muted); margin-left: auto; }
+.col-finished svg { width: 15px; height: 15px; }
+.col-finished:hover { background: var(--well); color: var(--ink); }
+.col-finished + .col-clear { margin-left: 4px; }
+.finished-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.finished-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.finished-list .modal-list { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; }
+
+/* Until someone has opened a tool once, Home shows the tools plainly (the calm fade-in comes after) */
+@media (hover: hover) and (min-width: 701px) {
+  body.nav-learn[data-route="home"] .navigator { opacity: 1 !important; pointer-events: auto !important; }
+  body.nav-learn .navigator:not(.open) .navigator-panel { opacity: 1 !important; transform: none !important; pointer-events: auto !important; }
+  body.nav-learn[data-route="home"] .nav-pill .nav-label { opacity: 1 !important; transform: translate(0, -50%) !important; }
+}
+
+/* "Keep Sedi handy": one-time card about installing and backups */
+.keep-card { position: fixed; z-index: 60; left: 20px; bottom: 20px; width: min(340px, calc(100vw - 32px)); background: rgba(255,255,255,.97); border: 1px solid var(--line); border-radius: var(--r-xl, 20px); box-shadow: 0 24px 48px -24px rgba(17, 30, 60, .45); padding: 16px 18px; display: grid; gap: 6px; font-size: var(--fs-sm); opacity: 0; transform: translateY(12px); transition: opacity .25s, transform .25s; }
+.keep-card.in { opacity: 1; transform: none; }
+.keep-card strong { font-size: var(--fs-md); }
+.keep-card p { margin: 0; color: var(--ink-2, #4a5461); line-height: 1.45; }
+.keep-card .keep-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.keep-card .keep-x { position: absolute; top: 8px; right: 8px; }
+@media (max-width: 700px), (max-width: 1180px) and (hover: none) {
+  .keep-card { left: 12px; right: 12px; width: auto; bottom: calc(var(--tabbar-h, 62px) + env(safe-area-inset-bottom, 0px) + 12px); }
+}
+.atom-hint, .atom-hint.in { pointer-events: none !important; }
+body.is-dragging .taskly-board, body.is-dragging .plan-track { scroll-snap-type: none !important; }
+/* Day view: events leave a strip on the right, so you can still click or tap a busy time to add something else there */
+.day-col .event-block { right: 52px; }
+.day-col .event-block.in-lane { left: calc(72px + (100% - 124px) * var(--lane) / var(--lanes)); width: calc((100% - 124px) / var(--lanes) - 4px); }

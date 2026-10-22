@@ -1,7 +1,7 @@
 // Sedi — Taskly: five fixed kanban columns. No column scrolls; space is the constraint.
 
 import * as store from './store.js';
-import { h, icon, toast, popover, closePopovers } from './util.js';
+import { h, icon, toast, popover, closePopovers, modal } from './util.js';
 import { registerDrop } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet, withMic, guardDuplicate } from './cards.js';
 import { crunch, checkSound } from './sound.js';
@@ -83,7 +83,7 @@ registerDrop('taskly-col', {
   },
 });
 
-/** SD-K3: when Completed is over its limit, the oldest completed card goes to the trash, with Undo. */
+/** SD-K3: when Completed is over its limit, the oldest finished cards move to the Finished archive (never deleted). */
 function makeRoomInCompleted(keepId) {
   const list = colCards('completed');
   const cap = capOf('completed');
@@ -91,11 +91,32 @@ function makeRoomInCompleted(keepId) {
   const oldest = list.filter(c => c.id !== keepId)
     .sort((a, b) => (a.meta?.completedAt || a.updatedAt).localeCompare(b.meta?.completedAt || b.updatedAt))
     .slice(0, list.length - cap);
-  const removed = oldest.map(c => store.deleteCard(c.id, { silent: true })).filter(Boolean);
-  store.notify({ reason: 'auto-trash' });
-  crunch();
-  toast(removed.length === 1 ? `Completed was full: “${truncate(removed[0].title, 26)}” went to the trash` : `Completed was full: ${removed.length} oldest cards went to the trash`,
-    { action: 'Undo', onAction: () => removed.forEach(c => store.restoreCard(c)) });
+  const at = new Date().toISOString();
+  oldest.forEach(c => store.updateCard(c.id, { meta: { columnId: 'archive', archivedAt: at } }, { silent: true, touch: false }));
+  store.notify({ reason: 'archive-completed' });
+  toast(oldest.length === 1 ? `Completed was full, so “${truncate(oldest[0].title, 26)}” moved to Finished` : `Completed was full, so ${oldest.length} older cards moved to Finished`,
+    { action: 'See', onAction: openFinished });
+}
+const archived = () => store.cardsWhere(c => c.tool === 'taskly' && c.meta?.columnId === 'archive')
+  .sort((a, b) => (b.meta?.archivedAt || b.updatedAt).localeCompare(a.meta?.archivedAt || a.updatedAt));
+/** Finished: everything that rolled out of Completed, newest first. Restore or delete for good. */
+function openFinished() {
+  const box = h('div', { class: 'finished-list' });
+  let m;
+  const fill = () => {
+    const list = archived();
+    box.replaceChildren(list.length ? h('ul', { class: 'modal-list' }, list.map(c => h('li', { class: 'finished-row' },
+      h('span', { class: 'finished-title' }, c.title),
+      h('button', { class: 'btn sm ghost', onclick: () => {
+        if (colCards('completed').length >= capOf('completed')) return toast('Completed is full. Clear it first, then restore.');
+        store.updateCard(c.id, { meta: { columnId: 'completed', archivedAt: null, order: colCards('completed').length } }); fill();
+      } }, 'Restore'),
+      h('button', { class: 'icon-btn xs', 'aria-label': `Delete “${c.title}” for good`, onclick: () => { const gone = store.deleteCard(c.id); fill(); toast('Deleted', { action: 'Undo', onAction: () => { store.restoreCard(gone); fill(); } }); } }, icon('x'))))) :
+      h('p', { class: 'muted' }, 'Nothing here yet. When Completed fills up, the oldest finished cards move here instead of disappearing.'));
+  };
+  fill();
+  m = modal({ title: 'Finished', body: box, actions: [{ label: 'Done', kind: 'primary' }] });
+  return m;
 }
 
 function clearCompleted() {
@@ -115,6 +136,7 @@ export function render() {
       const body = h('div', { class: 'col-body', 'data-navoro-sensitive': '' });
       const count = h('span', { class: 'col-count' });
       const head = h('header', { class: 'col-head' }, h('span', { class: 'col-icon' }, icon(col.icon)), h('h2', {}, col.name), count);
+      if (col.id === 'completed') head.append(h('button', { class: 'col-finished', 'aria-label': 'Finished archive', title: 'Finished: older completed cards', onclick: openFinished }, icon('inbox')));
       if (col.id === 'completed') head.append(h('button', { class: 'col-clear', 'aria-label': 'Clear completed', title: 'Clear completed (moves them to the trash, you can Undo)', onclick: clearCompleted }, icon('trash'), h('span', { class: 'col-clear-label' }, 'Clear')));
       const add = h('button', { class: 'col-add', 'aria-label': `Add a task to ${col.name}`, onclick: () => startAdd(col.id) }, icon('plus'), 'Add task');
       board.append(h('section', {
@@ -130,6 +152,8 @@ export function render() {
     section.querySelector('.col-count').textContent = `${cards.length}/${cap}`;
     if (body.clientHeight && store.pref('tasklyCaps', {})[col.id] !== cap) store.setPref('tasklyCaps', { ...store.pref('tasklyCaps', {}), [col.id]: cap });
     section.classList.toggle('full', cards.length >= cap);
+    // More cards than fit (a smaller screen, a rotated iPad, a backup from a bigger one): scroll rather than hide any.
+    section.classList.toggle('over', cards.length > cap);
     const clear = section.querySelector('.col-clear');
     if (clear) clear.hidden = !cards.length;
     const input = body.querySelector('.task-input');

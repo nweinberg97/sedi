@@ -3,7 +3,7 @@
 
 // The /beta/ preview gets its own cache names so the two copies never clear each other's caches.
 const NS = /\/beta\/$/.test(new URL(self.registration.scope).pathname) ? 'sedi-beta' : 'sedi';
-const VERSION = `${NS}-v1.18.0`;
+const VERSION = `${NS}-v1.19.0`;
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './brain/master_library.json',

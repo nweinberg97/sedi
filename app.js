@@ -27,8 +27,9 @@ async function boot() {
 
   viewEl = h('main', { id: 'view', class: 'view-host' });
   document.getElementById('app').replaceChildren(
-    buildHeader(), viewEl, buildDrawer(), buildNavigator(), buildUniversal(), buildTrash(), buildAssistant(),
-    h('div', { id: 'toasts', class: 'toasts', 'aria-live': 'polite' }));
+    buildHeader(), viewEl, buildDrawer(), buildNavigator(), buildUniversal(), buildTrash(), buildAssistant());
+  // Toasts live outside #app so their Undo buttons still work while a dialog makes the page inert.
+  document.body.append(h('div', { id: 'toasts', class: 'toasts', 'aria-live': 'polite' }));
 
   initDnd(navigate);
   addEventListener('hashchange', mountRoute);
@@ -63,6 +64,9 @@ function mountRoute() {
   if (active?.name === route) return;
   active?.mod.unmount?.();
   document.body.dataset.route = route;
+  // First visits: keep the tool buttons visible on Home until a tool has been opened once.
+  if (route !== 'home' && !store.pref('navLearned')) store.setPref('navLearned', true);
+  document.body.classList.toggle('nav-learn', !store.pref('navLearned'));
   markActiveRoute(route);
   const mod = VIEWS[route];
   active = { name: route, mod };

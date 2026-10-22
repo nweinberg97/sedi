@@ -361,6 +361,7 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
       });
     } }, icon('mic'));
   refs.desc.value = /<\/?[a-z][\s\S]*>/i.test(card.description || '') ? stripHtml(card.description) : (card.description || '');
+  const shownDesc = refs.desc.value; // if the details aren't changed, keep the original (with its formatting)
   if (readOnlyDescription) refs.desc.readOnly = true;
   const body = h('div', { class: 'editor' },
     h('div', { class: 'editor-meta' }, typeIcon(card.type), h('span', {}, `${card.type[0].toUpperCase()}${card.type.slice(1)} in ${TOOL_NAMES[card.tool]}`)),
@@ -371,7 +372,7 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
     h('label', { class: 'field-label' }, 'Move to…'),
     refs.move = moveSelect(card));
   const save = () => {
-    const patch = { title: refs.title.value.trim() || 'Untitled', description: refs.desc.value };
+    const patch = { title: refs.title.value.trim() || 'Untitled', description: refs.desc.value === shownDesc ? (card.description || '') : refs.desc.value };
     const more = collect?.(refs, card) || {};
     if (more.meta) patch.meta = more.meta;
     store.updateCard(id, { ...patch, ...more, meta: patch.meta }, { log: true });

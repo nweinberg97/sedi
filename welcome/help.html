@@ -2,7 +2,41 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Help · Sedi</title><meta name="description" content="Quick answers about Sedi, and how to get in touch.">
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="legal/page.css"></head>
+<style>
+/* Shared look for Sedi's help and legal pages: plain, readable, like the landing page. */
+:root { --ink:#111; --ink-2:#4a5461; --muted:#7c8793; --line:#e5ecf2; --mist:#f4f8fb; --accent:#2e8bd0; --sky:#59b2ec;
+  --f:"Inter",-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif; color-scheme: light; }
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink);font:400 17px/1.7 var(--f);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.top{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#eaf6fc,#fff)}
+.top .in{max-width:760px;margin:0 auto;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;text-decoration:none;color:var(--ink)}
+.brand svg{width:22px;height:22px}
+.top nav{display:flex;gap:16px;font-size:15px;flex-wrap:wrap}
+.top nav a{color:var(--ink-2);text-decoration:none}
+.top nav a[aria-current]{color:var(--ink);font-weight:500}
+main{max-width:760px;margin:0 auto;padding:40px 20px 80px}
+h1{font-weight:300;font-size:clamp(34px,6vw,48px);letter-spacing:-.03em;line-height:1.1;margin:0 0 8px}
+.meta{color:var(--muted);font-size:14px;margin:0 0 28px}
+h2{font-weight:500;font-size:22px;letter-spacing:-.01em;margin:36px 0 8px}
+h3{font-weight:600;font-size:17px;margin:22px 0 4px}
+p,li{color:var(--ink-2)}
+ul{padding-left:22px}
+.summary{background:var(--mist);border:1px solid var(--line);border-radius:16px;padding:18px 22px;margin:0 0 8px}
+.summary ul{margin:6px 0 0}
+.todo{background:#fff3c4;border-radius:4px;padding:0 4px;color:#7a5600;font-weight:500}
+details{border-bottom:1px solid var(--line);padding:14px 0}
+details summary{cursor:pointer;font-weight:500;color:var(--ink);list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"+";float:right;color:var(--muted)}
+details[open] summary::after{content:"–"}
+details p{margin:8px 0 0}
+.contact{margin-top:40px;background:var(--mist);border-radius:16px;padding:20px 22px}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+footer .in{max-width:760px;margin:0 auto;padding:20px;display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+footer a{color:var(--muted)}
+</style></head>
 <body>
 <header class="top"><div class="in"><a class="brand" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92"/><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10"/><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg>Sedi</a><nav aria-label="Help and policies"><a href="help.html" aria-current="page">Help</a><a href="legal/terms.html">Terms</a><a href="legal/privacy.html">Privacy</a><a href="legal/refunds.html">Refunds</a></nav></div></header>
 <main>
@@ -29,7 +63,7 @@
 <details><summary>Is Sedi really free?</summary><p>The web app is free forever. The Lifetime Membership is a one-time payment for the Mac and iPhone apps as they're released, plus sync. See the <a href="legal/terms.html">Terms</a> and <a href="legal/refunds.html">Refund Policy</a>.</p></details>
 <details><summary>How do I get a refund?</summary><p>Email me from the address you bought with. Full refunds any time before the Mac app is released, or within 30 days of buying. <a href="legal/refunds.html">Details</a>.</p></details>
 
-<div class="contact"><b>Still stuck, found a bug, or have an idea?</b><br>Email <a class="todo" href="mailto:hello@example.com">hello@[your-domain]</a>. I'm one person building Sedi, and I read every message.</div>
+<div class="contact"><b>Still stuck, found a bug, or have an idea?</b><br>Email <a class="todo" href="mailto:hello@example.com">hello@[your-domain]</a>. Sedi is built by one person: me. I read every message eventually, but it may take me a few days to reply, so thanks for your patience.</div>
 </main>
 <footer><div class="in"><span>© 2026 Sedi · Made in British Columbia, Canada</span><span><a href="./">Home</a> · <a href="../">Open Sedi</a></span></div></footer>
 </body></html>

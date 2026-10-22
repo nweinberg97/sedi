@@ -41,11 +41,11 @@ export function seedIfEmpty() {
     },
   });
   c({ type: 'task', tool: 'boardly', title: 'Buy running shoes', meta: { tabId: tabs[0].id, x: 32, y: 116 } });
-  c({ type: 'note', tool: 'boardly', title: 'Open me with the corner icon', description: 'Notes grow to 10 lines while you write.\nClick anywhere else and I shrink back.', meta: { tabId: tabs[0].id, x: 276, y: 32 } });
+  c({ type: 'note', tool: 'boardly', title: 'Open me with the corner icon', description: `Notes grow to 10 lines while you write.\n${touch ? 'Tap' : 'Click'} anywhere else and I shrink back.`, meta: { tabId: tabs[0].id, x: 276, y: 32 } });
 
   // Timely
   c({ type: 'event', tool: 'timely', title: 'Plan tomorrow', description: 'Ten minutes to pick tomorrow’s top three.', meta: { date: todayKey(), start: nextHour, dur: 30 } });
-  c({ type: 'event', tool: 'timely', title: 'Add me to your calendar', description: 'Hover me and press the calendar button, or open Details and choose Add to calendar.', meta: { kind: 'reminder', date: todayKey(), start: null } });
+  c({ type: 'event', tool: 'timely', title: 'Add me to your calendar', description: touch ? 'Tap me, then choose Add to calendar.' : 'Hover me and press the calendar button, or open Details and choose Add to calendar.', meta: { kind: 'reminder', date: todayKey(), start: null } });
   c({ type: 'task', tool: 'timely', title: 'Sketch the first milestone', meta: { board: 'projects', containerId: containers.projects[0].id, order: 0 } });
   c({ type: 'goal', tool: 'timely', title: 'Sleep 7+ hours, 5 nights a week', meta: { board: 'goals', containerId: containers.goals[0].id, order: 0 } });
 
@@ -55,7 +55,7 @@ export function seedIfEmpty() {
   c({ type: 'link', tool: 'brainly', title: 'Web Speech API', description: 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API', meta: { url: 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API', host: 'developer.mozilla.org', linkFolderId: reading.id, order: 0 } });
 
   // Universal Board
-  c({ type: 'note', tool: 'universal', title: 'Drag me into Brainly', description: 'Open Brainly with the triangle on the right, then drag me out of this board onto the canvas. I’ll turn into a note.', meta: { order: 0 } });
+  c({ type: 'note', tool: 'universal', title: 'Drag me into Brainly', description: touch ? 'Hold me, drag me onto Brainly in the bar at the bottom, and let go. I’ll turn into a note.' : 'Drag me out of this board onto Brainly in the tool buttons on the right. I’ll turn into a note.', meta: { order: 0 } });
 
   store.set('onboarded', true, { silent: true });
   return true;

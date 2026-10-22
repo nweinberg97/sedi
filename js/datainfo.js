@@ -69,9 +69,9 @@ export async function openDataInfo({ onBackup, onImport } = {}) {
 export function dataNudges({ onBackup, onOpen } = {}) {
   const now = Date.now();
   if (!store.pref('firstOpenAt')) store.setPref('firstOpenAt', new Date().toISOString());
-  if (!store.pref('dataInfoSeen') && !store.pref('dataHintShown')) {
-    store.setPref('dataHintShown', true);
-    setTimeout(() => toast('Your Sedi lives in this browser, with no account. Keep a backup so nothing gets lost.', { action: 'How it works', onAction: onOpen, duration: 10000 }), 6000);
+  if (!store.pref('keepCardDone')) {
+    // Once, after people have had a moment to look around: how to keep Sedi (and their notes) safe.
+    setTimeout(() => showKeepCard({ onBackup, onOpen }), store.pref('firstOpenAt') && now - new Date(store.pref('firstOpenAt')) > 60e3 ? 4000 : 25000);
     return;
   }
   const userCards = store.allCards().filter(c => c.createdAt > (store.pref('firstOpenAt') || '')).length;
@@ -82,4 +82,34 @@ export function dataNudges({ onBackup, onOpen } = {}) {
   if (!due) return;
   store.setPref('backupNudgeAt', new Date().toISOString());
   setTimeout(() => toast(last ? `Your last backup was ${relTime(last)}. Save a fresh copy?` : 'You haven’t saved a backup yet. Your browser holds the only copy.', { action: 'Download', onAction: onBackup, duration: 10000 }), 5000);
+}
+
+// ---------- "Keep Sedi handy" card: install / bookmark, plus where the data lives ----------
+let installEvent = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; });
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function installHow() {
+  const ua = navigator.userAgent, iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const safari = /Safari\//.test(ua) && !/Chrome|CriOS|Edg|FxiOS|Firefox/.test(ua);
+  if (standalone()) return null;
+  if (installEvent) return { text: 'Install Sedi as an app so it’s always one tap away.', button: 'Install' };
+  if (iOS) return { text: 'Add Sedi to your Home Screen: tap Share, then “Add to Home Screen”. It also stops Safari clearing your data.' };
+  if (safari) return { text: 'Add Sedi to your Dock: choose File → “Add to Dock”. It also stops Safari clearing your data.' };
+  return { text: `Bookmark Sedi so you can find it again (${/Mac/.test(navigator.platform) ? '⌘' : 'Ctrl+'}D).` };
+}
+export function showKeepCard({ onBackup, onOpen } = {}) {
+  if (document.querySelector('.keep-card') || store.pref('keepCardDone')) return;
+  const how = installHow();
+  const done = () => { store.setPref('keepCardDone', true); navigator.storage?.persist?.().catch(() => {}); card.classList.remove('in'); setTimeout(() => card.remove(), 250); };
+  const card = h('aside', { class: 'keep-card', role: 'dialog', 'aria-label': 'Keep Sedi handy' },
+    h('button', { class: 'icon-btn xs keep-x', 'aria-label': 'Dismiss', onclick: done }, icon('x')),
+    h('strong', {}, 'Keep Sedi handy'),
+    how ? h('p', {}, how.text) : null,
+    h('p', {}, 'Everything you make lives in this browser, with no account. Download a backup now and then.'),
+    h('div', { class: 'keep-actions' },
+      how?.button ? h('button', { class: 'btn sm primary', onclick: async () => { installEvent?.prompt(); try { await installEvent?.userChoice; } catch {} installEvent = null; done(); } }, how.button) : null,
+      h('button', { class: `btn sm ${how?.button ? 'ghost' : 'primary'}`, onclick: () => { onBackup?.(); done(); } }, 'Back up now'),
+      h('button', { class: 'btn sm ghost', onclick: () => { onOpen?.(); done(); } }, 'Learn more')));
+  document.body.append(card);
+  requestAnimationFrame(() => card.classList.add('in'));
 }

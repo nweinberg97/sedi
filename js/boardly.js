@@ -244,9 +244,19 @@ function renderTabs() {
     const tab = h('div', {
       class: `tab ${t.id === active?.id ? 'active' : ''}`, role: 'tab', tabindex: 0, 'aria-selected': String(t.id === active?.id),
       style: { '--tab-color': t.color }, dataset: { drop: 'boardly-tab', accept: 'card', tab: t.id, drag: 'btab', id: t.id }, title: 'Drag to reorder',
-      onclick: () => { store.setPref('boardlyTab', t.id); sel.clear(); render(); },
+      onclick: e => {
+        // Tapping the name of the tab you're already on renames it (works on touch, where double-tap is unreliable).
+        if (t.id === active?.id) { if (e.target === name && !name.isContentEditable) rename(); return; }
+        store.setPref('boardlyTab', t.id); sel.clear(); render();
+      },
     }, dot, name, list.length > 1 ? del : null);
-    name.addEventListener('dblclick', e => { e.stopPropagation(); editInline(name, { onCommit: v => renameTab(t.id, v) }); });
+    // The first click of a double-click re-renders the tabs, so edit the fresh copy of this tab's name.
+    const rename = () => {
+      const fresh = [...tabBar.querySelectorAll('.tab')].find(x => x.dataset.tab === t.id)?.querySelector('.tab-name') || name;
+      editInline(fresh, { onCommit: v => renameTab(t.id, v) });
+    };
+    name.title = 'Click the name of the active category to rename it';
+    name.addEventListener('dblclick', e => { e.stopPropagation(); rename(); });
     tab.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tab) tab.click(); });
     return tab;
   }));
@@ -399,9 +409,12 @@ function renameTab(id, name) { store.set('boardlyTabs', tabs().map(t => (t.id ==
 async function deleteTab(t) {
   const n = tabCards(t.id).length;
   if (n && !(await confirmModal(`Delete ${t.name}?`, `This also deletes its ${n} card${n === 1 ? '' : 's'}.`, 'Delete', true))) return;
-  tabCards(t.id).forEach(c => store.deleteCard(c.id, { silent: true }));
-  store.set('boardlyTabs', tabs().filter(x => x.id !== t.id));
-  toast(`Deleted ${t.name}`);
+  const prevTabs = tabs(), prevActive = store.pref('boardlyTab');
+  const removed = tabCards(t.id).map(c => store.deleteCard(c.id, { silent: true })).filter(Boolean);
+  store.set('boardlyTabs', prevTabs.filter(x => x.id !== t.id));
+  toast(`Deleted ${t.name}${removed.length ? ` and ${removed.length} card${removed.length === 1 ? '' : 's'}` : ''}`, {
+    action: 'Undo', onAction: () => { store.set('boardlyTabs', prevTabs); removed.forEach(c => store.restoreCard(c)); store.setPref('boardlyTab', prevActive); },
+  });
 }
 function pickColor(anchor, t) {
   const COLORS = ['#86AE95', '#C98E8E', '#8E9BC9', '#C9A46E', '#9AA3AD', '#A796CB', '#7FAEBE', '#B9A27E', '#D1A0B8', '#6F8F72'];

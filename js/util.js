@@ -213,6 +213,7 @@ document.addEventListener('pointerdown', e => {
 }, true);
 export function modal({ title, body, actions = [], wide = false, onClose, className = '' }) {
   const backdrop = h('div', { class: 'modal-backdrop' });
+  const opener = document.activeElement;
   const box = h('div', { class: `modal ${wide ? 'wide' : ''} ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Dialog', 'data-navoro-sensitive': '' });
   if (lastTap && Date.now() - lastTap.t < 1500) {
     box.style.setProperty('--from-x', `${Math.round(lastTap.x - innerWidth / 2)}px`);
@@ -222,11 +223,23 @@ export function modal({ title, body, actions = [], wide = false, onClose, classN
     backdrop.classList.remove('in');
     backdrop.classList.add('out');
     modalStack = modalStack.filter(m => m !== close);
+    if (!modalStack.length) { const app = document.getElementById('app'); if (app) app.inert = false; opener?.focus?.(); }
     setTimeout(() => backdrop.remove(), 220);
     document.removeEventListener('keydown', onKey, true);
     onClose?.();
   };
-  const onKey = e => { if (e.key === 'Escape' && modalStack.at(-1) === close) { e.stopPropagation(); close(); } };
+  const onKey = e => {
+    if (modalStack.at(-1) !== close) return;
+    if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+    // Keep Tab inside the dialog.
+    if (e.key === 'Tab') {
+      const f = [...box.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]')].filter(x => x.offsetParent !== null);
+      if (!f.length) return;
+      const i = f.indexOf(document.activeElement);
+      if (e.shiftKey && (i <= 0)) { e.preventDefault(); f.at(-1).focus(); }
+      else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+    }
+  };
   const head = h('div', { class: 'modal-head' },
     h('h3', {}, title || ''),
     h('button', { class: 'icon-btn', 'aria-label': 'Close', onclick: close }, icon('x')));
@@ -249,6 +262,8 @@ export function modal({ title, body, actions = [], wide = false, onClose, classN
   document.body.append(backdrop);
   document.addEventListener('keydown', onKey, true);
   modalStack.push(close);
+  // Everything behind the dialog is out of reach for keyboards and screen readers while it's open.
+  const app = document.getElementById('app'); if (app) app.inert = true;
   requestAnimationFrame(() => backdrop.classList.add('in'));
   setTimeout(() => box.querySelector('input, textarea, [contenteditable="true"]')?.focus(), 60);
   return { close, box, content };

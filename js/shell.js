@@ -45,7 +45,9 @@ let drawer;
 function toggleDrawer(force) {
   const open = typeof force === 'boolean' ? force : !drawer.classList.contains('open');
   drawer.classList.toggle('open', open);
+  drawer.inert = !open; // closed menu: out of the Tab order and away from screen readers
   $('.menu-btn').setAttribute('aria-expanded', String(open));
+  if (open) setTimeout(() => drawer.querySelector('.drawer-item:not(.disabled)')?.focus(), 50);
 }
 function resetPositions() {
   dispatchEvent(new Event('sedi:reset-positions'));
@@ -73,6 +75,10 @@ export function buildDrawer() {
   document.addEventListener('pointerdown', e => {
     if (drawer.classList.contains('open') && !drawer.contains(e.target) && !e.target.closest('.menu-btn')) toggleDrawer(false);
   });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) { toggleDrawer(false); $('.menu-btn')?.focus(); }
+  });
+  drawer.inert = true;
   return drawer;
 }
 
@@ -90,14 +96,19 @@ async function importFile(file, input) {
   if (!file) return;
   let data;
   try { data = JSON.parse(await file.text()); } catch { toast('That file isn’t valid JSON.'); return; }
-  if (data?.app !== 'sedi') { toast('That file isn’t a Sedi export.', { code: 'IMPORT_NOT_SEDI' }); return; }
+  if (data?.app !== 'sedi' || !Array.isArray(data.cards)) { toast('That file isn’t a Sedi backup.', { code: 'IMPORT_NOT_SEDI' }); return; }
+  const when = Date.parse(data.exportedAt);
+  const run = async mode => {
+    try { await store.importAll(data, mode); toast(mode === 'replace' ? 'Replaced with imported data' : 'Merged imported data'); }
+    catch (e) { toast(`Couldn’t import that file: ${e?.message || 'it looks damaged'}`); }
+  };
   modal({
     title: 'Import data',
-    body: h('p', { class: 'muted' }, `${data.cards.length} cards from ${new Date(data.exportedAt).toLocaleString()}. Merge keeps your current cards and adds or updates from the file. Replace swaps everything for the file’s contents.`),
+    body: h('p', { class: 'muted' }, `${data.cards.length} cards${Number.isNaN(when) ? '' : ` from ${new Date(when).toLocaleString()}`}. Merge keeps your current cards and adds or updates from the file. Replace swaps everything for the file’s contents.`),
     actions: [
       { label: 'Cancel', kind: 'ghost' },
-      { label: 'Replace', kind: 'ghost', onClick: async () => { await store.importAll(data, 'replace'); toast('Replaced with imported data'); } },
-      { label: 'Merge', kind: 'primary', onClick: async () => { await store.importAll(data, 'merge'); toast('Merged imported data'); } },
+      { label: 'Replace', kind: 'ghost', onClick: () => run('replace') },
+      { label: 'Merge', kind: 'primary', onClick: () => run('merge') },
     ],
   });
 }

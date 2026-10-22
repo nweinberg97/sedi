@@ -181,7 +181,7 @@ function dotsRow(items, max = DOT_MAX) {
   return h('div', { class: 'f-dots', 'aria-label': `${items.length} item${items.length === 1 ? '' : 's'}` },
     shown.map(c => h('i', { style: { background: dotColor(c) }, title: c.title })),
     items.length > max ? h('span', {}, `+${items.length - max}`) : null,
-    !items.length ? h('span', {}, 'Empty') : null);
+    null);
 }
 
 // ---------- Link folders: squares in the column; open one in a glass folder view (folders can hold folders) ----------
@@ -340,9 +340,12 @@ registerDrop('lf-out', ({ kind, id, data }) => {
 });
 
 function addLink(raw) {
-  let url = raw;
+  let url = raw.trim();
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-  try { new URL(url); } catch { return toast('That doesn’t look like a link.'); }
+  // A real web address: no spaces, and a host with a dot (or localhost).
+  let ok = false;
+  try { const u = new URL(url); ok = !/\s/.test(raw.trim()) && /^https?:$/.test(u.protocol) && (u.hostname.includes('.') || u.hostname === 'localhost'); } catch {}
+  if (!ok) return toast('That doesn’t look like a link. To save a thought, add a note instead.');
   const { host, title } = prettyUrl(url);
   store.createCard({ type: 'link', tool: 'brainly', title, description: url, meta: { url, host, linkFolderId: null, order: links(null).length } });
 }
@@ -644,10 +647,15 @@ document.addEventListener('keydown', e => {
 
 // ---------- Mutations ----------
 function saveFolder(id, patch) { store.set('brainFolders', folders().map(f => (f.id === id ? { ...f, ...patch } : f))); }
+/** The first grid cell that nothing (note or folder) already covers. */
 function freeSpot() {
-  const n = canvasNotes().length + topFolders().length;
+  const taken = [...canvasNotes().map(c => c.meta || {}), ...topFolders()].filter(p => p.x != null && p.y != null);
   const cols = Math.max(1, Math.floor(((canvas?.clientWidth || 800) - 32) / 160));
-  return { x: 24 + (n % cols) * 156, y: 24 + Math.floor(n / cols) * 150 };
+  for (let i = 0; i < 400; i++) {
+    const x = 24 + (i % cols) * 156, y = 24 + Math.floor(i / cols) * 150;
+    if (!taken.some(p => Math.abs(p.x - x) < 140 && Math.abs(p.y - y) < 130)) return { x, y };
+  }
+  return { x: 24, y: 24 };
 }
 function addNote(folderId = null) {
   const card = store.createCard({ type: 'note', tool: 'brainly', title: 'Untitled note', description: '', meta: { ...(folderId ? {} : freeSpot()), emoji: '📝', folderId } });
@@ -896,7 +904,7 @@ export function openNote(id, isNew = false) {
   };
   editor.addEventListener('keydown', e => e.stopPropagation());
   title.addEventListener('keydown', e => e.stopPropagation());
-  modal({
+  const noteModal = modal({
     title: '', wide: true, className: 'note-modal',
     body: h('div', { class: 'note-editor' }, h('div', { class: 'note-title-row' }, emojiBtn, title, colors), toolbar, editor, docs),
     actions: [
@@ -904,8 +912,16 @@ export function openNote(id, isNew = false) {
       { label: 'Move to…', kind: 'ghost', onClick: () => { save(); setTimeout(() => openMoveDialog(id), 200); } },
       { label: 'Done', kind: 'primary' },
     ],
-    onClose: () => { session?.stop(); if (store.getCard(id)) save(); },
+    onClose: () => {
+      session?.stop();
+      if (!store.getCard(id)) return;
+      save();
+      // A brand-new note that was closed without writing anything isn't kept.
+      const c = store.getCard(id);
+      if (isNew && c && (!c.title || c.title === 'Untitled note') && !stripHtml(c.description || '').trim()) store.deleteCard(id);
+    },
   });
+  noteModal.box.setAttribute('aria-label', `Note: ${store.getCard(id)?.title || 'Untitled'}`);
   if (isNew) setTimeout(() => title.focus(), 80);
 }
 const firstText = el => (el.innerText || '').trim().split('\n')[0].slice(0, 60);

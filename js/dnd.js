@@ -96,6 +96,8 @@ export function initDnd(navigate) {
 
   function begin() {
     drag.active = true;
+    // Keep edge-scrolling while the pointer rests near an edge, not only while it moves.
+    drag.scrollTimer = setInterval(() => { if (drag?.active) { autoScroll(); hitTest(); } }, 40);
     getSelection()?.removeAllRanges();
     startHooks.forEach(fn => fn(drag));
     // Measure again: start hooks may reshape the source (e.g. a note collapsing).
@@ -206,6 +208,7 @@ export function initDnd(navigate) {
 
   function end(cancelled) {
     clearTimeout(drag.springTimer);
+    clearInterval(drag.scrollTimer);
     const z = drag.zone;
     let accepted = false;
     if (!cancelled && z && !drag.denied) {
@@ -245,6 +248,17 @@ export function initDnd(navigate) {
     if (sc.scrollWidth > sc.clientWidth) {
       if (drag.x < r.left + edge) sc.scrollLeft -= 10;
       else if (drag.x > r.right - edge) sc.scrollLeft += 10;
+    }
+    // Sideways carousels under the finger (Taskly's columns on a phone, plan tracks, the week grid) scroll too,
+    // so a card can travel past the next column in one drag.
+    const under = document.elementsFromPoint(drag.x, drag.y).find(e => !e.closest('.drag-ghost'));
+    for (let el = under; el && el !== document.body; el = el.parentElement) {
+      if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) {
+        const b = el.getBoundingClientRect(), e2 = 48;
+        if (drag.x < b.left + e2) el.scrollLeft -= 14;
+        else if (drag.x > b.right - e2) el.scrollLeft += 14;
+        break;
+      }
     }
   }
 }
