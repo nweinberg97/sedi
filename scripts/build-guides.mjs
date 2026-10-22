@@ -18,6 +18,20 @@ const md = s => esc(s)
   .replace(/\*(.+?)\*/g, '<i>$1</i>')
   .replace(/\s?\[(\d+(?:,\s*\d+)*)\]/g, (_, n) => cite(n.split(/,\s*/).map(Number)));
 const plain = s => String(s ?? '').replace(/\*\*?(.+?)\*\*?/g, '$1').replace(/\s?\[(\d+(?:,\s*\d+)*)\]/g, '');
+const short = u => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+const linkRow = b => {
+  const L = b.links || {}, out = [];
+  if (L.book) out.push(`<a href="${esc(L.book)}" rel="noopener">The book ↗</a>`);
+  if (L.author) out.push(`<a href="${esc(L.author)}" rel="noopener">${esc(L.authorLabel || b.author)} ↗</a>`);
+  return out.length ? `<p class="links">${out.join('')}</p>` : '';
+};
+const linkList = b => {
+  const L = b.links || {}, rows = [];
+  if (L.book) rows.push(`<li><b>The book:</b> <a href="${esc(L.book)}" rel="noopener">${esc(short(L.book))}</a></li>`);
+  if (L.author) rows.push(`<li><b>${esc(L.authorLabel || b.author)}:</b> <a href="${esc(L.author)}" rel="noopener">${esc(short(L.author))}</a></li>`);
+  if (L.isbn) rows.push(`<li><b>ISBN:</b> ${esc(L.isbn)}</li>`);
+  return rows.length ? `<ul class="linklist">${rows.join('')}</ul>` : '';
+};
 const src = arr => (arr?.length ? cite(arr) : '');
 const pdfName = b => `By-Design-${String(b.n).padStart(2, '0')}-${b.title.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}.pdf`;
 
@@ -79,6 +93,10 @@ ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-r
 .reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
 .getbook{display:flex;gap:16px;align-items:center}
 .gb-emoji{font-size:40px;line-height:1}
+.links{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:13.5px;font-weight:500}
+.links a{color:var(--accent);text-decoration:none}
+.linklist{list-style:none;margin:0 0 10px;padding:0;font-size:13.5px;display:grid;gap:3px}
+.linklist a{color:var(--accent);word-break:break-word}
 .sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
 .sources li{margin:0 0 5px;break-inside:avoid}
 .sources a{color:#fff;word-break:break-word}
@@ -126,7 +144,7 @@ function guide(b) {
      <p class="kick">Why read it</p>
      <ul class="checks">${b.whyRead.map(x => `<li><span>${md(x)}</span></li>`).join('')}</ul>
      <div class="sp"></div>
-     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">${b.emoji}</span><div><p class="kick dark">Get the book</p><p><b>${esc(b.title)}</b> by ${esc(b.author)}</p><p class="muted" style="font-size:13.5px">${md(b.publisher)}, ${b.year}. At your local bookshop, your library, or as an audiobook.</p></div></div>`,
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">${b.emoji}</span><div><p class="kick dark">Get the book</p><p><b>${esc(b.title)}</b> by ${esc(b.author)}</p><p class="muted" style="font-size:13.5px">${md(b.publisher)}, ${b.year}. At your local bookshop, your library, or as an audiobook.</p>${linkRow(b)}</div></div>`,
     // 2 · The big idea and three lessons
     `<p class="kick">The big idea</p>
      <h2>${esc(b.bigIdea.name)}</h2>
@@ -161,6 +179,7 @@ function guide(b) {
        <p class="kick dark">Read the book</p>
        <p style="font-size:19px">${b.emoji} <b>${esc(b.title)}</b></p>
        <p class="muted" style="font-size:13.5px;margin:2px 0 10px">${esc(b.author)} · ${md(b.publisher)} · ${b.year}</p>
+       ${linkList(b)}
        <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
      </div>
      <div class="sp"></div>

@@ -146,7 +146,13 @@
      "text": "SuperSummary, *Tiny Habits* summary.",
      "url": "https://www.supersummary.com/tiny-habits/summary/"
     }
-   ]
+   ],
+   "links": {
+    "book": "https://tinyhabits.com/book/",
+    "author": "https://bjfogg.com/",
+    "authorLabel": "BJ Fogg",
+    "isbn": "9780358003328"
+   }
   },
   {
    "id": "indistractable",
@@ -281,7 +287,13 @@
    ],
    "verify": [
     "Confirm the book's later parts cover workplaces and children (cited to a summary)."
-   ]
+   ],
+   "links": {
+    "book": "https://benbellabooks.com/shop/indistractable/",
+    "author": "https://www.nirandfar.com/",
+    "authorLabel": "Nir Eyal",
+    "isbn": "9781948836531"
+   }
   },
   {
    "id": "atomic-habits",
@@ -424,7 +436,13 @@
      "text": "LitCharts, *Atomic Habits* chapter 16 (habit tracking, never miss twice).",
      "url": "https://www.litcharts.com/lit/atomic-habits/chapter-16"
     }
-   ]
+   ],
+   "links": {
+    "book": "https://jamesclear.com/atomic-habits",
+    "author": "https://jamesclear.com/",
+    "authorLabel": "James Clear",
+    "isbn": "9780735211292"
+   }
   },
   {
    "id": "nudge",
@@ -576,7 +594,13 @@
    "verify": [
     "Confirm the NUDGES acronym appears unchanged in the Final Edition.",
     "Sunstein described as a legal scholar; cite his Harvard page if adding more."
-   ]
+   ],
+   "links": {
+    "book": "https://penguinrandomhouse.ca/books/690485/nudge-by-richard-h-thaler-and-cass-r-sunstein/9780143137009",
+    "author": "https://faculty.chicagobooth.edu/richard-thaler",
+    "authorLabel": "Richard H. Thaler",
+    "isbn": "9780300122237"
+   }
   },
   {
    "id": "feel-good-productivity",
@@ -724,7 +748,13 @@
    "verify": [
     "'Doctor-turned-YouTuber' is widely reported; cite Abdaal's own about page.",
     "US edition may spell 'Energize'."
-   ]
+   ],
+   "links": {
+    "book": "https://celadonbooks.com/book/feel-good-productivity-ali-abdaal/",
+    "author": "https://aliabdaal.com/",
+    "authorLabel": "Ali Abdaal",
+    "isbn": "9781250865038"
+   }
   },
   {
    "id": "the-fun-habit",
@@ -864,7 +894,13 @@
    ],
    "verify": [
     "Chapter list not confirmed; check against the book."
-   ]
+   ],
+   "links": {
+    "book": "https://www.simonandschuster.com/books/The-Fun-Habit/Mike-Rucker/9781982159061",
+    "author": "https://michaelrucker.com/",
+    "authorLabel": "Mike Rucker",
+    "isbn": "9781982159054"
+   }
   },
   {
    "id": "the-organized-mind",
@@ -1001,7 +1037,13 @@
    ],
    "verify": [
     "Confirm the publisher of crm.org before launch."
-   ]
+   ],
+   "links": {
+    "book": "https://www.penguinrandomhouse.com/books/313653/the-organized-mind-by-daniel-j-levitin/",
+    "author": "https://www.daniellevitin.com/",
+    "authorLabel": "Daniel J. Levitin",
+    "isbn": "9780525954187"
+   }
   },
   {
    "id": "the-leading-brain",
@@ -1149,7 +1191,12 @@
    ],
    "verify": [
     "Author roles (neuropsychologist, consultant) from secondary sources; confirm."
-   ]
+   ],
+   "links": {
+    "author": "https://www.speakersassociates.com/speaker/friederike-fabritius/",
+    "authorLabel": "Friederike Fabritius",
+    "isbn": "9780143129356"
+   }
   },
   {
    "id": "the-brain-that-changes-itself",
@@ -1303,7 +1350,13 @@
    "verify": [
     "Doidge described as a psychiatrist; confirm on the publisher page.",
     "The interrupt-and-refocus steps follow Jeffrey Schwartz's method; credit Schwartz's *Brain Lock* (1996) if the book names him."
-   ]
+   ],
+   "links": {
+    "book": "https://www.penguinrandomhouse.com/books/291041/the-brain-that-changes-itself-by-norman-doidge-md/9780593293980",
+    "author": "https://normandoidge.com/",
+    "authorLabel": "Norman Doidge",
+    "isbn": "9780670038305"
+   }
   },
   {
    "id": "blue-zones-of-happiness",
@@ -1442,7 +1495,13 @@
    "verify": [
     "'Life Radius' is the publisher's term; grouping the chapters under it is our reading.",
     "Six hours of social time: confirm the exact figure and its source in the book."
-   ]
+   ],
+   "links": {
+    "book": "https://danbuettner.com/books/blue-zones-happiness",
+    "author": "https://danbuettner.com/",
+    "authorLabel": "Dan Buettner",
+    "isbn": "9781426218484"
+   }
   },
   {
    "id": "designing-your-work-life",
@@ -1578,7 +1637,13 @@
      "text": "*Stanford Magazine*, “How to Quit Your Job”.",
      "url": "https://stanfordmag.org/contents/how-to-quit-your-job"
     }
-   ]
+   ],
+   "links": {
+    "book": "https://penguinrandomhouse.ca/books/592536/designing-your-work-life-by-bill-burnett-and-dave-evans",
+    "author": "https://designingyour.life/",
+    "authorLabel": "Bill Burnett and Dave Evans",
+    "isbn": "9780525655244"
+   }
   },
   {
    "id": "the-art-of-gathering",
@@ -1712,7 +1777,13 @@
      "text": "Rise with Drew, “How to close our event with a bang and not a whimper”.",
      "url": "https://risewithdrew.com/how-to-close-our-event-with-a-bang-and-not-a-whimper/"
     }
-   ]
+   ],
+   "links": {
+    "book": "https://www.penguinrandomhouse.com/books/319055/the-art-of-gathering-by-priya-parker/",
+    "author": "https://www.priyaparker.com/",
+    "authorLabel": "Priya Parker",
+    "isbn": "9781594634925"
+   }
   },
   {
    "id": "our-tribal-future",
@@ -1840,7 +1911,13 @@
      "text": "Krueger, Joachim I. Review of *Our Tribal Future* (2023).",
      "url": "https://bpb-us-e1.wpmucdn.com/sites.ucsc.edu/dist/0/158/files/2023/08/FinalKruegeronSamson-revision.pdf"
     }
-   ]
+   ],
+   "links": {
+    "book": "https://academic.macmillan.com/academictrade/9781250272249/ourtribalfuture",
+    "author": "https://www.utm.utoronto.ca/shel/node/2",
+    "authorLabel": "David R. Samson (University of Toronto)",
+    "isbn": "9781250272249"
+   }
   },
   {
    "id": "the-psychology-of-interpersonal-relations",
@@ -1949,7 +2026,12 @@
    "verify": [
     "TITLE CHECK: you wrote 'The Science of Interpersonal Relations' (a 2018 self-published book by Ian Tuhovsky). We assumed Heider's classic; confirm.",
     "Add a scholarly overview source before publishing."
-   ]
+   ],
+   "links": {
+    "book": "https://www.routledge.com/The-Psychology-of-Interpersonal-Relations/Heider/p/book/9780898592825",
+    "author": "https://archives.lib.ku.edu/repositories/3/resources/3224",
+    "authorLabel": "Fritz Heider papers (University of Kansas)"
+   }
   }
  ]
 }
