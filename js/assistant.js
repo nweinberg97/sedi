@@ -103,7 +103,7 @@ let prepLine = 0, prepTimer = null;
 function showPrep(p, done) {
   const placed = done ? DOTS : Math.floor(Math.min(0.99, p) * DOTS);
   orb.querySelectorAll('.as-prep i').forEach((d, i) => d.classList.toggle('placed', i < placed));
-  if (done) { clearInterval(prepTimer); prepTimer = null; setState('listening', 'All in place. Listening…'); warmNaturalVoice(); return; }
+  if (done) { clearInterval(prepTimer); prepTimer = null; setState('listening', 'All in place. Listening…'); warmNaturalVoice(); setTimeout(() => orb.querySelectorAll('.as-prep i').forEach(d => d.classList.remove('placed')), 1200); return; }
   if (vstate !== 'preparing') {
     setState('preparing');
     prepLine = 0; clearInterval(prepTimer);
@@ -340,6 +340,11 @@ function afterSpeaking() {
 }
 
 function onOrb() {
+  // The tips are showing: the orb is the way in, same as Start talking.
+  if (output.querySelector('.voice-tips')) { store.setPref('voiceTipsSeen', true); output.replaceChildren(); convo = true; startListening(); return; }
+  // The private-voice question is showing: point at the choices instead of doing nothing.
+  const intro = output.querySelector('.voice-intro');
+  if (intro) { const b = intro.querySelector('.btn.primary'); b?.classList.remove('nudge'); void b?.offsetWidth; b?.classList.add('nudge'); b?.focus(); return; }
   if (vstate === 'speaking') { stopSpeaking(); convo = true; startListening(); return; }      // tap to interrupt
   if (vstate === 'listening' || vstate === 'hearing') { session?.stop(); return; }           // done talking
   if (vstate === 'thinking' || vstate === 'preparing') return;
@@ -354,7 +359,7 @@ function talk() {
 
 // ---------- First time in voice mode: two small cards on how a voice chat goes ----------
 function showVoiceTips() {
-  setState('idle', 'Two quick tips');
+  setState('idle', 'Tap the orb to start talking');
   const go = () => { store.setPref('voiceTipsSeen', true); output.replaceChildren(); convo = true; startListening(); };
   output.replaceChildren(h('div', { class: 'voice-tips' },
     h('div', { class: 'vt-card' }, h('span', { class: 'vt-num' }, '1'), h('div', {},
@@ -486,9 +491,18 @@ function summary() {
 
 const COACH = /stuck|overwhelm|procrastinat|motivat|focus|habit|anxious|stress|can'?t start|paraly|distract|routine|tired|burn ?out|lazy|unmotivated|how (do|can|should) i|help me|advice|tips?/i;
 
+// Hellos and mic checks get a friendly hello back, never a search of your cards.
+const SMALL_TALK = /^(?:(?:hello|hi|hey|heya|hiya|yo|howdy|good (?:morning|afternoon|evening)|testing|test|tests|one|two|three|1|2|3|mic check|check|can you hear me|do you hear me|are you there|is this (?:on|working)|sedi|hey sedi)[\s,.!?…-]*)+$/i;
+const THANKS = /^(?:(?:thanks|thank you|thx|cheers|cool|nice|great|awesome|ok|okay|perfect)[\s,.!?…-]*)+$/i;
 async function answer(q, { voice = false } = {}) {
   const lower = q.toLowerCase();
   let text;
+  if (SMALL_TALK.test(q.trim())) {
+    text = /\b(test|testing|hear|check|one|two|three|1|2|3)\b/i.test(q) ? 'I can hear you loud and clear. Ask me something like “what’s next today?”, or tell me what to add.' : 'Hi! Ask me something like “what’s next today?”, or tell me what to add.';
+    say(h('p', {}, text));
+    return text;
+  }
+  if (THANKS.test(q.trim())) { text = 'Anytime.'; say(h('p', {}, text)); return text; }
   // SD-B5: "summarize <note>" gives that card's summary.
   // "summarize my notes" / "summarize" on its own: a digest of your latest notes.
   if (/^(?:please\s+)?(?:summari[sz]e|sum up|tl;?dr|recap)(?:\s+(?:all\s+)?(?:of\s+)?(?:my\s+|the\s+)?(?:recent\s+|latest\s+)?(?:notes?|brainly))?[.!?]*$/i.test(q.trim())) {

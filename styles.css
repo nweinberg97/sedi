@@ -3528,3 +3528,16 @@ body.is-dragging .taskly-board, body.is-dragging .plan-track { scroll-snap-type:
 .peek-toggle { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); color: var(--muted); line-height: 1.45; cursor: pointer; }
 .peek-toggle input { margin-top: 2px; flex: none; }
 .peek-toggle b { color: var(--ink); font-weight: 600; }
+
+/* The dot cloud lives on after setup: loose dots float while Sedi listens (and swell with your voice),
+   then spring into a turning ring while it thinks. */
+.assistant-tray[data-state="listening"] .as-prep, .assistant-tray[data-state="hearing"] .as-prep { opacity: 0.85; }
+.assistant-tray[data-state="hearing"] .as-prep i { scale: calc(1 + var(--lvl) * 0.9); opacity: calc(0.5 + var(--lvl) * 0.5); }
+.assistant-tray[data-state="thinking"] .as-prep { opacity: 1; animation: prepTurn 2.6s linear infinite; }
+.assistant-tray[data-state="thinking"] .as-prep i { animation: none; translate: 0 0; opacity: 1; background: #4f86ea; transform: rotate(var(--a)) translateY(-43px) scale(1); }
+.assistant-tray[data-state="thinking"] .as-orb-core::before, .assistant-tray[data-state="thinking"] .as-orb-core::after { content: none; }
+.assistant-tray[data-state="thinking"] .as-orb-core { scale: 0.9; animation: tokenBreathe 1.6s linear infinite; }
+/* Tapping the orb while the private-voice question is open points to the choice. */
+.voice-intro .btn.primary.nudge { animation: nudgeBtn 0.6s ease 2; }
+@keyframes nudgeBtn { 0%, 100% { transform: none; } 30% { transform: scale(1.06); box-shadow: 0 0 0 4px color-mix(in srgb, #4f86ea 30%, transparent); } }
+.assistant-tray:is([data-state="listening"], [data-state="hearing"], [data-state="thinking"]) .as-orb-wrap { gap: 20px; padding-top: 10px; }
