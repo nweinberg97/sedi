@@ -51,6 +51,8 @@ async function boot() {
 
   registerServiceWorker();
   setTimeout(maybeNudgeUniversal, 4000);
+  // The in-chat preview can't reach the microphone, the weather service or model downloads.
+  if (window.SEDI_SANDBOX) setTimeout(() => toast('Sandbox preview with its own data. Voice, weather and offline mode need the real app.', { duration: 8000 }), 900);
 }
 
 function mountRoute() {
