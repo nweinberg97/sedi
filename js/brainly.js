@@ -169,6 +169,7 @@ function linkEl(c) {
   // SD-F4 / SD-L3: a click previews; the preview has the Open button.
   el.addEventListener('click', e => { if (!e.target.closest('button')) previewItem(el, c.id); });
   el.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(el, c.id); });
+  hoverPreview(el, c);
   el.append(h('button', { class: 'link-task', 'aria-label': `Make a task: ${taskTitleFor(c)}`, title: `Make a task: “${taskTitleFor(c)}”`, onclick: e => { e.stopPropagation(); makeTaskFrom(c); } }, icon('checklist')),
     h('button', { class: 'card-del', 'aria-label': 'Delete', title: 'Delete (you can Undo)', onclick: e => { e.stopPropagation(); trashCard(c.id); } }, icon('x')));
   return el;
@@ -234,7 +235,8 @@ function openLinkFolder(fid, fromEl) {
     const f = lfById(glass.fid);
     if (!f) return closeGlass();
     const parent = lfById(f.parentId);
-    const title = h('input', { class: 'glass-title', value: f.name, 'aria-label': 'Folder name', spellcheck: false });
+    const title = h('input', { class: 'glass-title', value: f.name, size: Math.max(4, f.name.length + 1), 'aria-label': 'Folder name', spellcheck: false });
+    title.addEventListener('input', () => { title.size = Math.max(4, title.value.length + 1); });
     title.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') title.blur(); if (e.key === 'Escape') { title.value = f.name; title.blur(); } });
     title.addEventListener('change', () => { const v = title.value.trim(); if (v && v !== f.name) saveLinkFolder(f.id, { name: v }); });
     const subs = lfChildren(f.id), items = links(f.id);
@@ -255,6 +257,7 @@ function openLinkFolder(fid, fromEl) {
         const t = h('div', { class: 'glass-item', tabindex: 0, dataset: { drag: 'card', id: c.id }, title: c.meta?.url || c.title },
           h('span', { class: 'glass-icon' }, favicon(c)), h('span', { class: 'glass-label' }, c.title));
         t.addEventListener('click', () => previewItem(t, c.id));
+        hoverPreview(t, c);
         t.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(t, c.id); });
         return t;
       }));
@@ -264,7 +267,10 @@ function openLinkFolder(fid, fromEl) {
       h('div', { class: 'glass-top' },
         parent ? h('button', { class: 'glass-back', type: 'button', onclick: () => { glass.fid = parent.id; paint(); } }, icon('chevL'), parent.name) : h('span'),
         h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Close folder', onclick: () => closeGlass() }, icon('x'))),
-      title,
+      // The folder's icon sits by its name; click it to change it and see the new one right away.
+      h('div', { class: 'glass-head' },
+        h('button', { class: 'glass-emoji', type: 'button', title: 'Change icon', 'aria-label': 'Change folder icon', onclick: e => pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })) }, lfEmoji(f)),
+        title),
       h('p', { class: 'glass-sub-line' }, `${lfCount(f)}${parent ? ` · in ${lfPath(parent)}` : ''}`),
       // While something is being dragged, this strip takes it back out a level.
       h('div', { class: 'glass-out', dataset: { drop: 'lf-out', accept: 'card lfolder', to: f.parentId && parent ? parent.id : '' } },
@@ -273,7 +279,6 @@ function openLinkFolder(fid, fromEl) {
       h('div', { class: 'glass-actions' },
         h('button', { class: 'glass-btn', type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Upload'),
         h('button', { class: 'glass-btn', type: 'button', onclick: () => addLinkFolder(f.id) }, icon('folder'), 'New folder'),
-        h('button', { class: 'glass-btn', type: 'button', onclick: e => pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })) }, h('span', {}, lfEmoji(f)), 'Icon'),
         parent ? h('button', { class: 'glass-btn', type: 'button', title: `Move this folder out of ${parent.name}`, onclick: () => { const to = lfById(parent.parentId) ? parent.parentId : null; saveLinkFolder(f.id, { parentId: to }); toast(`Moved ${f.name} to ${to ? lfById(to).name : 'My links'}`); } }, icon('chevL'), 'Move out') : null,
         h('button', { class: 'glass-btn danger', type: 'button', onclick: () => { const ff = lfById(glass.fid); closeGlass(); if (ff) deleteLinkFolder(ff); } }, icon('trash'), 'Delete')),
       fileIn);
@@ -439,7 +444,9 @@ function previewItem(anchor, id) {
       h('div', { class: 'peek-actions' },
         h('a', { class: 'btn sm primary', href: safeUrl(m.url), target: '_blank', rel: 'noopener noreferrer' }, icon('external'), 'Open link'),
         h('button', { class: 'chip', onclick: () => { closePopovers(); openMoveDialog(id); } }, icon('move'), 'Move to…')),
-      h('p', { class: 'muted small' }, 'Sites don’t let a browser app fetch their preview image, so Sedi shows the site’s icon, its address and the title you choose.'));
+      h('label', { class: 'peek-toggle' },
+        h('input', { type: 'checkbox', checked: linkPreviewsOn(), onchange: e => store.setPref('linkPreviews', e.target.checked) }),
+        h('span', {}, h('b', {}, 'Page previews on hover. '), 'Shows a picture of the page when you hover a link. Uses WordPress.com’s screenshot service, which sees the link’s address (never your notes).')));
   } else if (kind === 'pdf') {
     const drive = h('input', { class: 'field-input sm', value: m.driveUrl || '', placeholder: 'Paste a Google Drive link', 'aria-label': 'Google Drive link' });
     drive.addEventListener('change', () => store.updateCard(id, { meta: { driveUrl: drive.value.trim() || null } }, { log: true, logLabel: 'Linked to Google Drive' }));
@@ -533,10 +540,11 @@ function noteEl(c) {
   return el;
 }
 
+const folderEmoji = f => f.emoji || mostCommonEmoji(folderNotes(f.id).map(n => `${n.title} ${stripHtml(n.description)}`), '🗂️');
 function folderEl(f) {
   const notes = folderNotes(f.id);
   const subs = childFolders(f.id);
-  const emoji = f.emoji || mostCommonEmoji(notes.map(n => `${n.title} ${stripHtml(n.description)}`), '🗂️');
+  const emoji = folderEmoji(f);
   const name = h('span', { class: 'bf-name' }, f.name);
   name.addEventListener('dblclick', e => { e.stopPropagation(); editInline(name, { onCommit: v => saveFolder(f.id, { name: v }) }); });
   const count = [notes.length ? `${notes.length} note${notes.length === 1 ? '' : 's'}` : '', subs.length ? `${subs.length} folder${subs.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ') || 'Empty';
@@ -582,6 +590,50 @@ function showPeek(anchor, id) {
     const mine = peekEl;
     ensureSummary(c).then(s => { if (peekEl === mine && s) paint(s); });
   }, 260);
+}
+// ---------- Website previews on hover (opt-in) ----------
+// A browser app can't load another site's page itself, so the picture comes from WordPress.com's free
+// screenshot service (mShots). That sends the link's address to WordPress.com, so it's off until you turn it on.
+export const linkPreviewsOn = () => store.pref('linkPreviews') === true;
+const shotUrl = (url, retry = 0) => `https://s0.wp.com/mshots/v1/${encodeURIComponent(url)}?w=640&h=400${retry ? `&r=${retry}` : ''}`;
+function hoverPreview(el, c) {
+  if (kindOf(c) !== 'link' || !safeUrl(c.meta?.url) || !/^https?:/.test(c.meta.url)) return;
+  el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') showLinkPeek(el, c.id); });
+  el.addEventListener('pointerleave', hidePeek);
+  el.addEventListener('pointerdown', hidePeek);
+}
+function showLinkPeek(anchor, id) {
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(() => {
+    if (document.body.classList.contains('is-dragging') || !anchor.isConnected || document.querySelector('.popover')) return;
+    const c = store.getCard(id);
+    if (!c) return;
+    hidePeek();
+    const m = c.meta || {};
+    let shot = null;
+    if (linkPreviewsOn()) {
+      const img = h('img', { alt: '', referrerpolicy: 'no-referrer', src: shotUrl(m.url) });
+      shot = h('div', { class: 'link-shot loading' }, img, h('span', { class: 'link-shot-wait' }, 'Loading preview…'));
+      let tries = 0;
+      // The service answers with a "generating" placeholder the first time it sees a page; ask again shortly.
+      img.addEventListener('load', () => {
+        if (img.naturalWidth && img.naturalWidth < 600 && tries < 3) { tries++; setTimeout(() => { if (img.isConnected) img.src = shotUrl(m.url, Date.now()); }, 1800); return; }
+        shot.classList.remove('loading');
+      });
+      img.addEventListener('error', () => shot.replaceWith(h('p', { class: 'muted small' }, 'No preview for this page.')));
+    }
+    peekEl = h('div', { class: 'note-peek link-peek', role: 'tooltip' },
+      shot,
+      h('strong', {}, c.title),
+      h('span', { class: 'link-peek-host' }, m.host || ''),
+      h('span', { class: 'muted small' }, linkPreviewsOn() ? 'Click for options, or open the link' : 'Click for options. Page previews are off (turn them on there).'));
+    document.body.append(peekEl);
+    const r = anchor.getBoundingClientRect(), pr = peekEl.getBoundingClientRect();
+    let left = r.right + 10;
+    if (left + pr.width > innerWidth - 12) left = r.left - pr.width - 10;
+    peekEl.style.left = Math.max(12, left) + 'px';
+    peekEl.style.top = clamp(r.top, 12, innerHeight - pr.height - 12) + 'px';
+  }, 350);
 }
 function hidePeek() { clearTimeout(peekTimer); peekEl?.remove(); peekEl = null; }
 onDragStart(() => hidePeek());
@@ -709,6 +761,23 @@ export function trashFolder(id) {
     action: 'Undo', onAction: () => { store.set('brainFolders', prev); notes.forEach(n => store.restoreCard(n)); },
   });
 }
+/** Copy formatted text right now (inside the click), so it lands on the clipboard before anything else takes focus. */
+function copyNow(html, plain) {
+  const box = h('div', { contenteditable: 'true', 'aria-hidden': 'true', style: { position: 'fixed', left: '-9999px', top: '0', whiteSpace: 'pre-wrap' } });
+  box.innerHTML = html; // already sanitized above: the title is escaped and the body passes sanitize()
+  document.body.append(box);
+  const sel = getSelection(), saved = sel.rangeCount ? sel.getRangeAt(0) : null;
+  const range = document.createRange(); range.selectNodeContents(box);
+  sel.removeAllRanges(); sel.addRange(range);
+  let ok = false;
+  const onCopy = e => { if (!e.clipboardData) return; e.clipboardData.setData('text/html', html); e.clipboardData.setData('text/plain', plain); e.preventDefault(); };
+  document.addEventListener('copy', onCopy, { once: true });
+  try { ok = document.execCommand('copy'); } catch {}
+  document.removeEventListener('copy', onCopy);
+  sel.removeAllRanges(); if (saved) sel.addRange(saved);
+  box.remove();
+  return ok;
+}
 function pickEmoji(anchor, onPick) {
   popover(anchor, h('div', { class: 'emoji-grid' }, EMOJI_CHOICES.map(e => h('button', {
     class: 'emoji-opt', onclick: () => { onPick(e); closePopovers(); },
@@ -734,10 +803,12 @@ function openFolder(fid) {
     const subs = childFolders(fid);
     const notes = folderNotes(fid).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     box.replaceChildren(
-      h('div', { class: 'crumbs' }, path.flatMap((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, i < path.length - 1 ? h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name) : h('strong', {}, p.name)]).filter(Boolean)),
+      h('div', { class: 'fv-head' },
+        h('button', { class: 'fv-emoji', type: 'button', title: 'Change icon', 'aria-label': 'Change folder icon', onclick: e => pickEmoji(e.currentTarget, v => saveFolder(fid, { emoji: v })) }, folderEmoji(f)),
+        h('div', { class: 'crumbs' }, path.flatMap((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, i < path.length - 1 ? h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name) : h('strong', {}, p.name)]).filter(Boolean))),
       subs.length ? h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, 'Folders'),
         h('div', { class: 'fv-folders' }, subs.map(s => h('div', { class: 'fv-folder', style: { '--folder': s.color || '#A796CB' } },
-          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(s.id); } }, h('span', { class: 'bf-emoji' }, s.emoji || '🗂️'), h('span', {}, s.name), iconsRow(folderNotes(s.id), 6)),
+          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(s.id); } }, h('span', { class: 'bf-emoji' }, folderEmoji(s)), h('span', {}, s.name), iconsRow(folderNotes(s.id), 6)),
           h('button', { class: 'chip ghost', title: 'Move this folder out onto the canvas', onclick: () => saveFolder(s.id, { parentId: null, ...freeSpot() }) }, 'Move out'))))) : '',
       h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, notes.length ? 'Notes · drag one out to move it' : 'Notes'),
         notes.length ? h('div', { class: 'fv-notes' }, notes.map(n => {
@@ -753,7 +824,7 @@ function openFolder(fid) {
   const unsub = store.on(fill);
   const f = folderById(fid);
   m = modal({
-    title: `${f.emoji || '🗂️'}  ${f.name}`, body: box, wide: true, onClose: () => { unsub(); hidePeek(); },
+    title: 'Folder', body: box, wide: true, onClose: () => { unsub(); hidePeek(); },
     actions: [
       { label: 'Duplicate folder', kind: 'ghost', onClick: () => duplicateFolder(fid) },
       { label: 'New folder inside', kind: 'ghost', onClick: () => { addFolder(fid); return true; } },
@@ -873,17 +944,15 @@ export function openNote(id, isNew = false) {
     }
     const html = `<h1>${escapeHtml(now.title || '')}</h1>${sanitize(now.description || '')}`;
     const plain = `${now.title}\n\n${noteText(now)}`;
-    // Start the copy inside the click, then open the doc.
-    let copying;
-    try {
-      copying = navigator.clipboard?.write && window.ClipboardItem
-        ? navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([plain], { type: 'text/plain' }) })])
-        : navigator.clipboard.writeText(plain);
-    } catch { copying = Promise.reject(); }
+    // Copy the whole note before the new tab opens. The async clipboard API finishes after the click,
+    // and by then the new tab has taken focus, so browsers quietly refuse it and only the title made it
+    // across. A synchronous copy of the formatted note finishes first, so the details come along.
+    const copied = copyNow(html, plain);
+    const paste = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘V' : 'Ctrl+V';
+    if (!copied) { try { navigator.clipboard?.writeText(plain); } catch {} }
     window.open(createUrl, '_blank', 'noopener');
-    Promise.resolve(copying).then(() => true, () => false).then(copied => {
-      docStatus.textContent = copied ? `Opened a new Google Doc. Your note is copied: press ${/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘V' : 'Ctrl V'} there.` : 'Opened a new Google Doc. Copy your note from here and paste it in.';
-    });
+    docStatus.textContent = copied ? `Opened a new Google Doc with your note copied. Click into the doc and press ${paste} to paste the details.` : 'Opened a new Google Doc. Copy your note from here and paste it in.';
+    toast(copied ? `Note copied. In the new Google Doc, press ${paste} to paste it in.` : 'Copy your note and paste it into the new doc.', { duration: 9000 });
     showAttach('Optional: paste the new doc’s address to keep it linked here');
   };
   const docs = h('div', { class: 'note-docs' },

@@ -3507,3 +3507,24 @@ body.is-dragging .taskly-board, body.is-dragging .plan-track { scroll-snap-type:
 .f-icons .fi .pdf-badge { font-size: 7px; letter-spacing: 0; }
 .f-icons .fi-more { font-size: var(--fs-2xs); color: var(--muted); font-variant-numeric: tabular-nums; padding-left: 1px; }
 .bf-body .f-icons, .lf-tile-text .f-icons { margin-top: 2px; }
+
+/* An open folder shows its icon next to its name; click the icon to change it */
+.glass-head, .fv-head { display: flex; align-items: center; gap: 10px; }
+.glass-head { justify-content: center; }
+.glass-head .glass-title { flex: 0 1 auto; width: auto; min-width: 0; max-width: calc(100% - 60px); text-align: left; }
+.glass-emoji, .fv-emoji { flex: none; width: 44px; height: 44px; display: grid; place-items: center; font-size: 26px; line-height: 1; border-radius: 12px; background: rgba(255, 255, 255, 0.6); border: 1px solid var(--line, rgba(0, 0, 0, 0.08)); cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.glass-emoji:hover, .fv-emoji:hover { background: #fff; transform: scale(1.05); }
+.fv-head { margin-bottom: 6px; }
+.fv-head .crumbs { font-size: var(--fs-md, 16px); }
+
+/* Website preview when hovering a link */
+.link-peek { width: 300px; }
+.link-shot { position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: var(--well, #f2f2f4); border: 1px solid var(--line, rgba(0,0,0,.08)); }
+.link-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.link-shot.loading img { opacity: 0; }
+.link-shot-wait { position: absolute; inset: 0; display: none; place-items: center; font-size: var(--fs-xs); color: var(--muted); }
+.link-shot.loading .link-shot-wait { display: grid; }
+.link-peek-host { font-size: var(--fs-xs); color: var(--muted); margin-top: -4px; }
+.peek-toggle { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-xs); color: var(--muted); line-height: 1.45; cursor: pointer; }
+.peek-toggle input { margin-top: 2px; flex: none; }
+.peek-toggle b { color: var(--ink); font-weight: 600; }
