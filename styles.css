@@ -2914,7 +2914,7 @@ textarea.field-input { min-height: 0; }
 .vi-link:hover { text-decoration: underline; }
 .vi-more ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-xs); line-height: 1.45; color: var(--muted); }
 .vi-more b { color: var(--ink-2); font-weight: 600; }
-.vi-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+.vi-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-top: 4px; }
 .vs-group.vs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 @media (max-width: 520px) { .vs-group.vs-row { grid-template-columns: 1fr; } }
 .vs-group.vs-row { grid-template-columns: repeat(3, 1fr); }
@@ -3486,3 +3486,11 @@ body.is-dragging .taskly-board, body.is-dragging .plan-track { scroll-snap-type:
 /* Day view: events leave a strip on the right, so you can still click or tap a busy time to add something else there */
 .day-col .event-block { right: 52px; }
 .day-col .event-block.in-lane { left: calc(72px + (100% - 124px) * var(--lane) / var(--lanes)); width: calc((100% - 124px) / var(--lanes) - 4px); }
+
+/* First time in voice mode: two numbered tip cards */
+.voice-tips { display: flex; flex-direction: column; gap: 8px; }
+.vt-card { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 16px; background: var(--paper, #fff); border: 1px solid var(--line, rgba(0,0,0,.08)); }
+.vt-card strong { display: block; font-size: var(--fs-sm); color: var(--ink); }
+.vt-card p { margin: 2px 0 0; font-size: var(--fs-xs); line-height: 1.45; color: var(--muted); }
+.vt-num { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: var(--fs-2xs); font-weight: 600; background: var(--ink); color: var(--paper, #fff); }
+.voice-tips .vi-actions { justify-content: flex-end; }

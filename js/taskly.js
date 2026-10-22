@@ -48,7 +48,7 @@ export function mount(el) {
   board = h('div', { class: 'taskly-board' });
   root.replaceChildren(h('div', { class: 'view taskly' },
     h('div', { class: 'view-head' }, h('h1', { class: 'view-title' }, 'Taskly'),
-      h('p', { class: 'view-note' }, 'Columns never scroll. When one fills up, finish, move or delete something.')),
+      h('p', { class: 'view-note' }, 'Each column holds what fits on screen. When one fills up, finish, move or delete something.')),
     board));
   render();
   // Review countdowns tick over without anyone touching the board.

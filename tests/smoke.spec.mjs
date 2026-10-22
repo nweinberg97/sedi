@@ -380,6 +380,9 @@ test.describe('assistant', () => {
     await page.evaluate(() => window.__heard.push('summary'));
     await page.locator('.assistant-token').click();
     await expect(page.locator('.assistant-tray')).toHaveAttribute('data-view', 'voice');
+    // The first time, two tip cards explain how a voice chat goes; Start talking begins listening.
+    await expect(page.locator('.vt-card')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Start talking' }).click();
     await expect(page.locator('.as-msg.bot').last()).toContainText('Taskly');
     await expect.poll(() => page.evaluate(() => window.__spoken.length)).toBeGreaterThan(0);
     // After answering it listens again; hearing nothing, it goes quiet.

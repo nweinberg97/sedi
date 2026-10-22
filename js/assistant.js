@@ -44,7 +44,7 @@ export function buildAssistant() {
       h('span', { class: 'as-side' })),
     h('form', { class: 'as-form', onsubmit: e => { e.preventDefault(); submit(input.value); } },
       input,
-      h('button', { class: 'icon-btn as-mic', type: 'button', 'aria-label': 'Talk instead', title: 'Talk instead', onclick: () => { setView('voice'); convo = true; startListening(); } }, icon('mic')),
+      h('button', { class: 'icon-btn as-mic', type: 'button', 'aria-label': 'Talk instead', title: 'Talk instead', onclick: () => { setView('voice'); talk(); } }, icon('mic')),
       h('button', { class: 'icon-btn as-send', 'aria-label': 'Send', type: 'submit' }, icon('send'))));
   input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') toggle(false); });
   makeDraggable();
@@ -342,7 +342,33 @@ function onOrb() {
 /** Start talking, or, the first time, explain the private voice and ask before downloading it. */
 function talk() {
   if (needsVoiceSetup()) { showVoiceIntro(); return; }
+  if (!store.pref('voiceTipsSeen')) { showVoiceTips(); return; }
   convo = true; startListening();
+}
+
+// ---------- First time in voice mode: two small cards on how a voice chat goes ----------
+function showVoiceTips() {
+  setState('idle', 'Two quick tips');
+  const go = () => { store.setPref('voiceTipsSeen', true); output.replaceChildren(); convo = true; startListening(); };
+  output.replaceChildren(h('div', { class: 'voice-tips' },
+    h('div', { class: 'vt-card' }, h('span', { class: 'vt-num' }, '1'), h('div', {},
+      h('strong', {}, 'Talk, then pause'),
+      h('p', {}, 'Sedi listens until you stop, then answers out loud. Tap the orb to cut in. Say “bye” when you’re done.'))),
+    h('div', { class: 'vt-card' }, h('span', { class: 'vt-num' }, '2'), h('div', {},
+      h('strong', {}, 'Ask or tell'),
+      h('p', {}, 'Ask “what’s next today?”, or say “remind me to call mom at 9”. Before changing anything, Sedi reads it back and waits for your “yes”.'))),
+    h('div', { class: 'vi-actions' }, h('button', { class: 'btn primary sm', type: 'button', onclick: go }, 'Start talking'))));
+}
+
+/** The device's own dictation: Sedi never touches the microphone, it only gets the typed words. */
+function dictationTip() {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  if (ios) return 'On the keyboard, tap the microphone on your keyboard and speak. Your iPhone or iPad does the listening; Sedi only gets the words.';
+  if (/Android/.test(ua)) return 'Tap the microphone on your keyboard and speak. Your keyboard does the listening; Sedi only gets the words.';
+  if (/Macintosh/.test(ua)) return 'Press the Globe or Fn key twice and speak (turn it on in System Settings → Keyboard → Dictation). Your Mac does the listening; Sedi only gets the words.';
+  if (/Windows/.test(ua)) return 'Press Windows + H and speak. Windows does the listening; Sedi only gets the words.';
+  return 'Use your keyboard’s dictation button and speak. Your device does the listening; Sedi only gets the words.';
 }
 const needsVoiceSetup = () => earsNow() === 'device' && hearingState().status !== 'ready' && !hearingDownloaded() && store.pref('voiceSetupOk') !== hearingModel().id; // asks again if the download changes
 
@@ -367,12 +393,12 @@ function showVoiceIntro() {
   const card = h('div', { class: 'voice-intro' },
     h('div', { class: 'vi-badge' }, icon('lock'), 'Private voice'),
     h('strong', { class: 'vi-title' }, 'Talk to Sedi'),
-    h('p', {}, `Once it's set up, your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. It needs a one-time download of open models (${downloadSize()}), then works offline. Until then, voice uses your browser's own speech recognition, which in some browsers (like Chrome) sends the audio to their servers.`),
+    h('p', {}, `Once it's set up, your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. It needs a one-time download of open models (${downloadSize()}), then works offline. Rather not download? Your keyboard's own dictation works too, with nothing extra to install.`),
     h('button', { class: 'vi-link', type: 'button', 'aria-expanded': 'false', onclick: e => { more.hidden = !more.hidden; e.currentTarget.setAttribute('aria-expanded', String(!more.hidden)); e.currentTarget.textContent = more.hidden ? 'What exactly happens?' : 'Hide details'; } }, 'What exactly happens?'),
     more,
     h('div', { class: 'vi-actions' },
-      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { card.remove(); greet(); setView('type'); } }, 'Type instead'),
-      h('button', { class: 'btn primary sm', type: 'button', onclick: () => { store.setPref('voiceSetupOk', hearingModel().id); card.remove(); convo = true; startListening(); } }, 'Set up private voice')));
+      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { card.remove(); greet(); say(h('span', {}, h('b', {}, 'No download needed. '), 'Type here, or speak with your keyboard’s dictation. ', dictationTip())); setView('type'); } }, 'Type or dictate instead'),
+      h('button', { class: 'btn primary sm', type: 'button', onclick: () => { store.setPref('voiceSetupOk', hearingModel().id); card.remove(); talk(); } }, 'Set up private voice')));
   output.replaceChildren(card);
 }
 
