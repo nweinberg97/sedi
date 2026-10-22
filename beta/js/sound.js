@@ -73,3 +73,23 @@ export function tick() {
   o.connect(g).connect(ac.destination);
   o.start(t0); o.stop(t0 + 0.14);
 }
+
+/** A bright two-note "done" chime for ticking off a task. */
+export function checkSound() {
+  const ac = getCtx();
+  if (!ac) return;
+  const t0 = ac.currentTime;
+  const out = ac.createGain();
+  out.gain.value = 0.5;
+  out.connect(ac.destination);
+  [[784, 0], [1175, 0.08]].forEach(([freq, at]) => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(freq, t0 + at);
+    g.gain.setValueAtTime(0.0001, t0 + at);
+    g.gain.exponentialRampToValueAtTime(0.22, t0 + at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + 0.32);
+    o.connect(g).connect(out);
+    o.start(t0 + at); o.stop(t0 + at + 0.34);
+  });
+}

@@ -95,7 +95,7 @@ export function mountLiquidGlass(el, { strength = 64, edge = 42, refract = true 
         el.style.backdropFilter = 'none';
         void el.offsetWidth;
         requestAnimationFrame(() => {
-          el.style.backdropFilter = `url(#${id}) blur(1px) saturate(1.15) brightness(1.05)`;
+          el.style.backdropFilter = `url(#${id}) blur(2px) saturate(0.7) brightness(1.12)`; // SD-H4: whiter, less blue
           if (!getComputedStyle(el).backdropFilter.includes('url')) el.style.backdropFilter = '';
         });
       });

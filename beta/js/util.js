@@ -121,6 +121,13 @@ export const SOFT_COLORS = ['#8E9BC9', '#86AE95', '#C9A46E', '#A796CB', '#C98E8E
 export const colorFor = s => SOFT_COLORS[hashStr(s) % SOFT_COLORS.length];
 
 const EMOJI_RULES = [
+  ['claude|anthropic|chatgpt|openai|llm|gemini|copilot', '✨'],
+  ['figma|dribbble|behance|canva|design|font|colou?rs?|palette', '🎨'],
+  ['gmail|e-?mail|inbox|newsletter|outlook', '✉️'],
+  ['calendar|event|schedule|agenda', '📅'],
+  ['photos?|images?|unsplash|pinterest|gallery|camera', '🖼️'],
+  ['lease|contract|insurance|policy|agreement|legal|warranty|invoice|receipt', '📑'],
+  ['notes?|zettel\\w*|evernote|obsidian|journal|notebook', '📝'],
   ['youtube|youtu\\.be|vimeo|video|film|movie|watch|twitch|netflix', '🎬'],
   ['spotify|music|song|podcast|soundcloud|audio|playlist', '🎵'],
   ['github|gitlab|code|coding|developer|api|stackoverflow|npm|javascript|python|program', '💻'],
@@ -171,12 +178,13 @@ export function download(filename, content, type = 'application/json') {
 }
 
 // ---------- Toasts ----------
-export function toast(message, { action, onAction, duration = 3200 } = {}) {
+export function toast(message, { action, onAction, duration = 3200, code = null } = {}) {
   const host = $('#toasts');
-  // Don't stack the same message twice; nudge the one already showing instead.
+  // Don't stack the same message twice; give the one already showing a little nudge instead.
   const same = [...host.children].find(t => t.firstChild?.textContent === message);
   if (same) { same.classList.remove('bump'); void same.offsetWidth; same.classList.add('bump'); return () => {}; }
-  const el = h('div', { class: 'toast', role: 'status' }, h('span', {}, message));
+  // `code` marks the toast as a recognisable error state (data-navoro-error) for in-app guidance.
+  const el = h('div', { class: 'toast', role: 'status', 'data-navoro-error': code }, h('span', {}, message));
   if (action) {
     el.append(h('button', { class: 'toast-action', onclick: () => { onAction?.(); dismiss(); } }, action));
   }
@@ -189,13 +197,24 @@ export function toast(message, { action, onAction, duration = 3200 } = {}) {
 
 // ---------- Modals ----------
 let modalStack = [];
+// Dialogs open out of whatever you tapped, like a folder on an iPhone (and Brainly's link folders).
+let lastTap = null;
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest?.('[data-drag], .tile, .task-card, .b-note, .link-card, .lf-tile, button, [role="button"], a');
+  if (el) { const r = el.getBoundingClientRect(); lastTap = { x: r.left + r.width / 2, y: r.top + r.height / 2, t: Date.now() }; }
+}, true);
 export function modal({ title, body, actions = [], wide = false, onClose, className = '' }) {
   const backdrop = h('div', { class: 'modal-backdrop' });
-  const box = h('div', { class: `modal ${wide ? 'wide' : ''} ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Dialog' });
+  const box = h('div', { class: `modal ${wide ? 'wide' : ''} ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Dialog', 'data-navoro-sensitive': '' });
+  if (lastTap && Date.now() - lastTap.t < 1500) {
+    box.style.setProperty('--from-x', `${Math.round(lastTap.x - innerWidth / 2)}px`);
+    box.style.setProperty('--from-y', `${Math.round(lastTap.y - innerHeight / 2)}px`);
+  }
   const close = () => {
     backdrop.classList.remove('in');
+    backdrop.classList.add('out');
     modalStack = modalStack.filter(m => m !== close);
-    setTimeout(() => backdrop.remove(), 180);
+    setTimeout(() => backdrop.remove(), 220);
     document.removeEventListener('keydown', onKey, true);
     onClose?.();
   };
@@ -257,8 +276,9 @@ export function popover(anchor, content, { className = '', placement = 'below' }
   requestAnimationFrame(() => pop.classList.add('in'));
   const off = e => { if (!pop.contains(e.target) && !anchor.contains(e.target)) closePopovers(); };
   const key = e => { if (e.key === 'Escape') closePopovers(); };
-  setTimeout(() => { document.addEventListener('pointerdown', off, true); document.addEventListener('keydown', key); });
-  pop._cleanup = () => { document.removeEventListener('pointerdown', off, true); document.removeEventListener('keydown', key); };
+  // Capture phase, so inputs that stop key events can't keep a popover open on Escape.
+  setTimeout(() => { document.addEventListener('pointerdown', off, true); document.addEventListener('keydown', key, true); });
+  pop._cleanup = () => { document.removeEventListener('pointerdown', off, true); document.removeEventListener('keydown', key, true); };
   return pop;
 }
 export function closePopovers() { $$('.popover').forEach(p => { p._cleanup?.(); p.remove(); }); }
@@ -291,8 +311,16 @@ export function editInline(el, { multiline = false, onCommit, selectAll = true }
 // ---------- Icons (1.6px strokes, currentColor) ----------
 const S = (inner, vb = 24) => `<svg viewBox="0 0 ${vb} ${vb}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 export const ICONS = {
-  atom: S('<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>'),
+  // Atom: three fine orbits, tilted, with an electron at the tip of each and a clear gap around the nucleus.
+  atom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true" class="atom-mark"><path d="M1.81 14.92A10.6 3.4 -16 0 1 22.19 9.08" opacity="0.38"/><path d="M8.15 13.10A4.0 9.8 -16 0 1 15.85 10.90" opacity="0.38"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M22.19 9.08A10.6 3.4 -16 0 1 1.81 14.92" /><circle cx="19.01" cy="12.78" r="1.4" fill="currentColor" stroke="none"/><path d="M15.85 10.90A4.0 9.8 -16 0 1 8.15 13.10" /><circle cx="12.58" cy="20.84" r="1.15" fill="currentColor" stroke="none"/></svg>',
+  // Universal Board: one clean launch swoosh with a star at its tip.
+  galaxy: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="uni-swoosh" d="M2.2 17.4C7.6 9.6 14.4 5.6 22.2 4.6c-6.9 2.2-12.6 6.6-16.7 13.3-1.3.4-2.4.3-3.3-.5z"/><path class="uni-star" d="M19.6 2.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z"/></svg>',
+  flag: S('<path d="M6 20.5V4.5"/><path d="M6 5h11l-2.5 4L17 13H6"/>'),
+  arrowR: S('<path d="M5 12h12M13 7.5 17.5 12 13 16.5"/>'),
+  sparkle: S('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M7 17l2-2M15 9l2-2"/>'),
+  grip: S('<circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/>'),
   menu: S('<path d="M4 8h16M4 16h16"/>'),
+  help: S('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.86.83c0 1.67-2.46 2.27-2.46 3.77"/><circle cx="12" cy="16.9" r="0.9" fill="currentColor" stroke="none"/>'),
   universe: S('<circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="10" ry="3.4" transform="rotate(-20 12 12)"/><path d="M5 4.5v1.6M4.2 5.3h1.6M19 17.6v1.6M18.2 18.4h1.6" stroke-width="1.3"/>'),
   home: S('<path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>'),
   trash: S('<path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l.9 12.2h9.2l.9-12.2"/><path d="M10.2 10.5v5.5M13.8 10.5v5.5"/>'),
@@ -318,6 +346,14 @@ export const ICONS = {
   check: S('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
   expand: S('<path d="M14 4.5h5.5V10M10 19.5H4.5V14M19.5 4.5l-6 6M4.5 19.5l6-6"/>'),
   minimize: S('<path d="M19.5 4.5l-5.5 5.5M14 5.5V10h4.5M4.5 19.5 10 14M10 18.5V14H5.5"/>'),
+  board: S('<rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.2" y="7.2" width="5.3" height="4.3" rx="1"/><rect x="13.3" y="7.2" width="4.5" height="6.3" rx="1"/><rect x="6.2" y="13.6" width="5.3" height="3.2" rx="1"/>'),
+  plus2: S('<path d="M12 6v12M6 12h12"/>'),
+  eraser: S('<path d="M8.5 19.5h11"/><path d="M4.6 14.1 13.8 4.9a2 2 0 0 1 2.8 0l2.5 2.5a2 2 0 0 1 0 2.8l-8.3 8.3H8.6l-4-4a1 1 0 0 1 0-1.4z"/><path d="m9.2 9.5 5.3 5.3"/>'),
+  plane: S('<path d="M10.5 13.5 4 11l1.2-1.6 7 .6 4.3-4.6a1.9 1.9 0 0 1 2.7 2.7l-4.6 4.3.6 7L13.6 20.6 11 14l-3.4 3.2.3 2.3-1.3 1-1.5-3.3L1.8 16l1-1.3 2.3.3z"/>'),
+  people: S('<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="9.5" r="2.4"/><path d="M15.6 14.6c2.6-.3 4.5 1.3 5 4"/>'),
+  sun: S('<circle cx="12" cy="12" r="3.6"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'),
+  columns: S('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.2 4.5v15M14.8 4.5v15"/>'),
+  grid: S('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.2 4.5v15M14.8 4.5v15"/>'),
   chevL: S('<path d="M14.5 6 8.5 12l6 6"/>'),
   chevR: S('<path d="M9.5 6l6 6-6 6"/>'),
   stop: S('<rect x="7" y="7" width="10" height="10" rx="2"/>'),
@@ -325,6 +361,17 @@ export const ICONS = {
   archive: S('<rect x="3.5" y="4.5" width="17" height="4" rx="1.2"/><path d="M5 8.5V19h14V8.5M10 12h4"/>'),
   share: S('<path d="M12 4v11M8 8l4-4 4 4"/><path d="M6 12v7.5h12V12"/>'),
   dot: S('<circle cx="12" cy="12" r="3" fill="currentColor"/>'),
+  more: S('<circle cx="6" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3" fill="currentColor"/>'),
+  clock: S('<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>'),
+  copy: S('<rect x="8" y="8" width="11.5" height="11.5" rx="2"/><path d="M15.5 8V5.5a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H8"/>'),
+  play: S('<path d="M8 5.5l10 6.5-10 6.5z"/>'),
+  eye: S('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>'),
+  inbox: S('<path d="M4 13.5l2.5-8h11l2.5 8v5h-16z"/><path d="M4 13.5h5l1 2h4l1-2h5"/>'),
+  move: S('<path d="M5 12h14M14 7l5 5-5 5"/>'),
+  gear: S('<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.5M12 18v2.5M3.5 12H6M18 12h2.5M6 6l1.8 1.8M16.2 16.2 18 18M6 18l1.8-1.8M16.2 7.8 18 6"/>'),
+  chevD: S('<path d="M6 9.5l6 6 6-6"/>'),
+  external: S('<path d="M14 4.5h5.5V10M19.5 4.5 11 13"/><path d="M18 14v4.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1H10"/>'),
+  pin: S('<path d="M9 4.5h6l-1 5 3 3H7l3-3z"/><path d="M12 12.5v7"/>'),
   palette: S('<circle cx="12" cy="12" r="8"/>'),
   text: S('<path d="M5 6.5h14M12 6.5V19"/>'),
   bold: S('<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>'),
@@ -332,4 +379,39 @@ export const ICONS = {
   list: S('<path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r=".9" fill="currentColor"/><circle cx="4.8" cy="12" r=".9" fill="currentColor"/><circle cx="4.8" cy="17" r=".9" fill="currentColor"/>'),
   heading: S('<path d="M6 5v14M18 5v14M6 12h12"/>'),
   open: S('<path d="M13.5 4.5h6v6M19.5 4.5 11 13"/><path d="M18 14v5.5H4.5V6H10"/>'),
+  keyboard: S('<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>'),
+  lock: S('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
 };
+
+/** Phones show free-form canvases (Boardly, Brainly notes) as a tidy list, so positions are left alone there. */
+export const listMode = () => matchMedia('(max-width: 700px)').matches;
+
+// ---------- Movable controls: a way home ----------
+// While a movable control (the assistant's atom, the Universal Board) is dragged, a dashed
+// circle marks where it normally lives. Dropping it near there snaps it back exactly, so a
+// control that's "put back" never ends up a few pixels off. 'sedi:reset-positions' (Menu →
+// Reset button positions) sends every movable control home at once.
+export const SNAP_HOME_PX = 56;
+export function homeSpot(measureHome) {
+  let ghost = null, home = null;
+  const centre = r => [r.left + r.width / 2, r.top + r.height / 2];
+  return {
+    show() {
+      home = measureHome();
+      if (!home || !home.width) return;
+      ghost ??= h('div', { class: 'home-spot', 'aria-hidden': 'true' });
+      Object.assign(ghost.style, { left: home.left + 'px', top: home.top + 'px', width: home.width + 'px', height: home.height + 'px' });
+      document.body.append(ghost);
+      requestAnimationFrame(() => ghost?.classList.add('show'));
+    },
+    near(rect) {
+      if (!home || !home.width) return false;
+      const [ax, ay] = centre(rect), [bx, by] = centre(home);
+      const hot = Math.hypot(ax - bx, ay - by) < SNAP_HOME_PX;
+      ghost?.classList.toggle('hot', hot);
+      return hot;
+    },
+    hide() { ghost?.classList.remove('show', 'hot'); ghost?.remove(); home = null; },
+  };
+}
+

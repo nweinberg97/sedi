@@ -6,8 +6,8 @@
 
 import * as store from './store.js';
 import { h, icon, modal, toast } from './util.js';
+import { loadTransformers, removeModelFiles } from './runtime.js';
 
-const TRANSFORMERS_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0';
 export const MODELS = {
   light: { id: 'onnx-community/Qwen2.5-0.5B-Instruct', label: 'Light', size: 'about 500 MB', note: 'Fast on most laptops.' },
   full: { id: 'HuggingFaceTB/SmolLM2-1.7B-Instruct', label: 'Full', size: 'about 1.2 GB', note: 'Smarter. Best with a recent GPU.' },
@@ -65,102 +65,66 @@ export async function retrieve(query, k = 3) {
 }
 
 // ---------- Model ----------
-const CACHE_NAME = 'transformers-cache';
-
-/** Is this model's download already saved on this device? Returns bytes saved (0 if not). */
-export async function cachedBytes(key) {
-  const model = MODELS[key];
-  if (!model || !('caches' in window)) return 0;
-  try {
-    if (!(await caches.has(CACHE_NAME))) return 0;
-    const cache = await caches.open(CACHE_NAME);
-    const reqs = (await cache.keys()).filter(r => r.url.includes(model.id) && /\.onnx/.test(r.url));
-    let total = 0;
-    for (const r of reqs) total += +((await cache.match(r))?.headers.get('content-length') || 0);
-    return reqs.length ? Math.max(total, 1) : 0;
-  } catch { return 0; }
-}
-
-async function pickDtype() {
-  if (!hasWebGPU()) return { device: 'wasm', dtypes: ['q4', 'q8'] };
-  let f16 = false;
-  try { f16 = !!(await navigator.gpu.requestAdapter())?.features.has('shader-f16'); } catch {}
-  return { device: 'webgpu', dtypes: f16 ? ['q4f16', 'q4'] : ['q4'] };
-}
-
-async function loadModel(key) {
+async function loadModel(key, { fromCacheOnly = false } = {}) {
   if (generator) return generator;
   if (loading) return loading;
   const model = MODELS[key] || MODELS.light;
-  const fromDevice = (await cachedBytes(key)) > 0;
-  if (!fromDevice && !navigator.onLine) {
-    setState({ status: 'error', error: 'The model isn’t downloaded on this device yet. Connect once to download it.' });
-    throw new Error('offline');
-  }
-  setState({ status: 'loading', progress: 0, error: null, fromDevice });
+  setState({ status: 'loading', progress: 0, error: null });
   loading = (async () => {
-    // Ask the browser to keep these files even when space runs low, so they download only once.
-    try { await navigator.storage?.persist?.(); } catch {}
-    const tf = await import(/* @vite-ignore */ TRANSFORMERS_URL);
+    const tf = await loadTransformers(model.id);
     TextStreamer = tf.TextStreamer;
-    tf.env.allowLocalModels = false;
-    tf.env.useBrowserCache = true;
-    tf.env.cacheKey = CACHE_NAME;
     const files = {};
     const progress_callback = p => {
       if (p.status === 'progress' && p.file) {
         files[p.file] = { loaded: p.loaded || 0, total: p.total || 0 };
         const all = Object.values(files);
-        const loaded = all.reduce((sum, f) => sum + f.loaded, 0), total = all.reduce((sum, f) => sum + f.total, 0);
+        const loaded = all.reduce((s, f) => s + f.loaded, 0), total = all.reduce((s, f) => s + f.total, 0);
         if (total) setState({ progress: Math.min(0.99, loaded / total) });
       }
     };
-    const pref = store.pref('brain') || {};
-    const plan = await pickDtype();
-    // Reuse the precision that worked last time so we never fetch a second set of weights.
-    const dtypes = pref.dtype && pref.model === key && plan.dtypes.includes(pref.dtype) ? [pref.dtype] : plan.dtypes;
+    const device = hasWebGPU() ? 'webgpu' : 'wasm';
+    let f16 = false;
+    if (device === 'webgpu') { try { f16 = !!(await navigator.gpu.requestAdapter())?.features.has('shader-f16'); } catch {} }
+    const tries = device === 'webgpu' ? (f16 ? ['q4f16', 'q4'] : ['q4']) : ['q4', 'q8'];
+    // Reuse the precision that worked last time, so a second set of weights is never fetched.
+    const known = (store.pref('brainDtype') || {})[model.id];
+    const order = known && tries.includes(known) ? [known, ...tries.filter(d => d !== known)] : tries;
     let lastErr;
-    for (const dtype of dtypes) {
+    for (const dtype of order) {
       try {
-        generator = await tf.pipeline('text-generation', model.id, { device: plan.device, dtype, progress_callback });
-        store.setPref('brain', { ...store.pref('brain'), dtype, downloaded: key });
+        generator = await tf.pipeline('text-generation', model.id, { device, dtype, progress_callback });
+        store.setPref('brainDtype', { ...(store.pref('brainDtype') || {}), [model.id]: dtype });
         break;
       } catch (err) { lastErr = err; }
     }
     if (!generator) throw lastErr || new Error('Model failed to load');
-    setState({ status: 'ready', progress: 1, device: plan.device, model: key });
+    setState({ status: 'ready', progress: 1, device, model: key });
     return generator;
   })();
   try { return await loading; }
   catch (err) {
     generator = null;
-    setState({ status: 'error', error: err.message || String(err) });
+    setState({ status: 'error', error: navigator.onLine ? (err.message || String(err)) : 'The model isn’t downloaded on this device yet. Connect once to download it.' });
     throw err;
   } finally { loading = null; }
 }
 
 export async function enable(key) {
-  const prev = store.pref('brain') || {};
-  if (prev.model && prev.model !== key) generator = null;
-  store.setPref('brain', { ...prev, enabled: true, model: key, ...(prev.model !== key ? { dtype: null } : {}) });
+  store.setPref('brain', { enabled: true, model: key });
   await loadModel(key);
   await loadLibrary();
 }
 export async function disable(removeFiles) {
   store.setPref('brain', { enabled: false, model: store.pref('brain')?.model });
   generator = null;
-  if (removeFiles && 'caches' in window) await caches.delete(CACHE_NAME);
+  // Remove this model's files only. The voice models and the shared runtime stay, so voice keeps working.
+  if (removeFiles) await removeModelFiles(new RegExp(Object.values(MODELS).map(m => m.id.split('/')[1].replace(/[.]/g, '\\.')).join('|'), 'i'));
   setState({ status: 'off', progress: 0 });
 }
 export async function ensureLoaded() {
   const p = store.pref('brain');
   if (!p?.enabled) return null;
-  return loadModel(p.model);
-}
-/** Start loading in the background (from this device) so answers are ready when you need them. */
-export function warmUp() {
-  if (!isEnabled() || generator || loading) return;
-  ensureLoaded().catch(() => {});
+  return loadModel(p.model, { fromCacheOnly: true });
 }
 
 /** Ask the coach. `sediContext` is a short list of the user's own relevant cards. */
@@ -185,70 +149,63 @@ export async function ask(question, sediContext = [], onToken) {
   return { text: (answer || text).trim(), sources: chunks.map(c => c.title) };
 }
 
+/** Plain generation with the on-device model (used for summaries and general chat). */
+export async function complete(messages, { maxTokens = 220, onToken } = {}) {
+  const gen = await ensureLoaded();
+  if (!gen) throw new Error('Sovereign Brain is off');
+  let text = '';
+  const streamer = TextStreamer ? new TextStreamer(gen.tokenizer, {
+    skip_prompt: true, skip_special_tokens: true,
+    callback_function: t => { text += t; onToken?.(text); },
+  }) : undefined;
+  const out = await gen(messages, { max_new_tokens: maxTokens, do_sample: false, repetition_penalty: 1.1, streamer });
+  const final = out?.[0]?.generated_text;
+  return (Array.isArray(final) ? final.at(-1)?.content : text || '').trim();
+}
+
 // ---------- Settings panel ----------
 export function openBrainPanel() {
   const p = store.pref('brain') || {};
   let choice = p.model || (hasWebGPU() ? 'full' : 'light');
-  const sizes = {};
-  const optBtns = {};
-  const opts = h('div', { class: 'brain-opts' }, Object.entries(MODELS).map(([k, m]) => {
-    const saved = h('small', { class: 'brain-saved' });
-    optBtns[k] = { saved };
-    return h('button', {
-      class: `brain-opt ${k === choice ? 'on' : ''}`, type: 'button',
-      onclick: e => { choice = k; opts.querySelectorAll('.brain-opt').forEach(b => b.classList.remove('on')); e.currentTarget.classList.add('on'); paintActions(); },
-    }, h('strong', {}, m.label), h('span', {}, m.size), h('small', {}, m.note), saved);
-  }));
+  const opts = h('div', { class: 'brain-opts' }, Object.entries(MODELS).map(([k, m]) => h('button', {
+    class: `brain-opt ${k === choice ? 'on' : ''}`, type: 'button',
+    onclick: e => { choice = k; opts.querySelectorAll('.brain-opt').forEach(b => b.classList.remove('on')); e.currentTarget.classList.add('on'); },
+  }, h('strong', {}, m.label), h('span', {}, m.size), h('small', {}, m.note))));
   const bar = h('div', { class: 'progress' }, h('span'));
   const status = h('p', { class: 'muted small brain-status' });
-  const primary = h('button', { class: 'btn primary' });
-  const remove = h('button', { class: 'btn ghost' }, 'Remove download');
-  const paintActions = () => {
-    const on = isEnabled() && store.pref('brain')?.model === choice;
-    const have = sizes[choice] > 0;
-    primary.textContent = on && state.status === 'ready' ? 'Ready' : on ? 'Load now' : have ? 'Turn on' : 'Download and turn on';
-    primary.disabled = (on && state.status === 'ready') || state.status === 'loading';
-    remove.hidden = !Object.values(sizes).some(Boolean);
+  const paint = s => {
+    bar.hidden = s.status !== 'loading';
+    bar.firstChild.style.width = `${Math.round((s.progress || 0) * 100)}%`;
+    status.textContent = s.status === 'loading' ? `Downloading and preparing… ${Math.round((s.progress || 0) * 100)}%`
+      : s.status === 'ready' ? `Ready on this device (${s.device === 'webgpu' ? 'GPU' : 'CPU'}). Works offline.`
+        : s.status === 'error' ? `Couldn’t start: ${s.error}`
+          : isEnabled() ? 'Enabled. Loads the first time you ask a question.' : 'Off.';
   };
-  const paint = st => {
-    bar.hidden = st.status !== 'loading';
-    bar.firstChild.style.width = `${Math.round((st.progress || 0) * 100)}%`;
-    status.textContent = st.status === 'loading'
-      ? (st.fromDevice ? `Loading from this device… ${Math.round((st.progress || 0) * 100)}%` : `Downloading (one time only)… ${Math.round((st.progress || 0) * 100)}%`)
-      : st.status === 'ready' ? `Ready on this device (${st.device === 'webgpu' ? 'GPU' : 'CPU'}). Works offline.`
-        : st.status === 'error' ? `Couldn’t start: ${st.error}`
-          : isEnabled() ? 'On. It loads from this device the first time you open the assistant.' : 'Off.';
-    paintActions();
-  };
-  const refreshSizes = async () => {
-    for (const k of Object.keys(MODELS)) {
-      sizes[k] = await cachedBytes(k);
-      optBtns[k].saved.textContent = sizes[k] ? `Saved on this device${sizes[k] > 1 ? ` · ${(sizes[k] / 1e9).toFixed(1)} GB` : ''}` : '';
-    }
-    paint(state);
-  };
-  refreshSizes();
-  const unsub = onBrainChange(st => { paint(st); if (st.status === 'ready') refreshSizes(); });
-  primary.addEventListener('click', async () => {
-    if (!sizes[choice] && !navigator.onLine) { toast('Connect to the internet for the one-time download.'); return; }
-    if (!sizes[choice] && navigator.storage?.estimate) {
-      const { quota = 0, usage = 0 } = await navigator.storage.estimate();
-      if (quota - usage < 1.6e9 && choice === 'full') toast('Storage is tight. The Light model may fit better.');
-    }
-    enable(choice).then(() => toast('Sovereign Brain is ready')).catch(() => {});
-  });
-  remove.addEventListener('click', async () => {
-    await disable(true);
-    toast('Removed the model from this device');
-    refreshSizes();
-  });
+  paint(state);
+  const unsub = onBrainChange(paint);
   modal({
     title: 'Sovereign Brain', wide: true, onClose: unsub,
     body: h('div', { class: 'editor' },
       h('p', {}, 'A private coach for focus, habits and getting unstuck. It runs entirely in this browser: nothing you type leaves your device.'),
-      h('p', { class: 'muted small' }, `Downloads once and stays saved for offline use. ${hasWebGPU() ? 'Your browser supports WebGPU, so it runs on your graphics chip.' : 'WebGPU isn’t available here, so it runs on your CPU (slower). Chrome on a recent Mac works best.'} Voice and dictation don’t need it.`),
+      h('p', { class: 'muted small' }, `One-time download, cached for offline use. ${hasWebGPU() ? 'Your browser supports WebGPU, so it will run on your graphics chip.' : 'WebGPU isn’t available here, so it will run on your CPU (slower). Chrome on a recent Mac works best.'}`),
       opts, bar, status,
-      h('div', { class: 'brain-actions-row' }, remove, h('span', { style: { flex: 1 } }), primary)),
+      h('p', { class: 'muted small' }, 'Use it from the assistant (the atom at the bottom) or press ⌘K / Ctrl K.')),
+    actions: [
+      ...(isEnabled() ? [{ label: 'Turn off and remove download', kind: 'ghost', onClick: async () => { await disable(true); toast('Sovereign Brain removed from this device'); } }] : []),
+      { label: 'Close', kind: 'ghost' },
+      {
+        label: isEnabled() ? 'Reload model' : 'Download and enable', kind: 'primary', onClick: async () => {
+          if (!navigator.onLine) { toast('Connect to the internet for the one-time download.'); return true; }
+          if (navigator.storage?.estimate) {
+            const { quota = 0, usage = 0 } = await navigator.storage.estimate();
+            if (quota - usage < 1.6e9 && choice === 'full') toast('Storage is tight. The Light model may fit better.');
+          }
+          generator = null;
+          enable(choice).then(() => toast('Sovereign Brain is ready')).catch(() => {});
+          return true;
+        },
+      },
+    ],
   });
 }
 

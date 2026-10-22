@@ -26,9 +26,10 @@ export function seedIfEmpty() {
   const now = new Date();
   const nextHour = Math.min(22, now.getHours() + 1) * 60;
 
-  // Taskly
-  c({ type: 'task', tool: 'taskly', title: 'Drag me to the trash, bottom right', description: 'Drop me on the bin in the bottom-right corner to hear the crunch. Changed your mind? Hit Undo.', meta: { columnId: 'todo', order: 0 } });
-  c({ type: 'task', tool: 'taskly', title: 'Double-click me to edit', description: 'Double-click any task to edit its title, details and column.', meta: { columnId: 'todo', order: 1 } });
+  // Taskly (the hints match the device: tap on a phone, double-click on a computer)
+  const touch = matchMedia('(hover: none)').matches;
+  c({ type: 'task', tool: 'taskly', title: 'Drag me to the trash', description: touch ? 'Hold and drag me: a bin appears at the bottom. Drop me there to hear the crunch. Changed your mind? Hit Undo.' : 'Drop me on the bin in the bottom-right corner to hear the crunch. Changed your mind? Hit Undo.', meta: { columnId: 'todo', order: 0 } });
+  c({ type: 'task', tool: 'taskly', title: touch ? 'Tap me to edit' : 'Double-click me to edit', description: touch ? 'Tap any task to edit its title, details and column.' : 'Double-click any task to edit its title, details and column.', meta: { columnId: 'todo', order: 1 } });
   c({ type: 'task', tool: 'taskly', title: 'Drag me between columns', meta: { columnId: 'inprogress', order: 0 } });
   c({ type: 'task', tool: 'taskly', title: 'Columns never scroll, on purpose', description: 'When a column fills up, finish, move or delete something. Space is the constraint that keeps you focused.', meta: { columnId: 'backlog', order: 0 } });
 
@@ -44,7 +45,7 @@ export function seedIfEmpty() {
 
   // Timely
   c({ type: 'event', tool: 'timely', title: 'Plan tomorrow', description: 'Ten minutes to pick tomorrow’s top three.', meta: { date: todayKey(), start: nextHour, dur: 30 } });
-  c({ type: 'event', tool: 'timely', title: 'Try exporting me as .ics', description: 'Open my details and choose Export .ics to add me to your calendar.', meta: { kind: 'reminder', date: todayKey(), start: null } });
+  c({ type: 'event', tool: 'timely', title: 'Add me to your calendar', description: 'Hover me and press the calendar button, or open Details and choose Add to calendar.', meta: { kind: 'reminder', date: todayKey(), start: null } });
   c({ type: 'task', tool: 'timely', title: 'Sketch the first milestone', meta: { board: 'projects', containerId: containers.projects[0].id, order: 0 } });
   c({ type: 'goal', tool: 'timely', title: 'Sleep 7+ hours, 5 nights a week', meta: { board: 'goals', containerId: containers.goals[0].id, order: 0 } });
 

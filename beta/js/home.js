@@ -3,44 +3,52 @@
 import * as store from './store.js';
 import { h, icon, fmtLongDate, pad, popover, closePopovers, modal, relTime, todayKey, fmtMinutes, debounce } from './util.js';
 import { mountLiquidGlass } from './glass.js';
-import { typeIcon, peekBody, byOrder, TOOL_NAMES } from './cards.js';
-import { navigate } from './shell.js';
+import { typeIcon, peekBody, byOrder, TOOL_NAMES, notesSnippet } from './cards.js';
+import { navigate, revealCard } from './shell.js';
 import { occurrencesOn, SLOT_LABELS } from './timely.js';
 
-let root, clockTime, clockDate, weatherEl, nextCol, recentCol, timer, weatherTimer, glassCleanup;
+let root, clockTime, clockDate, weatherEl, listEl, tabBar, timer, weatherTimer, glassCleanup;
+const homeTab = () => store.pref('homeTab', 'next');
 
 export function mount(el) {
   root = el;
   clockTime = h('div', { class: 'clock-time', 'aria-live': 'off' });
   clockDate = h('div', { class: 'clock-date' });
+  const clockGlass = h('div', { class: 'clock-glass' }, clockTime);
   weatherEl = h('button', { class: 'weather', 'aria-label': 'Weather', onclick: e => openWeatherMenu(e.currentTarget) });
-  nextCol = h('div', { class: 'home-stack' });
-  recentCol = h('div', { class: 'home-stack' });
-  root.replaceChildren(h('div', { class: 'home' },
-    h('section', { class: 'hero' }, h('div', { class: 'clock-glass liquid-glass' }, h('div', { class: 'lg-content' }, clockTime)), clockDate, weatherEl),
-    h('div', { class: 'home-cols' },
-      h('section', { class: 'home-col glass' },
-        h('button', { class: 'home-col-head', onclick: openNextUpList }, h('h2', {}, 'Next up'), h('span', { class: 'see-all' }, 'See all')),
-        nextCol),
-      h('section', { class: 'home-col glass' },
-        h('button', { class: 'home-col-head', onclick: openActivityList }, h('h2', {}, 'Recent activity'), h('span', { class: 'see-all' }, 'See all')),
-        recentCol))));
+  // SD-H5: one white column with tabs. Next up is the default; Recent activity is the second tab.
+  listEl = h('div', { class: 'home-stack' });
+  tabBar = h('div', { class: 'home-tabs quiet-tabs', role: 'tablist' });
+  const seeAll = h('button', { class: 'see-all-btn', onclick: () => (homeTab() === 'next' ? openNextUpList() : openActivityList()) }, 'See all');
+  // Calm and spacious: the time sits on the sky with nothing around it; the date and weather share one quiet line;
+  // what's next reads as a few airy rows rather than a card.
+  root.replaceChildren(h('div', { class: 'home calm' }, h('div', { class: 'home-col' },
+    h('section', { class: 'hero' }, clockGlass, h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
+    h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl))));
   tickClock();
   timer = setInterval(tickClock, 1000);
   renderWeather();
   loadWeather(false);
   weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
-  glassCleanup = mountLiquidGlass(root.querySelector('.clock-glass'), { refract: false });
   render();
+  glassCleanup = mountLiquidGlass(clockGlass, { refract: false });
 }
-export function unmount() { clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
+export function unmount() { delete document.body.dataset.sky; clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
 
 function tickClock() {
   const d = new Date();
   const hh = d.getHours() % 12 || 12;
-  clockTime.textContent = `${hh}:${pad(d.getMinutes())}`;
+  const t = `${hh}:${pad(d.getMinutes())}`;
+  if (clockTime.textContent !== t) {
+    // the time changes with a quiet fade, not a jump
+    if (clockTime.textContent) { clockTime.classList.remove('turn'); void clockTime.offsetWidth; clockTime.classList.add('turn'); }
+    clockTime.textContent = t;
+  }
+  // a living sky: it follows the real time of day (the preview can pin one with window.__sky)
+  const hr = d.getHours();
+  document.body.dataset.sky = window.__sky || (hr >= 5 && hr < 8 ? 'dawn' : hr >= 8 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night');
   clockTime.dataset.ampm = d.getHours() < 12 ? 'am' : 'pm';
-  clockDate.textContent = fmtLongDate(d);
+  clockDate.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 // ---------- Next Up + Recent ----------
@@ -49,10 +57,24 @@ export function nextUpItems(limit = 3) {
   const top = store.cardsWhere(c => c.tool === 'taskly' && c.meta?.columnId === 'todo').sort(byOrder)[0];
   if (top) items.push({ card: top, label: 'Top task' });
   for (const occ of occurrencesOn(todayKey())) {
+    if (occ.done) continue; // a routine already ticked off today
     const m = occ.card.meta || {};
-    const label = m.kind === 'reminder' ? (m.start != null ? `Reminder ${fmtMinutes(m.start)}` : 'Reminder')
+    let label = m.kind === 'reminder' ? (m.start != null ? `Reminder ${fmtMinutes(m.start)}` : 'Reminder')
       : m.start != null ? fmtMinutes(m.start) : m.slot ? SLOT_LABELS[m.slot] : 'Today';
+    if (m.recurrence) label += ' · routine';
     items.push({ card: occ.card, label });
+  }
+  // Always show a full set: fill with the next to-dos, then what's coming up in the next few days.
+  const seen = new Set(items.map(i => i.card.id));
+  const add = (card, label) => { if (items.length < limit && !seen.has(card.id)) { seen.add(card.id); items.push({ card, label }); } };
+  store.cardsWhere(c => c.tool === 'taskly' && c.meta?.columnId === 'todo').sort(byOrder).slice(1).forEach(c => add(c, 'To do'));
+  for (let i = 1; i <= 7 && items.length < limit; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const day = i === 1 ? 'Tomorrow' : d.toLocaleDateString(undefined, { weekday: 'short' });
+    for (const occ of occurrencesOn(todayKeyOf(d))) {
+      const m = occ.card.meta || {};
+      add(occ.card, m.start != null ? `${day} ${fmtMinutes(m.start)}` : day);
+    }
   }
   return items.slice(0, limit);
 }
@@ -60,13 +82,13 @@ export function nextUpItems(limit = 3) {
 function row(card, label) {
   const el = h('div', { class: 'home-card', tabindex: 0, role: 'button' },
     typeIcon(card.type),
-    h('span', { class: 'home-card-title' }, card.title),
+    h('div', { class: 'home-card-main' }, h('span', { class: 'home-card-title' }, card.title), notesSnippet(card)),
     label ? h('span', { class: 'home-card-label' }, label) : null,
     h('button', {
       class: 'icon-btn sm', 'aria-label': 'Show details',
       onclick: e => { e.stopPropagation(); popover(e.currentTarget, peekBody(card), { className: 'peek-pop' }); },
-    }, icon('info')));
-  const go = () => navigate(card.tool === 'universal' ? 'home' : card.tool);
+    }, icon('more')));
+  const go = () => { document.querySelector('.modal-backdrop .modal-head .icon-btn')?.click(); revealCard(card.id); };
   el.addEventListener('click', go);
   el.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   return el;
@@ -74,12 +96,19 @@ function row(card, label) {
 
 export function render() {
   if (!root?.isConnected) return;
-  const next = nextUpItems(3);
-  nextCol.replaceChildren(...(next.length ? next.map(i => row(i.card, i.label))
-    : [h('p', { class: 'home-empty' }, 'Nothing scheduled. Add a task in Taskly or a block in Timely.')]));
-  const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
-  recentCol.replaceChildren(...(recent.length ? recent.map(c => row(c, relTime(c.updatedAt)))
-    : [h('p', { class: 'home-empty' }, 'Your latest changes will show up here.')]));
+  const tab = homeTab();
+  tabBar.replaceChildren(...[['next', 'Next up'], ['recent', 'Recent activity']].map(([v, l]) => h('button', {
+    class: v === tab ? 'on' : '', role: 'tab', 'aria-selected': String(v === tab), onclick: () => { store.setPref('homeTab', v); render(); },
+  }, l)));
+  if (tab === 'next') {
+    const next = nextUpItems(3);
+    listEl.replaceChildren(...(next.length ? next.map(i => row(i.card, i.label))
+      : [h('p', { class: 'home-empty' }, 'Nothing scheduled. Add a task in Taskly or a block in Timely.')]));
+  } else {
+    const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
+    listEl.replaceChildren(...(recent.length ? recent.map(c => row(c, relTime(c.updatedAt)))
+      : [h('p', { class: 'home-empty' }, 'Your latest changes will show up here.')]));
+  }
 }
 
 function openNextUpList() {
@@ -114,7 +143,7 @@ function openActivityList() {
       typeIcon(e.type),
       h('span', { class: 'activity-text' }, h('strong', {}, e.action), ' ', e.title),
       h('span', { class: 'muted small' }, `${TOOL_NAMES[e.tool] || ''} · ${relTime(e.at)}`));
-    if (card) { item.classList.add('clickable'); item.addEventListener('click', () => { navigate(card.tool === 'universal' ? 'home' : card.tool); document.querySelector('.modal-backdrop .icon-btn')?.click(); }); }
+    if (card) { item.classList.add('clickable'); item.addEventListener('click', () => { document.querySelector('.modal-backdrop .modal-head .icon-btn')?.click(); revealCard(card.id); }); }
     list.append(item);
   }
   if (!log.length) list.append(h('p', { class: 'muted' }, 'No activity yet.'));
@@ -139,15 +168,16 @@ function renderWeather() {
   const place = store.pref('coords')?.name;
   if (w?.temp != null) {
     const { emoji, label } = describe(w.code, w.isDay);
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${Math.round(w.temp)}°C ${label}`));
+    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, emoji), h('span', {}, `${Math.round(w.temp)}°`));
+    weatherEl.setAttribute('aria-label', `${Math.round(w.temp)}°C, ${label}`);
     weatherEl.title = `${place ? `${place}. ` : ''}${navigator.onLine ? `Updated ${relTime(w.at)}` : `Offline, last updated ${relTime(w.at)}`}. Click to change location.`;
   } else if (store.pref('weatherState') === 'loading') {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌤️'), h('span', { class: 'muted' }, 'Getting weather…'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, '…'));
   } else if (store.pref('weatherState') === 'error') {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '🌡️'), h('span', {}, 'Weather unavailable'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, 'Add weather'));
     weatherEl.title = 'Click to try again or set your city';
   } else {
-    weatherEl.replaceChildren(h('span', { class: 'wx-emoji' }, '📍'), h('span', {}, 'Set your city for weather'));
+    weatherEl.replaceChildren(h('span', { class: 'muted' }, 'Add weather'));
     weatherEl.title = 'Choose a city, or use your location';
   }
 }

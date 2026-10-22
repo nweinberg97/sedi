@@ -77,8 +77,6 @@ function renderAll(force = false) {
   const keep = ae?.dataset?.keep && viewEl.contains(ae) ? { key: ae.dataset.keep, value: ae.value, pos: ae.selectionStart } : null;
   const editing = !keep && ae && viewEl.contains(ae) && (ae.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
   if (editing && !force) { renderQueued = true; return; }
-  // Don't swap out a field while someone is dictating into it.
-  if (!force && viewEl.querySelector('.mic-btn.on')) { renderQueued = true; setTimeout(() => renderAll(), 800); return; }
   if (document.body.classList.contains('is-dragging')) { renderQueued = true; setTimeout(() => renderAll(), 300); return; }
   renderQueued = false;
   active?.mod.render?.();

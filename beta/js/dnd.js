@@ -81,12 +81,16 @@ export function initDnd(navigate) {
     const stack = document.elementsFromPoint(drag.x, drag.y);
     for (const node of stack) {
       if (node.classList?.contains('drag-ghost') || drag.ghost.contains(node)) continue;
-      const z = node.closest?.('[data-drop]');
-      if (!z) continue;
-      const accept = (z.dataset.accept || 'card').split(' ');
-      if (!accept.includes(drag.kind)) continue;
-      if (z === drag.el || drag.el.contains(z)) continue;
-      return z;
+      // Walk outwards: a zone can pass the drop to the zone around it (spec.hit returns false),
+      // e.g. a folder only takes a folder in its middle, and its edges reorder the list instead.
+      let z = node.closest?.('[data-drop]');
+      while (z) {
+        const accept = (z.dataset.accept || 'card').split(' ');
+        const own = z === drag.el || drag.el.contains(z);
+        const spec = handlers.get(z.dataset.drop);
+        if (!own && accept.includes(drag.kind) && (!spec?.hit || spec.hit({ kind: drag.kind, id: drag.id, x: drag.x, y: drag.y, rect: z.getBoundingClientRect(), data: z.dataset }) !== false)) return z;
+        z = z.parentElement?.closest('[data-drop]');
+      }
     }
     return null;
   }
@@ -104,6 +108,7 @@ export function initDnd(navigate) {
         drag.denied = !ok;
       }
       if (!z || !z.hasAttribute('data-list')) drag.placeholder.remove();
+      if (z?.dataset.list !== 'grid') clearGridMark();
     }
     // Spring-loaded navigation: hover a navigator pill while dragging to switch tools.
     const spring = document.elementsFromPoint(drag.x, drag.y).find(n => n.closest?.('[data-spring-route]'))?.closest('[data-spring-route]');
@@ -116,23 +121,34 @@ export function initDnd(navigate) {
   }
 
   function listIndex(z) {
-    const kindSel = z.dataset.itemKind ? `[data-drag="${z.dataset.itemKind}"]` : '[data-drag]';
-    const items = [...z.querySelectorAll(kindSel)].filter(n => n !== drag.el && n.parentElement && n.parentElement?.closest('[data-drop]') === z);
-    const horizontal = z.dataset.axis === 'x';
+    // data-list="x" marks a left-to-right list (e.g. Timely's planning lists); data-list="grid" a wrapping grid.
+    const mode = z.dataset.list;
+    const items = [...z.querySelectorAll('[data-drag]')].filter(n => n !== drag.el && n.parentElement && n.parentElement.closest('[data-drop]') === z && n.dataset.drag === drag.kind);
     let idx = items.length, before = null;
     for (let i = 0; i < items.length; i++) {
       const r = items[i].getBoundingClientRect();
-      if (horizontal ? drag.x < r.left + r.width / 2 : drag.y < r.top + r.height / 2) { idx = i; before = items[i]; break; }
+      const hit = mode === 'x' ? drag.x < r.left + r.width / 2
+        : mode === 'grid' ? drag.y < r.top || (drag.y <= r.bottom && drag.x < r.left + r.width / 2)
+        : drag.y < r.top + r.height / 2;
+      if (hit) { idx = i; before = items[i]; break; }
     }
     return { idx, before, items };
   }
   function placeLine(z) {
-    drag.placeholder.classList.toggle('vertical', z.dataset.axis === 'x');
+    if (z.dataset.list === 'grid') {
+      // In a grid a line would take a cell and shuffle everything; mark the neighbour instead.
+      const { before, items } = listIndex(z);
+      const mark = before || items.at(-1);
+      if (drag.gridMark !== mark || drag.gridAfter !== !before) { clearGridMark(); drag.gridMark = mark; drag.gridAfter = !before; mark?.classList.add(before ? 'drop-before' : 'drop-after'); }
+      return;
+    }
+    drag.placeholder.classList.toggle('vertical', z.dataset.list === 'x');
     const { before, items } = listIndex(z);
     const host = before ? before.parentElement : (items.at(-1)?.parentElement || z.querySelector('[data-list-body]') || z);
     if (before) host.insertBefore(drag.placeholder, before);
     else host.append(drag.placeholder);
   }
+  function clearGridMark() { drag?.gridMark?.classList.remove('drop-before', 'drop-after'); if (drag) drag.gridMark = null; }
 
   function info(z) {
     const canvasRect = z.getBoundingClientRect();
@@ -157,6 +173,7 @@ export function initDnd(navigate) {
     }
     z?.classList.remove('drop-over', 'drop-deny');
     drag.placeholder.remove();
+    clearGridMark();
     const ghost = drag.ghost, el = drag.el;
     document.body.classList.remove('is-dragging');
     if (accepted || !el.isConnected) {
