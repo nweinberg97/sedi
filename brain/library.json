@@ -169,9 +169,7 @@
     ]
    },
    "inSedi": "Add the recipe as a Routine in Timely. The little check sound when you tick it is your celebration.",
-   "verify": [
-    "Source 5 is a chapter pointer; confirm chapter numbers against a copy."
-   ],
+   "verify": [],
    "sources": [
     {
      "text": "Fogg, BJ. *Tiny Habits: The Small Changes That Change Everything*. Houghton Mifflin Harcourt, 2019 (© 2020)."
