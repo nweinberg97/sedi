@@ -43,7 +43,6 @@ const FILE_KINDS = [
   ['archive', /zip|compressed|x-tar|x-7z/, /\.(zip|rar|7z|tar|gz)$/i, '🗜️', '#9AA3AD'],
 ];
 const fileKind = up => FILE_KINDS.find(([, mime, ext]) => mime.test(up?.type || '') || ext.test(up?.name || '')) || ['file', null, null, '📄', '#9AA3AD'];
-const dotColor = c => ({ pdf: '#d6453d', text: '#9AA3AD', upload: fileKind(c.meta?.upload)[4], link: colorFor(c.meta?.host || c.title) }[kindOf(c)] || noteColor(c));
 const fmtSize = n => (n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
 
 // ---------- Search (SD-S1 in place, SD-B6 everything else in a list) ----------
@@ -175,13 +174,17 @@ function linkEl(c) {
   return el;
 }
 
-const DOT_MAX = 5; // a few dots tell you what's inside; past that it's a count, so nothing gets cluttered
-function dotsRow(items, max = DOT_MAX) {
+const ICON_MAX = 4; // a peek at what's inside, like icons in a folder; past that it's a count
+/** Mini icons of a folder's contents: each note's emoji, each link's icon, each subfolder's emoji. */
+function iconsRow(items, max = ICON_MAX) {
   const shown = items.slice(0, max);
-  return h('div', { class: 'f-dots', 'aria-label': `${items.length} item${items.length === 1 ? '' : 's'}` },
-    shown.map(c => h('i', { style: { background: dotColor(c) }, title: c.title })),
-    items.length > max ? h('span', {}, `+${items.length - max}`) : null,
-    null);
+  return h('div', { class: 'f-icons', 'aria-hidden': 'true' },
+    shown.map(x => {
+      if (x.folder) return h('span', { class: 'fi fi-folder', title: x.name }, x.emoji || '🗂️');
+      if (kindOf(x) === 'note') return h('span', { class: 'fi', title: x.title }, x.meta?.emoji || smartEmoji(x.title));
+      const b = favicon(x); b.classList.add('fi-link'); return h('span', { class: 'fi', title: x.title }, b);
+    }),
+    items.length > max ? h('span', { class: 'fi-more' }, `+${items.length - max}`) : null);
 }
 
 // ---------- Link folders: squares in the column; open one in a glass folder view (folders can hold folders) ----------
@@ -206,7 +209,7 @@ function linkFolderEl(f) {
   },
   h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, lfEmoji(f)),
   h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, lfCount(f)),
-    all.length || subs.length ? dotsRow([...subs.map(x => ({ title: x.name, meta: { color: '#A796CB' }, type: 'note' })), ...all]) : null),
+    all.length || subs.length ? iconsRow([...subs.map(x => ({ folder: true, name: x.name, emoji: x.emoji || lfEmoji(x) })), ...all]) : null),
   h('button', { class: 'card-del', 'aria-label': `Delete folder ${f.name}`, title: 'Delete folder (what’s inside moves up a level)', onclick: e => { e.stopPropagation(); deleteLinkFolder(f); } }, icon('x')));
   tile.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openLinkFolder(f.id, tile); });
   tile.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tile) openLinkFolder(f.id, tile); });
@@ -545,7 +548,7 @@ function folderEl(f) {
   h('div', { class: 'bf-body' },
     h('button', { class: 'bf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveFolder(f.id, { emoji: v })); } }, emoji),
     name,
-    dotsRow([...subs.map(s => ({ title: s.name, meta: { color: s.color || '#A796CB' }, type: 'note' })), ...notes]),
+    notes.length || subs.length ? iconsRow([...subs.map(s => ({ folder: true, name: s.name, emoji: s.emoji })), ...notes]) : null,
     h('span', { class: 'bf-count' }, count)),
   h('button', { class: 'bf-color', 'aria-label': 'Folder color', style: { background: f.color || '#A796CB' }, onclick: e => { e.stopPropagation(); pickFolderColor(e.currentTarget, f); } }));
   el.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openFolder(f.id); });
@@ -734,7 +737,7 @@ function openFolder(fid) {
       h('div', { class: 'crumbs' }, path.flatMap((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, i < path.length - 1 ? h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name) : h('strong', {}, p.name)]).filter(Boolean)),
       subs.length ? h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, 'Folders'),
         h('div', { class: 'fv-folders' }, subs.map(s => h('div', { class: 'fv-folder', style: { '--folder': s.color || '#A796CB' } },
-          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(s.id); } }, h('span', { class: 'bf-emoji' }, s.emoji || '🗂️'), h('span', {}, s.name), dotsRow(folderNotes(s.id), 6)),
+          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(s.id); } }, h('span', { class: 'bf-emoji' }, s.emoji || '🗂️'), h('span', {}, s.name), iconsRow(folderNotes(s.id), 6)),
           h('button', { class: 'chip ghost', title: 'Move this folder out onto the canvas', onclick: () => saveFolder(s.id, { parentId: null, ...freeSpot() }) }, 'Move out'))))) : '',
       h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, notes.length ? 'Notes · drag one out to move it' : 'Notes'),
         notes.length ? h('div', { class: 'fv-notes' }, notes.map(n => {

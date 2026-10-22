@@ -56,7 +56,7 @@ export function seedIfEmpty() {
 
   // Brainly: notes, folders, links.
   c({ type: 'note', tool: 'brainly', title: '12 · Open me and talk', description: `<div>Open me: notes stay small until you do.</div><div>Inside, tap the <b>microphone</b> and say a sentence: it types for you.</div><div>Next: drag 13 onto the Ideas folder.</div>`, meta: { x: 32, y: 40, emoji: '💡' } });
-  c({ type: 'note', tool: 'brainly', title: '13 · File me in Ideas', description: '<div>Drag me onto the Ideas folder.</div><div>Paste any web address into Paste a link to save it for later.</div><div>Next: the Universal Board, 14.</div>', meta: { x: 32, y: 150, emoji: '🗂️' } });
+  c({ type: 'note', tool: 'brainly', title: '13 · File me in Ideas', description: '<div>Drag me onto the Ideas folder.</div><div>Paste any web address into Paste a link to save it for later.</div><div>Next: the Universal Board, 14.</div>', meta: { x: 32, y: 180, emoji: '🗂️' } });
   const help = new URL('welcome/help.html', location.href).href;
   c({ type: 'link', tool: 'brainly', title: 'Sedi help and FAQ', description: help, meta: { url: help, host: location.host, linkFolderId: reading.id, order: 0 } });
 

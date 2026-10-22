@@ -3305,8 +3305,6 @@ body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .hom
   .brainly .canvas-empty { position: static !important; padding: 40px 12px; text-align: center; }
 }
 @media (max-width: 700px) {
-  /* Brainly folders: the count says it; drop the dot row */
-  .brainly .brain-canvas > .b-folder .f-dots { display: none !important; }
 
   /* Timely: the date header fits on one line; Today shows only when you've moved away from today */
   .cal-head { flex-wrap: nowrap !important; gap: 8px !important; padding-bottom: 6px !important; }
@@ -3500,3 +3498,12 @@ body.is-dragging .taskly-board, body.is-dragging .plan-track { scroll-snap-type:
 .view-error h2 { margin: 0 0 8px; font-size: var(--fs-lg, 20px); }
 .view-error p { margin: 0 0 16px; color: var(--muted); font-size: var(--fs-sm); line-height: 1.5; }
 .view-error-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* Folders show mini icons of what's inside */
+.f-icons { display: flex; align-items: center; gap: 3px; min-height: 20px; overflow: hidden; flex-wrap: nowrap; }
+.f-icons .fi { flex: none; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 6px; background: rgba(255, 255, 255, 0.7); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06); font-size: 12px; line-height: 1; overflow: hidden; }
+.f-icons .fi .link-badge { width: 20px; height: 20px; min-width: 0; border-radius: 6px; font-size: 11px; box-shadow: none; }
+.f-icons .fi .link-badge img { width: 14px; height: 14px; }
+.f-icons .fi .pdf-badge { font-size: 7px; letter-spacing: 0; }
+.f-icons .fi-more { font-size: var(--fs-2xs); color: var(--muted); font-variant-numeric: tabular-nums; padding-left: 1px; }
+.bf-body .f-icons, .lf-tile-text .f-icons { margin-top: 2px; }
