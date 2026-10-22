@@ -63,6 +63,8 @@ export function buildAssistant() {
   if (hint) {
     token.addEventListener('pointerdown', () => { hint.remove(); store.setPref('voiceHintSeen', true); }, { once: true });
     setTimeout(() => hint.classList.add('in'), 1800);
+    // On a phone it sits over your cards, so let it fade after a while; it shows again next visit until you've tapped the atom.
+    if (matchMedia('(max-width: 700px)').matches) setTimeout(() => { hint.classList.remove('in'); setTimeout(() => hint.remove(), 400); }, 9000);
   }
   return h('div', { class: 'assistant' }, tray, token, hint);
 }

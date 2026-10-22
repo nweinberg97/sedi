@@ -14,6 +14,8 @@ export function onDragEnd(fn) { endHooks.add(fn); }
 export const isDragging = () => !!drag?.active;
 export const currentDrag = () => drag;
 
+const TOUCH_HOLD_MS = 280; // press this long to pick a card up on a touch screen
+const TOUCH_SLOP = 10;     // moving further first means you're scrolling
 const IGNORE = 'button, input, textarea, select, a[href], [contenteditable="true"], [contenteditable="plaintext-only"], .no-drag, .resize-handle';
 
 export function initDnd(navigate) {
@@ -22,19 +24,41 @@ export function initDnd(navigate) {
     const el = e.target.closest('[data-drag]');
     if (!el || e.target.closest(IGNORE)) return;
     const r = el.getBoundingClientRect();
+    clearTimeout(drag?.holdTimer);
     drag = {
       el, kind: el.dataset.drag, id: el.dataset.id,
       sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY,
       gx: e.clientX - r.left, gy: e.clientY - r.top,
       w: r.width, h: r.height, active: false, zone: null, pointerId: e.pointerId,
+      touch: e.pointerType === 'touch' || e.pointerType === 'pen',
     };
+    // Touch: a swipe scrolls as usual; press and hold for a moment to pick the card up.
+    if (drag.touch) {
+      const mine = drag;
+      mine.holdTimer = setTimeout(() => {
+        if (drag !== mine || mine.active) return;
+        try { navigator.vibrate?.(12); } catch {}
+        // Touch pointers stick to the card you pressed. Switching tools mid-drag removes that card,
+        // so hand the pointer to the page itself, which is always there.
+        try { document.documentElement.setPointerCapture(mine.pointerId); } catch {}
+        begin();
+        moveGhost();
+        mine.ghost?.classList.add('lifted');
+      }, TOUCH_HOLD_MS);
+    }
   });
 
   document.addEventListener('pointermove', e => {
     if (!drag || e.pointerId !== drag.pointerId) return;
     drag.x = e.clientX; drag.y = e.clientY;
     if (!drag.active) {
-      if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 5) return;
+      const moved = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy);
+      if (drag.touch) {
+        // Moved before the hold finished: it's a scroll, so let the browser have it.
+        if (moved > TOUCH_SLOP) { clearTimeout(drag.holdTimer); drag = null; }
+        return;
+      }
+      if (moved < 5) return;
       begin();
     }
     e.preventDefault();
@@ -43,8 +67,25 @@ export function initDnd(navigate) {
     autoScroll();
   }, { passive: false });
 
+  // A finger's touch events stay with the element it first touched. When a drag switches tools,
+  // that element would be cleared away with the old view and the drag would stop, so park it
+  // off-screen until the finger lifts.
+  let keeper = null;
+  function keepTouchSource() {
+    if (!drag?.touch || !drag.el?.isConnected) return;
+    keeper ??= Object.assign(document.createElement('div'), { className: 'drag-keeper', ariaHidden: 'true' });
+    if (!keeper.isConnected) document.body.append(keeper);
+    keeper.append(drag.el);
+  }
+  onDragEnd(() => { if (keeper) keeper.replaceChildren(); });
+
+  // While a touch drag is live, stop the page from scrolling underneath it.
+  document.addEventListener('touchmove', e => { if (drag?.touch && drag.active && e.cancelable) e.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', e => { if (drag?.touch) e.preventDefault(); });
+
   const finish = e => {
     if (!drag || (e.pointerId != null && e.pointerId !== drag.pointerId)) return;
+    clearTimeout(drag.holdTimer);
     if (drag.active) { end(e.type === 'pointercancel'); suppressClick = true; setTimeout(() => (suppressClick = false), 0); }
     drag = null;
   };
@@ -115,7 +156,7 @@ export function initDnd(navigate) {
     if (spring !== drag.spring) {
       clearTimeout(drag.springTimer);
       drag.spring = spring;
-      if (spring) drag.springTimer = setTimeout(() => navigate(spring.dataset.springRoute), 550);
+      if (spring) drag.springTimer = setTimeout(() => { keepTouchSource(); navigate(spring.dataset.springRoute); }, 550);
     }
     if (z?.hasAttribute('data-list') && !drag.denied) placeLine(z);
   }

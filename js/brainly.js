@@ -3,7 +3,7 @@
 
 import * as store from './store.js';
 import {
-  h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml,
+  h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml, relTime,
   colorFor, smartEmoji, mostCommonEmoji, prettyUrl, EMOJI_CHOICES, debounce, hashStr, listMode,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
@@ -61,7 +61,16 @@ export function mount(el) {
   document.addEventListener('pointerdown', e => { if (results && !e.target.closest('.search')) results.hidden = true; });
   canvas = h('div', { class: 'brain-canvas', dataset: { drop: 'brainly-canvas', accept: 'card bfolder' }, 'data-canvas': '', 'data-navoro-sensitive': '' });
   dash = h('aside', { class: 'links-dash', 'aria-label': 'My links' });
-  root.replaceChildren(h('div', { class: 'view brainly' },
+  // Phones show one pane at a time: your notes, or your links. Desktop shows both side by side.
+  const pane = store.pref('brainlyPane', 'notes');
+  const paneBtn = (v, label) => h('button', { type: 'button', role: 'tab', class: v === pane ? 'on' : '', 'aria-selected': String(v === pane), onclick: e => {
+    store.setPref('brainlyPane', v);
+    root.querySelector('.brainly').dataset.pane = v;
+    e.currentTarget.parentElement.querySelectorAll('button').forEach(b => { const on = b === e.currentTarget; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  } }, label);
+  const paneSwitch = h('div', { class: 'segmented brain-pane-switch', role: 'tablist', 'aria-label': 'Show' }, paneBtn('notes', 'Notes'), paneBtn('links', 'Links'));
+  root.replaceChildren(h('div', { class: 'view brainly', dataset: { pane } },
+    paneSwitch,
     h('div', { class: 'view-head brainly-head' },
       h('h1', { class: 'view-title' }, 'Brainly'),
       h('div', { class: 'search' }, icon('search', 'search-icon'), searchInput, results),
@@ -499,12 +508,15 @@ function renderCanvas() {
 
 function noteEl(c) {
   const emoji = h('button', { class: 'note-emoji', 'aria-label': 'Change emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => store.updateCard(c.id, { meta: { emoji: v } })); } }, c.meta?.emoji || smartEmoji(c.title));
+  // The first line and the last edit show only in the phone list (styles hide them on the desktop canvas).
+  const snip = stripHtml(c.description || '').replace(/\s+/g, ' ').trim().slice(0, 140);
   const el = h('article', { class: 'b-note', dataset: { drag: 'card', id: c.id }, tabindex: 0, 'aria-label': c.title, style: { '--note': noteColor(c) } },
-    emoji, h('span', { class: 'b-note-title' }, c.title));
+    emoji, h('span', { class: 'b-note-title' }, c.title),
+    h('span', { class: 'b-note-snip' }, snip), h('span', { class: 'b-note-when' }, relTime(c.updatedAt)));
   // Duplicate on hover: the quickest way to start a new note from an old one.
   cardChrome(el, c, () => openNote(c.id), { onDuplicate: nid => { hidePeek(); duplicateNote(nid); } });
   el.removeAttribute('title');
-  el.addEventListener('click', e => { if (!e.target.closest('button')) { hidePeek(); openNote(c.id); } });
+  el.addEventListener('click', e => { if (e.sediOpened) return; if (!e.target.closest('button')) { hidePeek(); openNote(c.id); } });
   el.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === el) openNote(c.id); });
   el.addEventListener('pointerenter', () => showPeek(el, c.id));
   el.addEventListener('pointerleave', hidePeek);

@@ -3220,3 +3220,118 @@ body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .hom
 .assistant-token.pressing:not(.dragging) svg { transform: scale(0.88); transition: transform 0.15s var(--ease); }
 .assistant-token.dragging { cursor: grabbing; animation: none !important; scale: 1.06; }
 .assistant-token.holding { box-shadow: 0 0 0 6px rgba(229, 72, 77, 0.18), 0 10px 26px -10px rgba(229, 72, 77, 0.6) !important; }
+
+/* ---------- Touch: swipe scrolls, press and hold picks a card up ---------- */
+@media (hover: none), (pointer: coarse) {
+  [data-drag] { touch-action: pan-x pan-y; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .drag-ghost.lifted { animation: lift 0.18s var(--ease); }
+}
+@keyframes lift { from { scale: 1; } 60% { scale: 1.05; } to { scale: 1.03; } }
+
+/* =====================================================================
+   Phone layout v3 (≤700px). One place for the phone fixes; it sits last so it wins.
+   - The Universal Board button lives in the top bar, so it never covers a page.
+   - Pages lose desktop-only hints; content clears the floating atom.
+   - Touch targets are at least ~32px; small marks get a bigger invisible hit area.
+   - Brainly shows Notes or Links (one at a time) as compact lists.
+   ===================================================================== */
+.brain-pane-switch { display: none; }
+@media (max-width: 700px) {
+  /* Universal Board: a small button in the top bar, left of Help */
+  .universal { position: fixed !important; top: calc(env(safe-area-inset-top, 0px) + 8px) !important; right: calc(max(8px, env(safe-area-inset-right, 0px)) + 84px) !important; left: auto !important; bottom: auto !important; z-index: 55 !important; }
+  .universal-trigger { width: 36px !important; height: 36px !important; box-shadow: none !important; }
+  .universal-panel { top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 6px) !important; bottom: auto !important; }
+  .view-head { padding-right: 0 !important; }
+
+  /* Desktop hints and the repeated tool name go; the tab bar already says where you are */
+  .view-note { display: none !important; }
+  .view-host { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 84px) !important; scroll-padding-bottom: 96px; }
+
+  /* Bigger touch targets */
+  .task-check, .plan-check, .step-check, .routine-tick, .check { width: 26px !important; height: 26px !important; }
+  .task-check svg, .plan-check svg, .step-check svg { width: 14px; height: 14px; }
+  .tab-dot { position: relative; width: 14px !important; height: 14px !important; }
+  .tab-dot::after, .bf-color::after { content: ""; position: absolute; inset: -12px; }
+  .card-del, .card-info { min-width: 30px; min-height: 30px; }
+  .field-mic-inline { width: 32px !important; height: 32px !important; }
+  input, select, textarea { font-size: max(16px, 1em); } /* 16px stops iOS zooming into fields */
+
+  /* ---------- Brainly: Notes or Links, as easy-to-scan lists ---------- */
+  .brain-pane-switch { display: inline-flex; align-self: stretch; margin: 0; order: 1; }
+  .brainly > .brainly-head { order: 0; }
+  .brainly > .brain-body { order: 2; }
+  .brain-pane-switch button { flex: 1; height: 36px; font-size: var(--fs-md); }
+  .brainly { gap: 10px !important; }
+  .brainly-head { display: grid !important; grid-template-columns: 1fr auto !important; grid-template-areas: "title actions" "search search" !important; gap: 10px !important; align-items: center; }
+  .brainly-head .view-title { grid-area: title; }
+  .brainly-head .brain-actions { grid-area: actions; justify-self: end; display: flex; gap: 8px; }
+  .brainly-head .search { grid-area: search; }
+  .brainly-head .search-input { width: 100%; height: 44px; }
+  .brainly[data-pane="notes"] .links-dash { display: none !important; }
+  .brainly[data-pane="links"] .brain-canvas { display: none !important; }
+  .brainly[data-pane="links"] .brain-actions { display: none !important; }
+  .brainly .brain-body { display: block !important; }
+  .brainly .links-dash { max-height: none !important; background: transparent !important; padding: 0 !important; }
+
+  .brainly .brain-canvas { display: flex !important; flex-direction: column !important; gap: 8px !important; padding: 0 !important; border: 0 !important; background: none !important; min-height: 0 !important; overflow: visible !important; }
+  .brainly .brain-canvas > .b-folder, .brainly .brain-canvas > .b-note {
+    position: relative !important; left: auto !important; top: auto !important; width: 100% !important; height: auto !important; aspect-ratio: auto !important;
+  }
+  /* Folders: one row each, at the top */
+  .brainly .brain-canvas > .b-folder { min-height: 60px; border-radius: var(--r-lg) !important; }
+  .brainly .brain-canvas > .b-folder .bf-tab { display: none; }
+  .brainly .brain-canvas > .b-folder .bf-body {
+    position: relative !important; inset: auto !important; display: grid !important; grid-template-columns: 40px 1fr auto; grid-template-rows: auto auto; align-items: center; column-gap: 12px;
+    padding: 10px 44px 10px 12px !important; border-radius: var(--r-lg) !important; min-height: 60px;
+  }
+  .brainly .brain-canvas > .b-folder .bf-emoji { grid-row: 1 / 3; font-size: 24px; width: 40px; height: 40px; }
+  .brainly .brain-canvas > .b-folder .bf-name { grid-column: 2; margin: 0 !important; font-size: var(--fs-md); }
+  .brainly .brain-canvas > .b-folder .bf-count { grid-column: 2; font-size: var(--fs-sm); }
+  .brainly .brain-canvas > .b-folder .dots, .brainly .brain-canvas > .b-folder .dots-row { display: none !important; }
+  .brainly .brain-canvas > .b-folder .bf-color { top: 50% !important; right: 16px !important; transform: translateY(-50%); }
+  /* Notes: icon, title, first line, when */
+  .brainly .brain-canvas > .b-note {
+    display: grid !important; grid-template-columns: 40px 1fr auto; grid-template-rows: auto auto; column-gap: 12px; row-gap: 2px; align-items: center;
+    padding: 12px 40px 12px 12px !important; min-height: 64px; border-radius: var(--r-lg) !important;
+  }
+  .brainly .brain-canvas > .b-note .note-emoji { grid-row: 1 / 3; width: 40px !important; height: 40px !important; font-size: 22px !important; align-self: center; }
+  .brainly .brain-canvas > .b-note .b-note-title { grid-column: 2; -webkit-line-clamp: 1 !important; font-size: var(--fs-md) !important; padding: 0 !important; }
+  .brainly .brain-canvas > .b-note .b-note-snip { grid-column: 2 / 4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--muted); font-size: var(--fs-sm); line-height: 1.35; }
+  .brainly .brain-canvas > .b-note .b-note-snip:empty { display: none; }
+  .brainly .brain-canvas > .b-note .b-note-when { grid-column: 3; grid-row: 1; color: var(--faint); font-size: var(--fs-xs); white-space: nowrap; }
+  .brainly .brain-canvas > .b-note .card-del { top: 50% !important; right: 6px !important; transform: translateY(-50%); }
+  .brainly .brain-canvas > .b-note .card-info { display: none !important; }
+  .brainly .brain-canvas > .b-note::after { display: none !important; }
+  .brainly .canvas-empty { position: static !important; padding: 40px 12px; text-align: center; }
+}
+@media (max-width: 700px) {
+  /* Brainly folders: the count says it; drop the dot row */
+  .brainly .brain-canvas > .b-folder .f-dots { display: none !important; }
+
+  /* Timely: the date header fits on one line; Today shows only when you've moved away from today */
+  .cal-head { flex-wrap: nowrap !important; gap: 8px !important; padding-bottom: 6px !important; }
+  .cal-title { flex: 1 1 auto !important; min-width: 0 !important; }
+  .cal-title h2 { font-size: var(--fs-lg) !important; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
+  .cal-nav { flex: none !important; display: flex; align-items: center; gap: 4px; }
+  .cal-arrow { width: 36px !important; height: 36px !important; }
+  .cal-today { height: 32px !important; }
+  .cal-today:disabled { display: none !important; }
+  .timely-toolbar { gap: 4px !important; }
+  .tl-tab { padding-left: 10px !important; padding-right: 10px !important; }
+  .week-slot-label span { font-size: var(--fs-xs) !important; }
+  .week-slot-label small { display: none !important; }
+
+  /* Universal Board sheet: as tall as what's on it */
+  .universal-panel { height: auto !important; max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 40px) !important; }
+  .universal-panel .uni-list { min-height: 120px; max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 210px); }
+
+  /* Notes open nearly full height, so there's room to write above the keyboard */
+  .modal.note-modal { height: min(92dvh, 900px) !important; max-height: 92dvh !important; }
+  .modal.note-modal .modal-body { flex: 1; display: flex; flex-direction: column; }
+  .modal.note-modal .rich-editor { flex: 1; max-height: none !important; }
+}
+/* Desktop never shows the phone-only note details */
+@media (min-width: 701px) { .b-note-snip, .b-note-when { display: none !important; } }
+
+.drag-keeper { position: fixed; left: -10000px; top: 0; width: 1px; height: 1px; overflow: hidden; visibility: hidden; pointer-events: none; }
+.universal-trigger.drop-over { scale: 1.25; box-shadow: 0 0 0 6px color-mix(in srgb, var(--brainly) 35%, transparent) !important; transition: scale 0.15s; }

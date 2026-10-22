@@ -115,6 +115,7 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
       if (!matchMedia('(hover: none)').matches) return;
       if (e.defaultPrevented || e.target.closest('button, a, input, textarea, select, [contenteditable="true"], .resize-handle')) return;
       onInfo(e);
+      e.sediOpened = true; // a tool's own tap handler checks this so one tap never opens a card twice
     });
   }
   el.append(h('div', { class: 'card-tools' }, ...(compact ? [] : actions), dup));

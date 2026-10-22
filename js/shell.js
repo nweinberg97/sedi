@@ -175,7 +175,8 @@ const UNI_NUDGE_AT = 8;
 let uniPanel, uniList, uniCount;
 export function buildUniversal() {
   // SD-H1: a dark 44px circle with a small spiral galaxy, the "universal" place cards pass through.
-  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', title: 'Universal Board (drag to move)', 'aria-expanded': 'false', onclick: () => { if (!uniJustDragged) toggleUniversal(); } }, icon('galaxy'));
+  // Drop a card straight onto the button to send it to the board, even while the board is closed.
+  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', title: 'Universal Board (drag to move; drop a card here to park it)', 'aria-expanded': 'false', dataset: { drop: 'universal', accept: 'card' }, onclick: () => { if (!uniJustDragged) toggleUniversal(); } }, icon('galaxy'));
   const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
@@ -205,8 +206,10 @@ export function buildUniversal() {
     accepts: ({ id }) => store.getCard(id)?.tool === 'universal' || !uniFull(),
     drop: ({ id, index }) => {
       const list = universalCards();
+      const wasHere = store.getCard(id)?.tool === 'universal';
       routeCard(id, { tool: 'universal', meta: { order: index ?? list.length } });
       reorder(universalCards(), id, index);
+      if (!wasHere && !uniPanel.parentElement.classList.contains('open')) toast(`Parked “${store.getCard(id)?.title?.slice(0, 32) || 'card'}” on the Universal Board`, { action: 'Open', onAction: () => toggleUniversal(true) });
       setTimeout(maybeNudgeUniversal, 1200);
     },
   });
