@@ -286,14 +286,10 @@ function renderDay() {
     }
     // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
     const startTop = key === todayKey() ? Math.max(0, (nowMins / 60 - 1.25) * hourH) : 7 * hourH;
-    if (phone) {
-      // Bring the right hour into view once when you open a day; after that, leave the page where you scrolled it.
-      if (dayScroll?.key !== key) {
-        const page = document.querySelector('.view-host');
-        if (page) page.scrollTop = Math.max(0, grid.getBoundingClientRect().top - page.getBoundingClientRect().top + page.scrollTop + startTop - 12);
-        dayScroll = { key, top: 0 };
-      }
-    } else scroll.scrollTop = dayScroll?.key === key ? dayScroll.top : startTop;
+    const wantTop = dayScroll?.key === key ? dayScroll.top : startTop;
+    scroll.scrollTop = wantTop;
+    // The box may not be laid out yet on the first render (phones); set it again once it is.
+    requestAnimationFrame(() => { if (Math.abs(scroll.scrollTop - wantTop) > 2) scroll.scrollTop = wantTop; });
     scroll.addEventListener('scroll', () => { dayScroll = { key, top: scroll.scrollTop }; }, { passive: true });
     // Hover the day: the half hour under the pointer lights up with a + so adding feels natural.
     const ghost = h('div', { class: 'slot-ghost', hidden: true }, h('span', { class: 'slot-ghost-pill' }, icon('plus'), h('span', { class: 'slot-ghost-time' })));
