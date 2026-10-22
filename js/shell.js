@@ -63,7 +63,7 @@ export function buildDrawer() {
       item('sync', 'Sync devices', 'Coming later', null, 'disabled'),
       item('download', 'Download data', 'Save everything as a .json file', exportData),
       item('upload', 'Import data', 'Load a Sedi .json file', () => fileInput.click()),
-      item('book', 'Book notes', 'Ideas from great books on habits and focus', openBookNotes),
+      item('book', 'By Design', 'Lessons on behavior design from great books', openBookNotes),
       item('brain', 'On-device AI', 'Optional: private answers and coaching', openBrainPanel),
       item('atom', 'Other AI services', 'Use Claude or your own AI instead', openEnginesPanel),
       item('file', 'Google Docs', 'Works without setup; connecting is optional', openGooglePanel),

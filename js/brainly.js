@@ -78,7 +78,7 @@ export function mount(el) {
       h('div', { class: 'brain-actions' },
         h('button', { class: 'btn primary sm', onclick: () => addNote() }, icon('plus'), 'Note'),
         h('button', { class: 'btn ghost sm', onclick: () => addFolder() }, icon('folder'), 'Folder'),
-        h('button', { class: 'btn ghost sm b-books', title: 'Book notes', onclick: () => openBookNotes() }, icon('book'), 'Books'))),
+        h('button', { class: 'btn ghost sm b-books', title: 'By Design lessons', onclick: () => openBookNotes() }, icon('book'), 'Learn'))),
     h('div', { class: 'brain-body' }, dash, canvas)));
   setupFileDrop();
   canvas.addEventListener('pointerover', e => { hovered = e.target.closest('.b-note, .b-folder'); });

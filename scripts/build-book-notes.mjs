@@ -8,7 +8,7 @@ const lib = JSON.parse(readFileSync(new URL('brain/library.json', root), 'utf8')
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // **bold** inside strings, nothing else.
 // [1] or [1,3] → footnote links to the current lesson's sources.
-const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\[(\d+(?:,\s*\d+)*)\]/g, (_, n) => cite(n.split(/,\s*/).map(Number)));
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/\[(\d+(?:,\s*\d+)*)\]/g, (_, n) => cite(n.split(/,\s*/).map(Number)));
 const pad = n => String(n).padStart(2, '0');
 let cur = null; // current book while rendering, for footnote links
 const cite = src => (src?.length ? `<sup class="fn">${src.map(n => `<a href="#${cur.id}-s${n}" aria-label="Source ${n}">${n}</a>`).join(',')}</sup>` : '');
@@ -95,7 +95,7 @@ function lesson(b, i) {
   </div>
 
   <footer class="credit"><div class="wrap">
-    <p>Based on <i>${esc(b.title)}</i> by ${esc(b.author)} (${esc(b.publisher)}, ${b.year}), summarized in our own words. Items marked <span class="origin">By Design</span> are our application of the book's ideas, not the author's. This is a starting point, not a substitute: <b>read the book</b> for the research, stories and nuance behind every idea here.</p>
+    <p>Based on <i>${esc(b.title)}</i> by ${esc(b.author)} (${md(b.publisher)}, ${b.year}), summarized in our own words. Items marked <span class="origin">By Design</span> are our application of the book's ideas, not the author's. This is a starting point, not a substitute: <b>read the book</b> for the research, stories and nuance behind every idea here.</p>
     <p class="mini-h">Sources</p>
     <ol class="sources">${b.sources.map((x, n) => `<li id="${b.id}-s${n + 1}">${md(x.text)}${x.url ? ` <a href="${esc(x.url)}" rel="noopener">${esc(x.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a>` : ''}</li>`).join('')}</ol>
   </div></footer>
@@ -215,6 +215,7 @@ sup.fn a:hover{opacity:1;text-decoration:underline}
 a{color:inherit}
 
 @media (max-width:760px){
+  .chip-book{display:none}
   body{font-size:17px}
   .wrap{padding:0 16px}
   .two{grid-template-columns:1fr;gap:28px}
@@ -232,11 +233,42 @@ a{color:inherit}
 }
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .toolbar,.toc,.how{display:none}
-  .slide{padding:36px 0;break-inside:avoid}
-  .lesson{break-before:page}
-  .part,.worked,.practice{break-inside:avoid}
-  @page{margin:0;size:A4 landscape}
+  @page{size:A4;margin:14mm 14mm 16mm}
+  body{background:#fff;color:#1c1640;font-size:11pt}
+  .toolbar,.toc,.how,.shape{display:none}
+  .wrap{max-width:none;padding:0}
+  .hero{padding:28mm 10mm;border-radius:6mm;break-after:page}
+  .lesson{break-before:page;color:#1c1640}
+  .lesson .slide{background:none !important;padding:5mm 0;border:0 !important}
+  .lesson .slide.cover{background:var(--g1) !important;color:#fff;border-radius:5mm;padding:10mm}
+  .lesson.g2 .slide.cover{background:var(--g2) !important}
+  .two{grid-template-columns:1.7fr 1fr;gap:8mm}
+  .chip-book{max-width:40mm;padding:5mm}
+  .cb-emoji{font-size:22pt}.cb-title{font-size:14pt}.cb-author{font-size:9pt}
+  .cover h2{font-size:34pt}.by{font-size:13pt;margin:2mm 0 4mm}.about{font-size:12pt}.bio{font-size:9pt;color:rgba(255,255,255,.85)}
+  .eyebrow,.kicker{color:#6a5bc4;font-size:8.5pt;margin-bottom:2mm}
+  .cover .eyebrow{color:rgba(255,255,255,.8)}
+  h3{font-size:20pt;color:#2b1f64}
+  .principle{font-size:24pt;color:#2b1f64;margin-bottom:3mm}
+  .formula{font-size:26pt;background:none;-webkit-text-fill-color:#7c4dff;color:#7c4dff}
+  .lead{font-size:11pt;color:#3b356a}
+  .parts{gap:3mm;margin-top:4mm}
+  .part{background:#f6f3ff;border:1px solid #e3dcff;backdrop-filter:none;padding:4mm 5mm;grid-template-columns:10mm 1fr;gap:3mm;break-inside:avoid}
+  .part-num{font-size:20pt;color:#7c4dff}
+  .part h4{font-size:13pt}.part .tag{font-size:11pt;color:#5b4fa8}
+  .mini{color:#6a5bc4 !important;font-size:8pt}
+  .ex div{background:#fff;border:1px solid #e3dcff}.ex span{color:#6a5bc4}.ex p{font-size:9.5pt}
+  .note{font-size:10pt;color:#3b356a}
+  .steps{gap:2mm}.steps li{font-size:11pt;grid-template-columns:10mm 1fr}.steps li::before{font-size:20pt;color:#7c4dff}.steps b{font-size:12pt}.steps span{color:#3b356a}
+  .worked{border:1px solid #e3dcff;break-inside:avoid}
+  .reflect p{font-size:13pt;color:#2b1f64}
+  .practice{border:1px solid #e3dcff;break-inside:avoid}
+  .slide.split .two{align-items:start}
+  .credit{padding:4mm 0;font-size:9pt}
+  .sources{font-size:8.5pt}
+  .origin{color:#6a5bc4}
+  sup.fn a{color:#7c4dff;opacity:1}
+  .end{padding:6mm 0}
 }
 </style></head>
 <body>
@@ -256,7 +288,7 @@ ${lib.books.map((b, i) => `<li><a href="#${b.id}"><span class="n">${pad(i + 1)}<
 ${lib.books.map(lesson).join('\n')}
 <section class="end" id="credits"><div class="wrap">
   <h2>Read the originals</h2>
-  <ol>${lib.books.map(b => `<li>${esc(b.author)}, <i>${esc(b.title)}</i>. ${esc(b.publisher)}, ${b.year}.</li>`).join('')}</ol>
+  <ol>${lib.books.map(b => `<li>${esc(b.author)}, <i>${esc(b.title)}</i>. ${md(b.publisher)}, ${b.year}.</li>`).join('')}</ol>
   <p class="muted">These lessons summarize and apply ideas from the books above in our own words. Named frameworks belong to their authors. Sedi and By Design aren't affiliated with, sponsored by or endorsed by any author or publisher.</p>
 </div></section>
 </body></html>

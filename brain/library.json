@@ -1,37 +1,3120 @@
 {
-  "version": 2,
-  "series": "By Design",
-  "books": [
-    {
-      "id": "tiny-habits", "emoji": "🌱", "title": "Tiny Habits", "author": "BJ Fogg", "year": 2019, "publisher": "Houghton Mifflin Harcourt",
-      "discipline": "Behavior design",
-      "about": "A practical method for changing behavior by starting very small, from the founder of Stanford's Behavior Design Lab.",
-      "authorBio": "BJ Fogg, PhD, founded the Behavior Design Lab at Stanford University.",
-      "principle": { "name": "Design for low motivation", "body": "Motivation rises and falls through the day. When we're tired, it's the first thing to go. A behavior designed to work on your lowest-energy day is far more likely to happen: make it easy, make it visible, anchor it, and make it feel rewarding." },
-      "framework": {
-        "name": "The Fogg Behavior Model", "formula": "B = MAP",
-        "intro": "A behavior happens when **Motivation**, **Ability** and a **Prompt** come together at the same moment. To design for a behavior, pull on those three levers.",
-        "parts": [
-          { "name": "Motivation", "tagline": "How much you want to do it", "what": "Shaped by what you already want, by rewards, by consequences, and by what people around you are doing.", "how": ["Celebrate right after the behavior so it feels good", "Match people with behaviors they already want"], "examples": [{ "label": "Physical", "text": "Confetti at the marathon finish line" }, { "label": "Digital", "text": "A badge after someone's first contribution" }, { "label": "Experience", "text": "Stairs that play a note with every step" }] },
-          { "name": "Ability", "tagline": "How easy it is to do", "what": "Behaviors get hard through complexity, effort, unfamiliarity, unclear instructions, missing resources or social risk.", "how": ["**Make it less hard:** remove friction, or make it the default", "**Make it easier:** shrink the action or break it into smaller steps"], "examples": [{ "label": "Physical", "text": "Seats in small circles so talking is natural" }, { "label": "Digital", "text": "A one-tap poll instead of a blank reply box" }, { "label": "Experience", "text": "One-word intros to break the ice" }] },
-          { "name": "Prompt", "tagline": "What reminds you to do it, right now", "what": "Fogg sorts prompts into three kinds: **person** prompts (a feeling or body signal), **context** prompts (something in the environment) and **action** prompts (a behavior you already do).", "how": ["**Anchor it:** attach the new behavior to something people already do", "**Make it visible:** put the cue where it can't be missed"], "examples": [{ "label": "Physical", "text": "A sign on the café door: “Joining the run?”" }, { "label": "Digital", "text": "“How do you want to show up today?” right after login" }, { "label": "Experience", "text": "Grab a coloured badge, find someone with the same colour" }] }
-        ],
-        "note": "Motivation is the least reliable lever. When designing, start with ability and prompts."
-      },
-      "system": {
-        "name": "The Tiny Design Test", "intro": "Run any idea through five levers.",
-        "steps": [
-          { "name": "Make it easy", "detail": "Shrink the action or lower the stakes." },
-          { "name": "Make it less hard", "detail": "Remove effort and barriers." },
-          { "name": "Make it visible", "detail": "Put cues in the environment so it's always in view." },
-          { "name": "Anchor a prompt", "detail": "Tie it to something people already do." },
-          { "name": "Celebrate completion", "detail": "Make finishing feel rewarding." }
-        ],
-        "example": { "title": "Café run club", "items": ["**Easy:** shorten the run from 5 km to 1 km", "**Less hard:** a QR code on the door for quick sign-up", "**Anchor:** the sign on the exit reminds people as they leave", "**Visible:** posters show the start time, route and social fun", "**Celebrate:** a big group cheer at the finish"] }
-      },
-      "reflect": ["How will you use this model to shape behavior for the better?", "How could you design for joy? For calm? For connection?"],
-      "practice": { "time": "30 min", "steps": ["Choose one outcome to design for: joy, connection, calm, movement…", "Pick a project or a personal habit you want to shape toward it.", "Run it through one lever of the Tiny Design Test.", "Share your design with someone and ask where they'd still feel friction."] },
-      "inSedi": "Write the habit as a recipe (“After I…, I will…”) and add it as a Routine in Timely. The check sound when you tick it is your celebration."
+ "version": 2,
+ "series": "By Design",
+ "tagline": "Building a future that is more human",
+ "status": "draft",
+ "note": "Lessons summarize and apply ideas in our own words. Items with origin 'By Design' are our application, not the author's. 'verify' lists open checks before publishing.",
+ "books": [
+  {
+   "id": "tiny-habits",
+   "emoji": "🌱",
+   "title": "Tiny Habits",
+   "author": "BJ Fogg, PhD",
+   "year": 2019,
+   "publisher": "Houghton Mifflin Harcourt",
+   "discipline": "Behavior design",
+   "about": "*The Small Changes That Change Everything*: a practical method for changing behavior by starting very small, from the founder of Stanford's Behavior Design Lab. [1,2]",
+   "authorBio": "BJ Fogg, PhD, founded the Behavior Design Lab at Stanford University. [2]",
+   "principle": {
+    "name": "Design for low motivation",
+    "body": "Motivation rises and falls through the day, in what Fogg calls the Motivation Wave. When we're tired, it's the first thing to go. A behavior designed to work on your lowest-energy day is far more likely to happen: make it easy, make it visible, anchor it, and make it feel good. [1,4]"
+   },
+   "framework": {
+    "name": "The Fogg Behavior Model",
+    "formula": "B = MAP",
+    "src": [
+     1,
+     3
+    ],
+    "intro": "A **B**ehavior happens when **M**otivation, **A**bility and a **P**rompt come together at the same moment. To design for a behavior, pull on those three levers. [3]",
+    "parts": [
+     {
+      "name": "Motivation",
+      "tagline": "How much you want to do it",
+      "src": [
+       1,
+       4
+      ],
+      "what": "Your desire to do the behavior. It's real but unreliable, so Fogg advises matching yourself with behaviors you already want rather than trying to manufacture motivation. [1,4]",
+      "how": [
+       "Celebrate right after the behavior so it feels good. Fogg calls that feeling **Shine** [5]",
+       "Choose behaviors people already want to do [1]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Confetti at the marathon finish line"
+       },
+       {
+        "label": "Digital",
+        "text": "A badge after someone's first contribution"
+       },
+       {
+        "label": "Experience",
+        "text": "Stairs that play a note with every step"
+       }
+      ]
+     },
+     {
+      "name": "Ability",
+      "tagline": "How easy it is to do",
+      "src": [
+       1,
+       6
+      ],
+      "what": "Fogg's Ability Chain: time, money, physical effort, mental effort and fit with your routine. The weakest link sets how hard the behavior feels. [6]",
+      "how": [
+       "**Make it less hard:** remove the weakest link, or make it the default [6]",
+       "**Make it tiny:** use a Starter Step (just the first move) or scale it back to a smaller version [6]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Seats in small circles so talking is natural"
+       },
+       {
+        "label": "Digital",
+        "text": "A one-tap poll instead of a blank reply box"
+       },
+       {
+        "label": "Experience",
+        "text": "One-word intros to break the ice"
+       }
+      ]
+     },
+     {
+      "name": "Prompt",
+      "tagline": "What reminds you to do it, right now",
+      "src": [
+       1,
+       7,
+       8
+      ],
+      "what": "No behavior happens without a prompt. Fogg names three kinds: **Person** prompts (a feeling or body signal), **Context** prompts (something in your surroundings) and **Action** prompts (a routine you already do). Action prompts, which he calls **Anchors**, are the most reliable. [7,8]",
+      "how": [
+       "**Anchor it:** attach the new behavior right after an existing routine [7]",
+       "**Make it visible:** put the cue where it can't be missed [1]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "A sign on the café door: “Joining the run?”"
+       },
+       {
+        "label": "Digital",
+        "text": "“How do you want to show up today?” right after login"
+       },
+       {
+        "label": "Experience",
+        "text": "Grab a coloured badge, find someone with the same colour"
+       }
+      ]
+     }
+    ],
+    "note": "Motivation is the least reliable lever. When designing, start with ability and prompts. [1,4]"
+   },
+   "system": {
+    "name": "The Tiny Design Test",
+    "origin": "By Design",
+    "intro": "Run any idea through five levers drawn from Fogg's model.",
+    "steps": [
+     {
+      "name": "Make it easy",
+      "detail": "Shrink the action or lower the stakes. [6]"
+     },
+     {
+      "name": "Make it less hard",
+      "detail": "Remove the weakest link in the Ability Chain. [6]"
+     },
+     {
+      "name": "Make it visible",
+      "detail": "Put context prompts in view. [7]"
+     },
+     {
+      "name": "Anchor a prompt",
+      "detail": "Tie it to something people already do. [7]"
+     },
+     {
+      "name": "Celebrate completion",
+      "detail": "Make finishing feel good straight away. [5]"
+     }
+    ],
+    "example": {
+     "title": "Café run club",
+     "items": [
+      "**Easy:** shorten the run from 5 km to 1 km",
+      "**Less hard:** a QR code on the door for quick sign-up",
+      "**Anchor:** the sign on the exit reminds people as they leave",
+      "**Visible:** posters show the start time, route and social fun",
+      "**Celebrate:** a big group cheer at the finish"
+     ]
     }
-  ]
+   },
+   "reflect": [
+    "How will you use this model to shape behavior for the better?",
+    "How could you design for joy? For calm? For connection?"
+   ],
+   "practice": {
+    "time": "30 min",
+    "src": [
+     1,
+     6,
+     7
+    ],
+    "steps": [
+     "Choose one outcome to design for: joy, connection, calm, movement…",
+     "Write a Tiny Habits recipe for it: “After I [anchor], I will [tiny behavior].” Then decide how you'll celebrate.",
+     "Run the idea through one lever of the Tiny Design Test.",
+     "Share your design with someone and ask where they'd still feel friction."
+    ]
+   },
+   "inSedi": "Add the recipe as a Routine in Timely. The little check sound when you tick it is your celebration.",
+   "verify": [
+    "Source 5 is a chapter pointer; confirm chapter numbers against a copy."
+   ],
+   "sources": [
+    {
+     "text": "Fogg, BJ. *Tiny Habits: The Small Changes That Change Everything*. Houghton Mifflin Harcourt, 2019 (© 2020)."
+    },
+    {
+     "text": "Publishers Weekly, *Tiny Habits* listing and review.",
+     "url": "https://publishersweekly.com/9780358003328"
+    },
+    {
+     "text": "Fogg, BJ. “Fogg Behavior Model”, behaviormodel.org.",
+     "url": "https://behaviormodel.org/"
+    },
+    {
+     "text": "The Behavioral Scientist, “Motivation Wave” glossary entry.",
+     "url": "https://www.thebehavioralscientist.com/glossary/motivation-wave"
+    },
+    {
+     "text": "Fogg, BJ. “How you can use the power of celebration to make new habits stick”, TED Ideas.",
+     "url": "https://ideas.ted.com/how-you-can-use-the-power-of-celebration-to-make-new-habits-stick/"
+    },
+    {
+     "text": "Shortform, “Tiny Habits book summary” (Ability Chain, Starter Steps, Swarm of Behaviors, Focus Mapping).",
+     "url": "https://www.shortform.com/blog/tiny-habits-book/"
+    },
+    {
+     "text": "Shortform, “Behavior prompts” (Person, Context and Action prompts; Anchors).",
+     "url": "https://www.shortform.com/blog/behavior-prompts/"
+    },
+    {
+     "text": "Samuel Thomas Davies, *Tiny Habits* book notes (ABC recipe).",
+     "url": "https://samuelthomasdavies.com/tiny-habits"
+    }
+   ]
+  },
+  {
+   "id": "indistractable",
+   "emoji": "🎯",
+   "title": "Indistractable",
+   "author": "Nir Eyal with Julie Li",
+   "year": 2019,
+   "publisher": "BenBella Books (US); Bloomsbury (UK)",
+   "discipline": "Attention",
+   "about": "*How to Control Your Attention and Choose Your Life*: a guide to understanding distraction and designing your habits, calendar and surroundings for focus. [1,2,5]",
+   "authorBio": "Nir Eyal writes about the intersection of psychology, technology and business, and is also the author of *Hooked*. [3]",
+   "principle": {
+    "name": "Design to hack distraction",
+    "body": "Eyal's starting point is that distraction is mostly an escape from discomfort, not a technology problem. External triggers then hijack attention unless your environment, tools and rituals are designed on purpose. Distraction isn't fixed by willpower. It's fixed by design. [3,4]"
+   },
+   "framework": {
+    "name": "The Indistractable Model",
+    "src": [
+     3,
+     4
+    ],
+    "intro": "**Traction** is any action that pulls you toward what you intend; **distraction** pulls you away. Eyal's model has four parts. [3,4]",
+    "parts": [
+     {
+      "name": "Master internal triggers",
+      "tagline": "Deal with the discomfort underneath",
+      "src": [
+       3,
+       4
+      ],
+      "what": "Boredom, loneliness, worry and fatigue are what push us to distraction. [3]",
+      "how": [
+       "Notice the feeling and write it down before acting on it [3]",
+       "Use the 10-minute rule: wait ten minutes before giving in [3,6]",
+       "Surf the urge until it passes, a technique Eyal draws from Jonathan Bricker's research [4]",
+       "Reimagine the task to find novelty in it, and reimagine your temperament, since willpower doesn't simply run out [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "“I'm bored” noted on a card, then back to work"
+       },
+       {
+        "label": "Your work",
+        "text": "Ten-minute timer before opening social media"
+       },
+       {
+        "label": "Your space",
+        "text": "A notebook by the keyboard for urges"
+       }
+      ]
+     },
+     {
+      "name": "Make time for traction",
+      "tagline": "Plan your values into your calendar",
+      "src": [
+       3,
+       4,
+       7
+      ],
+      "what": "You can't call something a distraction unless you know what you meant to do instead. [3]",
+      "how": [
+       "Timebox the week across three domains: **You**, **Relationships** and **Work** [3]",
+       "Schedule sync: agree your calendar with the people who depend on your time [4,7]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Gym and dinner with friends booked like meetings"
+       },
+       {
+        "label": "Your work",
+        "text": "Share your timeboxed week with your manager"
+       },
+       {
+        "label": "Your space",
+        "text": "A weekly plan on the fridge"
+       }
+      ]
+     },
+     {
+      "name": "Hack back external triggers",
+      "tagline": "Is this trigger serving me, or am I serving it?",
+      "src": [
+       3,
+       4,
+       7
+      ],
+      "what": "Pings, dings and interruptions are useful only if they lead to traction. [3]",
+      "how": [
+       "Phone: remove, replace, rearrange and reclaim [3]",
+       "Meetings: no agenda, no meeting [7,8]",
+       "Group chat: get in and get out, like a sauna [3,9]",
+       "Signal focus: a screen sign, or a light-up “concentration crown” like the one Eyal's wife wears [3,10]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Notifications off for everything but people"
+       },
+       {
+        "label": "Your work",
+        "text": "Scheduled office hours for questions"
+       },
+       {
+        "label": "Your space",
+        "text": "A sign on your monitor during focus time"
+       }
+      ]
+     },
+     {
+      "name": "Prevent distraction with pacts",
+      "tagline": "Decide in advance",
+      "src": [
+       3,
+       4
+      ],
+      "what": "Precommitments as a last line of defence. [3]",
+      "how": [
+       "**Effort pact:** add friction to distraction [3]",
+       "**Price pact:** put money at stake [3]",
+       "**Identity pact:** see yourself as someone who is indistractable [3]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A site blocker you can't easily turn off"
+       },
+       {
+        "label": "Your work",
+        "text": "Pay a friend if you skip the writing block"
+       },
+       {
+        "label": "Your space",
+        "text": "Phone in a timed lockbox"
+       }
+      ]
+     }
+    ]
+   },
+   "system": {
+    "name": "Design to Hack Distraction",
+    "origin": "By Design",
+    "intro": "Five steps for designing a focused space, team or day, built on Eyal's model.",
+    "steps": [
+     {
+      "name": "Identify external triggers",
+      "detail": "Audit what pulls attention away: physical (layout, clutter, movement), digital (screens, notifications) and social (interruptions, open access). [3]"
+     },
+     {
+      "name": "Remove or reduce triggers",
+      "detail": "Focus zones, minimal setups and blocked distractions. Goal: less cognitive tax. [3]"
+     },
+     {
+      "name": "Protect with social structure",
+      "detail": "Timeboxed focus hours, office hours for questions, no agenda no meeting, and get-in-get-out group chat. Goal: lower interruption cost. [3,7,8]"
+     },
+     {
+      "name": "Replace with designed cues",
+      "detail": "Visual and auditory signals for focus time, like a screen sign or a concentration crown. Goal: channel attention on purpose. [3,10]"
+     },
+     {
+      "name": "Reinforce focus",
+      "detail": "Multichannel multitasking (pair low-attention tasks, like walking while listening) and temptation bundling. Goal: sustained effort. [3,11,12]"
+     }
+    ],
+    "example": {
+     "title": "A shared studio",
+     "items": [
+      "**Identify:** foot traffic past the desks, a TV, constant Slack pings",
+      "**Remove:** desks turned away from the walkway, TV off until 4 pm",
+      "**Protect:** focus mornings, questions at 2 pm office hours",
+      "**Cue:** a lamp on means “don't interrupt”",
+      "**Reinforce:** walking 1:1s and a shared playlist for admin hour"
+     ]
+    }
+   },
+   "reflect": [
+    "What feeling usually comes right before you get distracted?",
+    "Which trigger around you is serving someone else's goals, not yours?"
+   ],
+   "practice": {
+    "time": "3 days",
+    "src": [
+     3
+    ],
+    "steps": [
+     "Keep a Distraction Tracker for three days: each time you get distracted, note the time and the feeling just before.",
+     "Look for patterns: which feelings and triggers come up most?",
+     "Pick one fix for the most common one: the 10-minute rule, a removed notification, or a pact.",
+     "Timebox next week across You, Relationships and Work."
+    ]
+   },
+   "inSedi": "Timebox the week in Timely's day view, including blocks for yourself and your people, not just work.",
+   "sources": [
+    {
+     "text": "Eyal, Nir, with Julie Li. *Indistractable: How to Control Your Attention and Choose Your Life*. BenBella Books, 2019. Part 1 (internal triggers, incl. ch. 6 on the 10-minute rule), Part 2 (making time for traction, incl. ch. 12 schedule sync), Part 3 (external triggers, incl. ch. 17 meetings, ch. 20 multichannel multitasking), Part 4 (pacts, ch. 23–25)."
+    },
+    {
+     "text": "Publishers Weekly, *Indistractable* listing.",
+     "url": "https://www.publishersweekly.com/9781948836531"
+    },
+    {
+     "text": "Eyal, Nir. *Indistractable* lesson plan for educators, nirandfar.com, 2020.",
+     "url": "https://www.nirandfar.com/wp-content/uploads/2025/02/Indistractable_Lesson_Plan_for_Educators_07152020.pdf"
+    },
+    {
+     "text": "SuperSummary, *Indistractable* summary.",
+     "url": "https://www.supersummary.com/indistractable/summary/"
+    },
+    {
+     "text": "AbeBooks, UK edition listing (Bloomsbury; with Julie Li).",
+     "url": "https://www.abebooks.com/9781526610201/Indistractable-Nir-Eyal-Julie-Li-1526610205/plp"
+    },
+    {
+     "text": "Goodreads, quote on the ten-minute rule from *Indistractable*.",
+     "url": "https://www.goodreads.com/quotes/10243212-we-implemented-a-ten-minute-rule-and-promised-that-if-we"
+    },
+    {
+     "text": "Graham Mann, *Indistractable* book notes.",
+     "url": "https://grahammann.net/book-notes/indistractable-nir-eyal"
+    },
+    {
+     "text": "Goodreads reader highlights, *Indistractable* (no agenda, no meeting).",
+     "url": "https://www.goodreads.com/notes/45748989-indistractable/1747824-nathan-cashion?page=5"
+    },
+    {
+     "text": "Products That Count, “Techniques: the steps you can take to be indistractable” (group chat).",
+     "url": "https://productsthatcount.com/techniques-the-steps-you-can-take-to-be-indistractable/"
+    },
+    {
+     "text": "Eyal, Nir. Post showing the concentration crown, X (Twitter), August 2019.",
+     "url": "https://twitter.com/nireyal/status/1161261118133719041"
+    },
+    {
+     "text": "Eyal, Nir. “The Right Way to Multitask”, *Psychology Today*, 2022.",
+     "url": "https://www.psychologytoday.com/us/blog/automatic-you/202208/the-right-way-to-multitask"
+    },
+    {
+     "text": "Milkman, K. L., Minson, J. A., & Volpp, K. G. M. (2014). Holding the Hunger Games hostage at the gym: An evaluation of temptation bundling. *Management Science*, 60(2), 283–299."
+    }
+   ],
+   "verify": [
+    "Your deck's 'sterile cockpit' and 'sauna rule' are not confirmed in the book; replaced with confirmed items (office hours, no agenda no meeting, group chat 'get in, get out').",
+    "Source 10 seen only as a search snippet."
+   ]
+  },
+  {
+   "id": "atomic-habits",
+   "emoji": "⚛️",
+   "title": "Atomic Habits",
+   "author": "James Clear",
+   "year": 2018,
+   "publisher": "Avery (Penguin Random House)",
+   "discipline": "Habit formation",
+   "about": "*An Easy & Proven Way to Build Good Habits & Break Bad Ones*: how tiny changes compound into remarkable results, and how to design the cues, cravings and rewards behind every habit. [1,2]",
+   "authorBio": "James Clear writes about habits, decision-making and continuous improvement at jamesclear.com. [3]",
+   "principle": {
+    "name": "Design the system, not the goal",
+    "body": "Clear argues that goals set direction but systems make progress. You don't rise to the level of your goals; you fall to the level of your systems. Small improvements of about 1% compound over time, even when the results stay invisible for a long while (his Plateau of Latent Potential). [2,4,11]"
+   },
+   "framework": {
+    "name": "The Four Laws of Behavior Change",
+    "src": [
+     2
+    ],
+    "intro": "Every habit runs through a loop of **cue → craving → response → reward**. Each law shapes one stage. To break a bad habit, invert the law. [2]",
+    "parts": [
+     {
+      "name": "Make it obvious",
+      "tagline": "Cue · invert: make it invisible",
+      "src": [
+       2,
+       5,
+       6
+      ],
+      "what": "Habits start with a cue you notice. Make the cue for a good habit unmissable and hide the cues for bad ones. [2]",
+      "how": [
+       "Write an implementation intention: “I will [behavior] at [time] in [location]” [6]",
+       "Use the habit stacking formula: “After [current habit], I will [new habit]” [6]",
+       "Put the cue in plain sight, like the book on your pillow [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Running shoes by the door"
+       },
+       {
+        "label": "Your work",
+        "text": "Tomorrow's first task written on a sticky note"
+       },
+       {
+        "label": "Your space",
+        "text": "Fruit on the counter, sweets in a high cupboard"
+       }
+      ]
+     },
+     {
+      "name": "Make it attractive",
+      "tagline": "Craving · invert: make it unattractive",
+      "src": [
+       2,
+       7
+      ],
+      "what": "The more appealing a habit, the more likely you'll do it. [2]",
+      "how": [
+       "Temptation bundling: only do something you want while doing something you need to [7,12]",
+       "Join a group where the behavior you want is normal [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Favourite podcast only on the treadmill"
+       },
+       {
+        "label": "Your work",
+        "text": "Good coffee only during deep-work blocks"
+       },
+       {
+        "label": "Your space",
+        "text": "A running club that meets at a café"
+       }
+      ]
+     },
+     {
+      "name": "Make it easy",
+      "tagline": "Response · invert: make it difficult",
+      "src": [
+       2,
+       8
+      ],
+      "what": "Reduce the friction between you and the good behavior, and add friction to the bad. [2]",
+      "how": [
+       "The Two-Minute Rule: scale a new habit down to a version that takes under two minutes [8]",
+       "Prepare your environment so the next action is ready [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "“Read one page” instead of “read more”"
+       },
+       {
+        "label": "Your work",
+        "text": "Open the doc before you close your laptop"
+       },
+       {
+        "label": "Your space",
+        "text": "Phone charger in the kitchen, not the bedroom"
+       }
+      ]
+     },
+     {
+      "name": "Make it satisfying",
+      "tagline": "Reward · invert: make it unsatisfying",
+      "src": [
+       2,
+       9,
+       10
+      ],
+      "what": "We repeat what feels good right away. [2]",
+      "how": [
+       "Track the habit so progress is visible [9]",
+       "Never miss twice: one slip is an accident, two starts a pattern [9]",
+       "For bad habits, a habit contract with an accountability partner adds an immediate cost [10]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A tick on the calendar each morning"
+       },
+       {
+        "label": "Your work",
+        "text": "Close the day by logging what you shipped"
+       },
+       {
+        "label": "Your space",
+        "text": "A jar that fills with a marble per workout"
+       }
+      ]
+     }
+    ],
+    "note": "Clear frames habits as votes for an identity. Decide who you want to be, then prove it with small wins. Change works best from identity outward, not outcomes inward. [4]"
+   },
+   "system": {
+    "name": "The Habit Design Card",
+    "origin": "By Design",
+    "intro": "Run one habit through Clear's tools in order.",
+    "steps": [
+     {
+      "name": "Score your day",
+      "detail": "List your daily habits and mark each +, – or = for the person you want to be (Clear's Habits Scorecard). [5]"
+     },
+     {
+      "name": "Choose the identity",
+      "detail": "Finish the sentence: “I'm the kind of person who…” [4]"
+     },
+     {
+      "name": "Stack it",
+      "detail": "After [current habit], I will [new habit]. [6]"
+     },
+     {
+      "name": "Shrink it",
+      "detail": "Cut it to a two-minute starting version. [8]"
+     },
+     {
+      "name": "Track it",
+      "detail": "Mark it daily, and never miss twice. [9]"
+     }
+    ],
+    "example": {
+     "title": "Becoming a writer",
+     "items": [
+      "**Score:** scrolling at breakfast is a “–”",
+      "**Identity:** I'm someone who writes every day",
+      "**Stack:** after I pour my first coffee, I'll open my notebook",
+      "**Shrink:** write one sentence",
+      "**Track:** a tick on the calendar, and never two blanks in a row"
+     ]
+    }
+   },
+   "reflect": [
+    "Which of your current habits are votes for the person you want to become, and which are votes against?",
+    "If you only fall to the level of your systems, what does your current system produce?"
+   ],
+   "practice": {
+    "time": "20 min",
+    "src": [
+     5,
+     6,
+     8
+    ],
+    "steps": [
+     "Do the Habits Scorecard: list everything you do from waking up, and mark each item +, – or =. Don't change anything yet.",
+     "Choose one “–” to weaken and one new habit to build.",
+     "Write the new habit as a stack: “After I…, I will…”.",
+     "Shrink it to two minutes and do it once today."
+    ]
+   },
+   "inSedi": "Add the stacked habit as a Routine in Timely so it appears every day, and tick it off to keep your streak visible.",
+   "verify": [
+    "Plateau of Latent Potential confirmed via secondary sources only.",
+    "Two-Minute Rule draws partly on David Allen's two-minute rule; consider crediting."
+   ],
+   "sources": [
+    {
+     "text": "Clear, James. *Atomic Habits: An Easy & Proven Way to Build Good Habits & Break Bad Ones*. Avery, 2018. Ch. 1–2 (1% gains, Plateau of Latent Potential, three layers of change, identity), ch. 4 (Habits Scorecard), ch. 5 (implementation intentions, habit stacking), ch. 8 (temptation bundling), ch. 13 (Two-Minute Rule), ch. 16–17 (habit tracking, never miss twice, habit contract), ch. 19 (Goldilocks Rule)."
+    },
+    {
+     "text": "Clear, James. “Atomic Habits: summary”, jamesclear.com.",
+     "url": "https://jamesclear.com/atomic-habits-summary"
+    },
+    {
+     "text": "Clear, James. *Atomic Habits* book page, jamesclear.com.",
+     "url": "https://jamesclear.com/atomic-habits"
+    },
+    {
+     "text": "Clear, James. “Identity-Based Habits”, jamesclear.com.",
+     "url": "https://jamesclear.com/identity-based-habits"
+    },
+    {
+     "text": "Clear, James. “The Habits Scorecard”, jamesclear.com.",
+     "url": "https://jamesclear.com/habits-scorecard"
+    },
+    {
+     "text": "Clear, James. “Habit Stacking”, jamesclear.com.",
+     "url": "https://jamesclear.com/habit-stacking"
+    },
+    {
+     "text": "Clear, James. “Temptation Bundling”, jamesclear.com.",
+     "url": "https://jamesclear.com/temptation-bundling"
+    },
+    {
+     "text": "Clear, James. “How to Stop Procrastinating” (Two-Minute Rule), jamesclear.com.",
+     "url": "https://jamesclear.com/how-to-stop-procrastinating"
+    },
+    {
+     "text": "LitCharts, *Atomic Habits* chapter 16 summary (habit tracking, never miss twice).",
+     "url": "https://www.litcharts.com/lit/atomic-habits/chapter-16"
+    },
+    {
+     "text": "LitCharts, *Atomic Habits* chapter 17 summary (habit contract).",
+     "url": "https://www.litcharts.com/lit/atomic-habits/chapter-17"
+    },
+    {
+     "text": "Wikipedia, “Atomic Habits” (publication details).",
+     "url": "https://en.wikipedia.org/wiki/Atomic_Habits"
+    },
+    {
+     "text": "Milkman, K. L., Minson, J. A., & Volpp, K. G. M. (2014). Holding the Hunger Games hostage at the gym: An evaluation of temptation bundling. *Management Science*, 60(2), 283–299 (origin of temptation bundling)."
+    }
+   ]
+  },
+  {
+   "id": "nudge",
+   "emoji": "👉",
+   "title": "Nudge",
+   "author": "Richard H. Thaler and Cass R. Sunstein",
+   "year": 2008,
+   "publisher": "Yale University Press (2008); Penguin, *Nudge: The Final Edition* (2021)",
+   "discipline": "Behavioral economics",
+   "about": "*Improving Decisions About Health, Wealth, and Happiness*: how the way choices are presented shapes what people choose, and how to design those choices so people are better off by their own standards. [1,2]",
+   "authorBio": "Richard H. Thaler won the 2017 Nobel Memorial Prize in Economic Sciences; Cass R. Sunstein is a legal scholar at Harvard. [2,11]",
+   "principle": {
+    "name": "There is no neutral design",
+    "body": "Someone always decides how options are laid out: what comes first, what's the default, what's easy. Thaler and Sunstein call that person a **choice architect**. Since design always influences the choice, design it on purpose to help people while leaving every option open. They call this **libertarian paternalism**. [2,3] They also contrast **Econs**, the perfectly rational people of economic models, with **Humans**, who think with a fast Automatic System and a slow Reflective System and make predictable mistakes. [2,8]"
+   },
+   "framework": {
+    "name": "NUDGES",
+    "src": [
+     4
+    ],
+    "intro": "The authors' checklist of choice-architecture tools. Each letter is one lever. [4]",
+    "parts": [
+     {
+      "name": "iNcentives",
+      "tagline": "Make costs and benefits salient",
+      "src": [
+       4
+      ],
+      "what": "People respond to incentives they notice. Make the real costs and benefits visible at the moment of choice. [4]",
+      "how": [
+       "Show the cost where the decision happens [4]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Energy meters that show cost per hour"
+       },
+       {
+        "label": "Digital",
+        "text": "Price per month shown next to price per year"
+       },
+       {
+        "label": "Experience",
+        "text": "Showing water saved per shorter shower"
+       }
+      ]
+     },
+     {
+      "name": "Understand mappings",
+      "tagline": "Connect choices to outcomes",
+      "src": [
+       4
+      ],
+      "what": "Help people see how a choice translates into results they care about. [4]",
+      "how": [
+       "Translate options into outcomes, e.g. megapixels into print sizes [4]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Paint swatches shown on a real wall"
+       },
+       {
+        "label": "Digital",
+        "text": "A plan picker framed by “what you'll use”"
+       },
+       {
+        "label": "Experience",
+        "text": "A taster before choosing a course"
+       }
+      ]
+     },
+     {
+      "name": "Defaults",
+      "tagline": "What happens if you do nothing",
+      "src": [
+       2,
+       4,
+       5,
+       10
+      ],
+      "what": "Defaults are powerful because many people stick with them. Automatic enrolment in retirement savings is the classic case. [2,5] The book also describes Save More Tomorrow, where people commit now to save more from future raises. [2,10]",
+      "how": [
+       "Set the default to the option most people would choose on reflection [2]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Healthy food at eye level in the cafeteria"
+       },
+       {
+        "label": "Digital",
+        "text": "Automatic enrolment in a pension plan"
+       },
+       {
+        "label": "Experience",
+        "text": "Green energy as the default tariff"
+       }
+      ]
+     },
+     {
+      "name": "Give feedback",
+      "tagline": "Tell people how they're doing",
+      "src": [
+       4
+      ],
+      "what": "Good systems let people know when they're doing well and when they're making mistakes. [4]",
+      "how": [
+       "Make feedback immediate and visible [4]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Speed signs that show your speed"
+       },
+       {
+        "label": "Digital",
+        "text": "A warning before sending without the attachment"
+       },
+       {
+        "label": "Experience",
+        "text": "A progress bar through a long form"
+       }
+      ]
+     },
+     {
+      "name": "Expect error",
+      "tagline": "Design for human mistakes",
+      "src": [
+       4
+      ],
+      "what": "People make predictable mistakes, so design forgives them. A forcing function is the classic example: the cash machine that gives your card back before your cash. [4]",
+      "how": [
+       "Add forcing functions for the most common mistake [4]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "A fuel nozzle that won't fit the wrong tank"
+       },
+       {
+        "label": "Digital",
+        "text": "Undo instead of “Are you sure?”"
+       },
+       {
+        "label": "Experience",
+        "text": "A checklist before the event starts"
+       }
+      ]
+     },
+     {
+      "name": "Structure complex choices",
+      "tagline": "Simplify when options multiply",
+      "src": [
+       4
+      ],
+      "what": "As choices grow, people need help narrowing them, such as filtering by what matters most or recommendations from similar people. [4]",
+      "how": [
+       "Offer filters and sensible groupings [4]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "A wine shelf sorted by taste, not region"
+       },
+       {
+        "label": "Digital",
+        "text": "Filters for the three features people care about"
+       },
+       {
+        "label": "Experience",
+        "text": "A set menu alongside the full menu"
+       }
+      ]
+     }
+    ],
+    "note": "*Nudge: The Final Edition* (2021) adds a chapter on **sludge**, the friction that makes good choices harder, plus Smart Disclosure and choice engines. [6,7,9]"
+   },
+   "system": {
+    "name": "Nudge Yourself",
+    "origin": "By Design",
+    "intro": "Use the book's tools as your own choice architect.",
+    "steps": [
+     {
+      "name": "Audit your defaults",
+      "detail": "List five recurring choices and what happens if you do nothing. [2,4]"
+     },
+     {
+      "name": "Reset them",
+      "detail": "Change each default to what you'd choose on reflection. [2]"
+     },
+     {
+      "name": "Hunt the sludge",
+      "detail": "Remove a step from a good habit you keep skipping. [6]"
+     },
+     {
+      "name": "Add a forcing function",
+      "detail": "Make your most common mistake hard to make. [4]"
+     },
+     {
+      "name": "Close the loop",
+      "detail": "Add immediate feedback so you see progress. [4]"
+     }
+    ],
+    "example": {
+     "title": "Saving money",
+     "items": [
+      "**Default:** your pay goes straight to your current account",
+      "**Reset:** 10% moves to savings automatically on payday",
+      "**Sludge:** delete saved cards from shopping sites",
+      "**Forcing function:** a 48-hour rule before any purchase over $100",
+      "**Feedback:** a weekly glance at the savings balance"
+     ]
+    }
+   },
+   "reflect": [
+    "Where in your life are you living with a default you never chose?",
+    "If you're always a choice architect for someone, whose choices do you shape?"
+   ],
+   "practice": {
+    "time": "30 min",
+    "src": [
+     2,
+     4,
+     6
+    ],
+    "steps": [
+     "List five recurring choices: savings, subscriptions, your phone's home screen, snacks, calendar invites.",
+     "For each, write what happens if you do nothing.",
+     "Change at least two defaults to what you'd pick on reflection.",
+     "Time each step of one good habit you keep skipping, and remove one."
+    ]
+   },
+   "inSedi": "Set your defaults inside Sedi too: a Routine in Timely for the habit, and the trash for anything you never act on.",
+   "sources": [
+    {
+     "text": "Thaler, Richard H., and Cass R. Sunstein. *Nudge: Improving Decisions About Health, Wealth, and Happiness*. Yale University Press, 2008. Part 1 Humans and Econs; ch. “Following the Herd”; ch. “Choice Architecture”."
+    },
+    {
+     "text": "Wikipedia, “Nudge (book)”.",
+     "url": "https://en.wikipedia.org/wiki/Nudge_(book)"
+    },
+    {
+     "text": "getAbstract, *Nudge* summary.",
+     "url": "https://www.getabstract.com/en/summary/nudge/10445"
+    },
+    {
+     "text": "Thaler, R. H., Sunstein, C. R., & Balz, J. P. “Choice Architecture” (2010 working paper; source of the NUDGES checklist).",
+     "url": "https://mycourses.aalto.fi/pluginfile.php/1767811/course/section/222382/Choice%20Architecture.pdf"
+    },
+    {
+     "text": "CommonWealth Beacon, “Nudge offers a blueprint for coaxing people to do the right thing”.",
+     "url": "https://commonwealthbeacon.org/uncategorized/nudge-offers-a-blueprint-for-coaxing-people-to-do-the-right-thing/"
+    },
+    {
+     "text": "Thaler, Richard H., and Cass R. Sunstein. Preface to *Nudge: The Final Edition*, published in *Behavioral Scientist*.",
+     "url": "https://behavioralscientist.org/thaler-sunstein-preface-to-nudge-the-final-edition/"
+    },
+    {
+     "text": "Society of Professional Economists, review of *Nudge: The Final Edition*.",
+     "url": "https://spe.org.uk/reading-room/book-reviews/nudge-the-final-edition"
+    },
+    {
+     "text": "SuperSummary, *Nudge* summary.",
+     "url": "https://www.supersummary.com/nudge/summary/"
+    },
+    {
+     "text": "Thaler, Richard H., and Cass R. Sunstein. *Nudge: The Final Edition*. Penguin Books, 2021.",
+     "url": "https://www.abebooks.fr/9780143137009/Nudge-Final-Edition-Thaler-Richard-014313700X/plp"
+    },
+    {
+     "text": "Thaler, R. H., & Benartzi, S. (2004). Save More Tomorrow: Using behavioral economics to increase employee saving. *Journal of Political Economy*, 112(S1), S164–S187."
+    },
+    {
+     "text": "The Nobel Prize, “Richard H. Thaler: Facts”, 2017.",
+     "url": "https://www.nobelprize.org/prizes/economic-sciences/2017/thaler/facts/"
+    }
+   ],
+   "verify": [
+    "NUDGES is cited from Thaler, Sunstein & Balz's paper, which mirrors the 2008 book; confirm whether the Final Edition keeps it.",
+    "Sunstein 'at Harvard' — confirm on his faculty page."
+   ]
+  },
+  {
+   "id": "feel-good-productivity",
+   "emoji": "☀️",
+   "title": "Feel-Good Productivity",
+   "author": "Ali Abdaal",
+   "year": 2023,
+   "publisher": "Celadon Books (US); Cornerstone Press (UK)",
+   "discipline": "Positive psychology",
+   "about": "A case that feeling good is the engine of productivity, not the reward for it, built on research from psychology and neuroscience. [1,2]",
+   "authorBio": "Ali Abdaal trained and worked as a doctor in the UK before building one of YouTube's most-watched channels on productivity. [11]",
+   "principle": {
+    "name": "Design for good feelings first",
+    "body": "Abdaal argues that the discipline-and-pressure approach has it backwards. Positive feelings raise energy, energy makes work easier to start and sustain, and the work then feels better still. So instead of forcing output, change how the work feels. [1,2,3]"
+   },
+   "framework": {
+    "name": "Energise · Unblock · Sustain",
+    "src": [
+     1,
+     2
+    ],
+    "intro": "The book is built in three parts: what gives us energy, what blocks us from starting, and what keeps us from burning out. Each chapter ends with small experiments to try. [1,2]",
+    "parts": [
+     {
+      "name": "Energise",
+      "tagline": "Play, Power and People",
+      "src": [
+       1,
+       2,
+       3
+      ],
+      "what": "Three sources of good feeling. **Play**: bringing lightness and curiosity to a task. **Power**: a sense of confidence, competence and control. **People**: feeling part of something with others. [2,3]",
+      "how": [
+       "Ask of a dull task: what would this look like if it were fun? [3]",
+       "Choose a character to play while you work, and allow yourself side quests that follow your curiosity [4,12]",
+       "Build a sense of power by teaching what you're learning (the protégé effect) and reframing “I have to” as “I get to” [5,13]",
+       "Treat collaborators as comrades and over-communicate [3,4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A playlist and a timer turn chores into a race"
+       },
+       {
+        "label": "Your work",
+        "text": "Explain a new skill to a colleague to lock it in"
+       },
+       {
+        "label": "Your space",
+        "text": "A shared table where people work alongside each other"
+       }
+      ]
+     },
+     {
+      "name": "Unblock",
+      "tagline": "Uncertainty, Fear and Inertia",
+      "src": [
+       1,
+       2,
+       3
+      ],
+      "what": "The three things that stop us starting. Each has its own fix: seek **clarity**, find **courage**, and just **get started**. [2]",
+      "how": [
+       "**Uncertainty:** set NICE goals (Near-term, Input-based, Controllable, Energising) instead of distant outcome goals [2,6]",
+       "**Fear:** name the feeling, picture how much it will matter in 10 minutes, 10 months and 10 years, and remember others notice us far less than we think [7]",
+       "**Inertia:** commit to just five minutes, cut the friction, and define the very next action [4,5]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "“Walk 20 minutes after lunch” instead of “get fit”"
+       },
+       {
+        "label": "Your work",
+        "text": "Open the doc and write for five minutes, then decide"
+       },
+       {
+        "label": "Your space",
+        "text": "Leave tomorrow's first task open on the desk tonight"
+       }
+      ]
+     },
+     {
+      "name": "Sustain",
+      "tagline": "Conserve, Recharge, Align",
+      "src": [
+       1,
+       2,
+       3
+      ],
+      "what": "Abdaal describes three kinds of burnout: **overexertion** (doing too much), **depletion** (not refilling), and **misalignment** (doing what doesn't fit you). Each has its own remedy. [2,3]",
+      "how": [
+       "**Conserve:** keep an Energy Investment Portfolio, with a short list of active commitments and a separate list of someday dreams [5,14]",
+       "**Recharge:** creative hobbies, time in nature, and real rest with nothing planned [3,4]",
+       "**Align:** sketch alternative futures with an Odyssey Plan to check that your work points where you want to go [5]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "One evening a week with nothing scheduled"
+       },
+       {
+        "label": "Your work",
+        "text": "Cap active projects at five, park the rest"
+       },
+       {
+        "label": "Your space",
+        "text": "A hobby corner that's always ready to use"
+       }
+      ]
+     }
+    ],
+    "note": "Many of the book's tools come from other researchers, and Abdaal credits them: 10/10/10 from Suzy Welch [8], the spotlight effect from Thomas Gilovich and colleagues [9], and the Odyssey Plan from Bill Burnett and Dave Evans [10]."
+   },
+   "system": {
+    "name": "The Feel-Good Check",
+    "origin": "By Design",
+    "intro": "A five-question pass to run on any task you've been avoiding, built from the book's three parts.",
+    "steps": [
+     {
+      "name": "Add energy",
+      "detail": "Where can you add play, power or people? [2]"
+     },
+     {
+      "name": "Name the blocker",
+      "detail": "Is it uncertainty, fear or inertia? [2]"
+     },
+     {
+      "name": "Remove it",
+      "detail": "A NICE goal, a named fear, or five minutes on the clock. [6,7]"
+     },
+     {
+      "name": "Check the tank",
+      "detail": "Is this overexertion, depletion or misalignment? [2]"
+     },
+     {
+      "name": "Run it as an experiment",
+      "detail": "Try it for a week, then keep what worked. [1]"
+     }
+    ],
+    "example": {
+     "title": "The monthly report you keep putting off",
+     "items": [
+      "**Energy:** do it in a café with a coworker, as a two-person sprint",
+      "**Blocker:** uncertainty, because nobody said what “good” looks like",
+      "**Remove it:** NICE goal: draft the three headline numbers before 11:00",
+      "**Tank:** fine this week, so no change",
+      "**Experiment:** repeat the café sprint next month and compare"
+     ]
+    }
+   },
+   "reflect": [
+    "What would the work you're avoiding look like if it were fun?",
+    "Which blocker shows up for you most: uncertainty, fear or inertia?"
+   ],
+   "practice": {
+    "time": "20 min",
+    "src": [
+     2,
+     4,
+     6
+    ],
+    "steps": [
+     "Pick the task you've been avoiding most.",
+     "Change one thing to make it more fun: music, a timer, a character, or a work buddy.",
+     "Rewrite the goal as a NICE goal: one near-term input you control.",
+     "Set a timer for five minutes and start. Then decide whether to keep going."
+    ]
+   },
+   "inSedi": "Put the NICE goal on the task card in Taskly and move it to In progress. Use Timely to block the five-minute start.",
+   "sources": [
+    {
+     "text": "Abdaal, Ali. *Feel-Good Productivity: How to Do More of What Matters to You*. Celadon Books, 2023. Part 1 Energise (ch. 1–3), Part 2 Unblock (ch. 4–6), Part 3 Sustain (ch. 7–9).",
+     "url": "https://www.porchlightbooks.com/product/feel-good-productivity-how-to-do-more-of-what-matters-to-you--ali-abdaal"
+    },
+    {
+     "text": "Readingraphics, “Book Summary: Feel-Good Productivity”.",
+     "url": "https://readingraphics.com/book-summary-feel-good-productivity/"
+    },
+    {
+     "text": "The Art of Manliness podcast #954, “The Feel-Good Method of Productivity”, interview with Ali Abdaal.",
+     "url": "https://www.artofmanliness.com/character/self-improvement/podcast-954-the-feel-good-method-of-productivity/"
+    },
+    {
+     "text": "Book notes on *Feel-Good Productivity* (silentcall).",
+     "url": "https://silentcall.bearblog.dev/feel-good-productivity-ali-abdaal-book-notes/"
+    },
+    {
+     "text": "The Reading Life, “Feel-Good Productivity, Part III”.",
+     "url": "https://thereadinglife.beehiiv.com/p/feel-good-productivity-part-iii"
+    },
+    {
+     "text": "Carpe Librum, “Review: Feel-Good Productivity”.",
+     "url": "https://www.carpelibrum.net/2025/03/review-feel-good-productivity-ali-abdaal.html"
+    },
+    {
+     "text": "Erica Rankin, “Deal with fear” (notes on the book's fear chapter).",
+     "url": "https://ericarankin.beehiiv.com/p/deal-fear"
+    },
+    {
+     "text": "Welch, Suzy. *10-10-10: A Life-Transforming Idea*. Scribner, 2009."
+    },
+    {
+     "text": "Gilovich, T., Medvec, V. H., & Savitsky, K. (2000). The spotlight effect in social judgment. *Journal of Personality and Social Psychology*, 78(2), 211–222."
+    },
+    {
+     "text": "Burnett, Bill, and Dave Evans. *Designing Your Life*. Knopf, 2016 (origin of the Odyssey Plan)."
+    },
+    {
+     "text": "Publisher author page and book listing (author background).",
+     "url": "https://www.betterread.com.au/book/feel-good-productivity-how-to-achieve-more-of-the-things-that-matter.do"
+    },
+    {
+     "text": "Abhinav Kashyap, notes on *Feel-Good Productivity*, Part 1.",
+     "url": "https://abhinavkashyap.bearblog.dev/feel-good-productivity-part-1/"
+    },
+    {
+     "text": "Books That Slay, “Feel-Good Productivity: Summary and Analysis”.",
+     "url": "https://booksthatslay.com/feel-good-productivity-by-ali-abdaal-summary-and-analysis/"
+    },
+    {
+     "text": "Setapp, “Feel-Good Productivity book summary”.",
+     "url": "https://setapp.com/lifestyle/feel-good-productivity-ali-abdaal-book-summary"
+    }
+   ],
+   "verify": [
+    "Author bio claim (former UK doctor) is widely reported but source 11 is a retailer page; confirm on Abdaal's own site.",
+    "US edition may spell parts 'Energize'."
+   ]
+  },
+  {
+   "id": "the-fun-habit",
+   "emoji": "🎈",
+   "title": "The Fun Habit",
+   "author": "Mike Rucker, PhD",
+   "year": 2023,
+   "publisher": "Atria Books (Simon & Schuster)",
+   "discipline": "Wellbeing science",
+   "about": "*How the Pursuit of Joy and Wonder Can Change Your Life*: a behavioral scientist's case for treating fun as something you plan and practice, not a reward you wait for. [1,2]",
+   "principle": {
+    "name": "Design for fun on purpose",
+    "body": "Rucker separates chasing happiness as a feeling, which tends to backfire, from doing fun things, which you can actually choose. He also points to research suggesting that people who feel good in the moment find it easier to pick the harder, longer-term activities later. [3,4,9]"
+   },
+   "framework": {
+    "name": "The PLAY Model",
+    "src": [
+     2,
+     5
+    ],
+    "intro": "Sort what fills your time on two axes: **challenge**, meaning what it costs you in time, energy, money and trade-offs, and **fun**, meaning how much you actually enjoy it. That gives four quadrants. [2]",
+    "parts": [
+     {
+      "name": "Pleasing",
+      "tagline": "Low challenge, high fun",
+      "src": [
+       2
+      ],
+      "what": "Easy, enjoyable activities. Rucker treats these as the everyday goal. [2]",
+      "how": [
+       "Find them and build them into your routine: time with a friend, unstructured play, a hobby [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A walk with a friend after work"
+       },
+       {
+        "label": "Your work",
+        "text": "Ten minutes of sketching ideas with no agenda"
+       },
+       {
+        "label": "Your space",
+        "text": "A guitar left out of its case"
+       }
+      ]
+     },
+     {
+      "name": "Living",
+      "tagline": "High challenge, high fun",
+      "src": [
+       2
+      ],
+      "what": "Peak experiences that take effort, risk or adventure. You can't do them every day, but they deserve real space in your life. [2]",
+      "how": [
+       "Plan a few each year and protect them like any other commitment [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Training for and running a trail race"
+       },
+       {
+        "label": "Your work",
+        "text": "A hackathon with people you admire"
+       },
+       {
+        "label": "Your space",
+        "text": "A weekend somewhere you've never been"
+       }
+      ]
+     },
+     {
+      "name": "Agonizing",
+      "tagline": "High challenge, low fun",
+      "src": [
+       2
+      ],
+      "what": "Costly and unpleasant. Some are unavoidable, like taxes, but many aren't. [2]",
+      "how": [
+       "Eliminate what you can, and bundle the rest with something you enjoy [2,3]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Do the paperwork with your favourite podcast on"
+       },
+       {
+        "label": "Your work",
+        "text": "Delegate or drop the report nobody reads"
+       },
+       {
+        "label": "Your space",
+        "text": "Stop ironing what doesn't need it"
+       }
+      ]
+     },
+     {
+      "name": "Yielding",
+      "tagline": "Low challenge, low fun",
+      "src": [
+       2
+      ],
+      "what": "Easy but empty. These habits quietly eat time without much enjoyment in return. [2]",
+      "how": [
+       "Notice them and swap them for something in the Pleasing quadrant [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Swap scrolling in bed for a chapter of a novel"
+       },
+       {
+        "label": "Your work",
+        "text": "Replace inbox-refreshing with a short walk"
+       },
+       {
+        "label": "Your space",
+        "text": "Move the TV remote out of reach"
+       }
+      ]
+     }
+    ]
+   },
+   "system": {
+    "name": "SAVOR",
+    "src": [
+     3,
+     5
+    ],
+    "intro": "Rucker's five tools for building more fun into ordinary days. [3]",
+    "steps": [
+     {
+      "name": "Story editing",
+      "detail": "Reframe the story you tell about your time and yourself (an idea from psychologist Timothy Wilson). [3,6]"
+     },
+     {
+      "name": "Activity bundling",
+      "detail": "Pair something you need to do with something you enjoy, like temptation bundling from Katy Milkman's research. [3,7]"
+     },
+     {
+      "name": "Variable hedonics",
+      "detail": "Add variety so good things don't fade into the background. [3]"
+     },
+     {
+      "name": "Options",
+      "detail": "Keep a ready list of fun choices so free time doesn't default to scrolling. [3,8]"
+     },
+     {
+      "name": "Reminiscing",
+      "detail": "Revisit good memories on purpose to enjoy them again. [3]"
+     }
+    ],
+    "example": {
+     "title": "A flat Tuesday",
+     "items": [
+      "**Story:** “I never have time for fun” becomes “I have 40 free minutes after dinner”",
+      "**Bundle:** call a friend while folding laundry",
+      "**Variety:** a different route home",
+      "**Options:** pick from your Fun File instead of opening an app",
+      "**Reminisce:** before bed, look at three photos from a great trip"
+     ]
+    }
+   },
+   "reflect": [
+    "Which quadrant does most of your free time fall into?",
+    "What reliably makes you lose track of time in a good way?"
+   ],
+   "practice": {
+    "time": "30 min",
+    "src": [
+     2,
+     8
+    ],
+    "steps": [
+     "Do a quick time audit: list what you did yesterday, hour by hour.",
+     "Place each activity in a PLAY quadrant.",
+     "Start a Fun File: brainstorm freely, then trim it to 8 to 15 realistic options.",
+     "Swap one Yielding activity this week for something from your Fun File."
+    ]
+   },
+   "inSedi": "Keep your Fun File as a note in Brainly, and put one Pleasing activity on this week's calendar in Timely.",
+   "sources": [
+    {
+     "text": "Rucker, Mike. *The Fun Habit: How the Pursuit of Joy and Wonder Can Change Your Life*. Atria Books, 2023.",
+     "url": "https://www.simonandschuster.net/books/The-Fun-Habit/Mike-Rucker/9781982159078"
+    },
+    {
+     "text": "Rucker, Mike. “The PLAY Model”, michaelrucker.com.",
+     "url": "https://michaelrucker.com/having-fun/play-model/"
+    },
+    {
+     "text": "Next Big Idea Club, “The Fun Habit” Book Bite, written by Mike Rucker.",
+     "url": "https://nextbigideaclub.com/magazine/fun-habit-pursuit-joy-wonder-can-change-life-bookbite/40342/"
+    },
+    {
+     "text": "Shelf Awareness, review of *The Fun Habit*, 10 November 2022.",
+     "url": "https://www.shelf-awareness.com/theshelf/2022-11-10/review:_the_fun_habit.html"
+    },
+    {
+     "text": "Library Journal, review of *The Fun Habit*.",
+     "url": "https://libraryjournal.com/review/the-fun-habit-how-the-pursuit-of-joy-and-wonder-can-change-your-life-1792591"
+    },
+    {
+     "text": "Wilson, Timothy D. *Redirect: The Surprising New Science of Psychological Change*. Little, Brown, 2011 (story editing)."
+    },
+    {
+     "text": "Milkman, K. L., Minson, J. A., & Volpp, K. G. M. (2014). Holding the Hunger Games hostage at the gym: An evaluation of temptation bundling. *Management Science*, 60(2), 283–299."
+    },
+    {
+     "text": "WRAL, interview with Mike Rucker on the time audit and Fun File.",
+     "url": "https://www.wral.com/archive/21001214/"
+    },
+    {
+     "text": "Taquet, M., Quoidbach, J., de Montjoye, Y.-A., Desseilles, M., & Gross, J. J. (2016). Hedonism and the choice of everyday activities. *PNAS*, 113(35), 9769–9773."
+    }
+   ],
+   "verify": [
+    "Chapter list not confirmed; cite chapters once checked against the book."
+   ]
+  },
+  {
+   "id": "the-organized-mind",
+   "emoji": "🗂️",
+   "title": "The Organized Mind",
+   "author": "Daniel J. Levitin",
+   "year": 2014,
+   "publisher": "Dutton (Penguin)",
+   "discipline": "Cognitive neuroscience",
+   "about": "*Thinking Straight in the Age of Information Overload*: a neuroscientist explains how attention and memory work, then shows how to organize homes, time and decisions around their limits. [1,2,6]",
+   "authorBio": "Daniel J. Levitin is a cognitive neuroscientist and the author of *This Is Your Brain on Music*. [2]",
+   "principle": {
+    "name": "Design to offload the mind",
+    "body": "Conscious attention can only handle a small amount of information at once. Levitin estimates it at about 120 bits per second. Every open loop you try to hold in your head competes for that space. Move information out of your head and into the world, into places and systems you trust. [1,4]"
+   },
+   "framework": {
+    "name": "How attention works",
+    "src": [
+     1,
+     3,
+     5
+    ],
+    "intro": "Levitin describes a few parts of the attentional system. Knowing them explains why we lose focus and how to design around it. [3,5]",
+    "parts": [
+     {
+      "name": "Mind-wandering mode",
+      "tagline": "The daydreaming brain",
+      "src": [
+       3,
+       5
+      ],
+      "what": "A loose, associative state where ideas connect. It's where creativity and rest happen. [3]",
+      "how": [
+       "Protect time with no input: walks, showers, staring out the window [3]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A phone-free walk before deciding something big"
+       },
+       {
+        "label": "Your work",
+        "text": "Ten blank minutes before a brainstorm"
+       },
+       {
+        "label": "Your space",
+        "text": "A window seat with nothing on it"
+       }
+      ]
+     },
+     {
+      "name": "Central executive",
+      "tagline": "The focused brain",
+      "src": [
+       3,
+       5
+      ],
+      "what": "The mode for deliberate, effortful work. It and mind-wandering tend to switch each other off. [3,5]",
+      "how": [
+       "Give it one thing at a time, and remove whatever competes for it [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "One tab, one task"
+       },
+       {
+        "label": "Your work",
+        "text": "Notifications off during focus blocks"
+       },
+       {
+        "label": "Your space",
+        "text": "A clear desk for deep work"
+       }
+      ]
+     },
+     {
+      "name": "Attentional filter",
+      "tagline": "What gets through",
+      "src": [
+       3,
+       5
+      ],
+      "what": "Screens the flood of input so only some of it reaches awareness. It's easily hijacked by novelty. [3,5]",
+      "how": [
+       "Cut low-value inputs at the source rather than relying on willpower [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Unsubscribe from five newsletters"
+       },
+       {
+        "label": "Your work",
+        "text": "Check email at set times"
+       },
+       {
+        "label": "Your space",
+        "text": "Put the phone in another room"
+       }
+      ]
+     },
+     {
+      "name": "Attentional switch",
+      "tagline": "Moving between modes",
+      "src": [
+       3,
+       5
+      ],
+      "what": "Shifts you between focus and wandering. Every switch costs energy, which is why multitasking is tiring and error-prone. [4,5]",
+      "how": [
+       "Batch similar tasks so you switch less often [4,7]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "All errands in one trip"
+       },
+       {
+        "label": "Your work",
+        "text": "Replies done in one block, not all day"
+       },
+       {
+        "label": "Your space",
+        "text": "One drawer for everything bill-related"
+       }
+      ]
+     }
+    ]
+   },
+   "system": {
+    "name": "The Offload System",
+    "origin": "By Design",
+    "intro": "Five of Levitin's tools, put in the order we find most useful.",
+    "steps": [
+     {
+      "name": "Capture",
+      "detail": "One idea or task per index card (or note), out of your head and into a form you can sort. [3,5]"
+     },
+     {
+      "name": "Give it a home",
+      "detail": "Designated places for things you often lose, like a key hook by the door. Levitin calls this using affordances. [5]"
+     },
+     {
+      "name": "Keep a junk drawer",
+      "detail": "Every system needs a deliberate “miscellaneous” spot. [2,5]"
+     },
+     {
+      "name": "Satisfice small choices",
+      "detail": "Accept “good enough” for minor decisions to save effort for big ones, an idea from Herbert Simon. [4,8]"
+     },
+     {
+      "name": "Table the big ones",
+      "detail": "For a risky decision, use a fourfold table to see the real odds. [2,5]"
+     }
+    ],
+    "example": {
+     "title": "A Monday that starts in chaos",
+     "items": [
+      "**Capture:** five minutes writing every open loop on its own card",
+      "**Home:** keys, wallet and badge live on one tray by the door",
+      "**Junk drawer:** an “unsorted” folder that you empty on Fridays",
+      "**Satisfice:** same lunch order all week",
+      "**Table:** use a 2×2 before deciding on that medical test"
+     ]
+    }
+   },
+   "reflect": [
+    "What are you holding in your head right now that could live somewhere else?",
+    "Which object do you lose most often, and where should its home be?"
+   ],
+   "practice": {
+    "time": "15 min",
+    "src": [
+     3,
+     5
+    ],
+    "steps": [
+     "Set a timer for five minutes and write every open loop, one per card or note.",
+     "Sort them into “do now” and “later”.",
+     "Pick one thing you often lose and give it a fixed home today.",
+     "Tomorrow, re-sort the pile."
+    ]
+   },
+   "inSedi": "Brain-dump onto the Universal Board, one card per thought, then drag each one to where it belongs: Taskly for now, Timely for dated things, Brainly for ideas.",
+   "sources": [
+    {
+     "text": "Levitin, Daniel J. *The Organized Mind: Thinking Straight in the Age of Information Overload*. Dutton, 2014. Ch. 1 Too Much Information, Too Many Decisions; ch. 2 The First Things to Get Straight; ch. 3 Organizing Our Homes; ch. 9 The Power of the Junk Drawer; appendix, Constructing Your Own Fourfold Tables."
+    },
+    {
+     "text": "Wikipedia, “The Organized Mind”.",
+     "url": "https://en.wikipedia.org/wiki/The_Organized_Mind"
+    },
+    {
+     "text": "Shortform, summary of *The Organized Mind*.",
+     "url": "https://shortform.com/blog/?p=90372"
+    },
+    {
+     "text": "Farnam Street, “The History of Cognitive Overload”, 2014.",
+     "url": "https://fs.blog/2014/09/the-history-of-cognitive-overload/"
+    },
+    {
+     "text": "SuperSummary, *The Organized Mind* summary.",
+     "url": "https://www.supersummary.com/the-organized-mind/summary/"
+    },
+    {
+     "text": "Amesbury Public Library catalogue record (table of contents).",
+     "url": "https://link.amesburylibrary.org/resource/kD0hBOhgYuk"
+    },
+    {
+     "text": "Review of *The Organized Mind*, crm.org.",
+     "url": "https://crm.org/articles/the-organized-mind"
+    },
+    {
+     "text": "Simon, H. A. (1956). Rational choice and the structure of the environment. *Psychological Review*, 63(2), 129–138 (origin of satisficing)."
+    }
+   ],
+   "verify": [
+    "Source 7: confirm the publisher of crm.org before launch."
+   ]
+  },
+  {
+   "id": "the-leading-brain",
+   "emoji": "🧠",
+   "title": "The Leading Brain",
+   "author": "Friederike Fabritius and Hans W. Hagemann",
+   "year": 2017,
+   "publisher": "TarcherPerigee (Penguin Random House)",
+   "discipline": "Neuroscience at work",
+   "about": "*Powerful Science-Based Strategies for Achieving Peak Performance*: what brain science says about doing your best work, managing emotions, building habits and building teams. [1,2]",
+   "authorBio": "Friederike Fabritius is a neuropsychologist and Hans W. Hagemann is a leadership consultant; together they apply neuroscience to leadership. [3]",
+   "principle": {
+    "name": "Design for the sweet spot",
+    "body": "You do your best work at a moderate level of arousal: too little and you're bored, too much and you panic. This curve goes back to Yerkes and Dodson in 1908. Fabritius and Hagemann show how to adjust the task, the setting or the stakes so you stay in the zone where focus and even flow come naturally. [1,4,5,10]"
+   },
+   "framework": {
+    "name": "Reach Your Peak · Change Your Brain · Build Dream Teams",
+    "src": [
+     1,
+     6
+    ],
+    "intro": "The book's three parts, each with three chapters. [6]",
+    "parts": [
+     {
+      "name": "Reach your peak",
+      "tagline": "Sweet spot, emotions, focus",
+      "src": [
+       4,
+       5,
+       7
+      ],
+      "what": "Peak performance depends on a balance of brain chemicals, which the authors call the neurococktail (dopamine, noradrenaline and acetylcholine). [2,12]",
+      "how": [
+       "Bored? Add challenge, a deadline or novelty. Overwhelmed? Lower the stakes or break the task down [4]",
+       "Name what you feel: labelling an emotion helps restore control, while suppressing it competes with thinking [7,9]",
+       "Protect focus: no multitasking, blocked concentration time, and STOP (Stop, Take a breath, Observe, Proceed) [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A walk before a big decision to calm down"
+       },
+       {
+        "label": "Your work",
+        "text": "A self-imposed deadline for a dull task"
+       },
+       {
+        "label": "Your space",
+        "text": "A quiet room booked for hard thinking"
+       }
+      ]
+     },
+     {
+      "name": "Change your brain",
+      "tagline": "Habits, intuition, learning",
+      "src": [
+       4,
+       8
+      ],
+      "what": "A large share of daily behavior runs on habit. Small, low-threat steps (in the spirit of kaizen) let new habits slip in without triggering resistance. Gut feelings carry real information in complex decisions. [4,8]",
+      "how": [
+       "Write down an emotionally meaningful goal, then take very small steps [4]",
+       "In complex situations, notice and weigh your intuition [8]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "One minute of stretching, then more"
+       },
+       {
+        "label": "Your work",
+        "text": "Pause on a decision that feels off"
+       },
+       {
+        "label": "Your space",
+        "text": "Learning notes kept where you'll review them"
+       }
+      ]
+     },
+     {
+      "name": "Build dream teams",
+      "tagline": "Diversity, trust, the future",
+      "src": [
+       4,
+       7,
+       8
+      ],
+      "what": "Drawing on Helen Fisher's research, the authors describe four temperaments: **Explorer** (dopamine), **Builder** (serotonin), **Director** (testosterone) and **Negotiator** (estrogen). Strong teams mix all four, and trust keeps people in a reward state rather than a threat state. [4,8,11]",
+      "how": [
+       "Map your team's temperaments and fill the gaps [4]",
+       "Build psychological safety; social pain registers much like physical pain [7,8]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Notice which temperament you lead with"
+       },
+       {
+        "label": "Your work",
+        "text": "Pair an Explorer with a Builder on a project"
+       },
+       {
+        "label": "Your space",
+        "text": "Meetings where every voice is invited in"
+       }
+      ]
+     }
+    ]
+   },
+   "system": {
+    "name": "The Sweet-Spot Audit",
+    "src": [
+     4
+    ],
+    "intro": "An exercise from the book's approach to peak performance. [4]",
+    "steps": [
+     {
+      "name": "List your week",
+      "detail": "Write down your typical activities. [4]"
+     },
+     {
+      "name": "Tag each one",
+      "detail": "Under-aroused (bored), over-aroused (stressed) or top of your game. [4]"
+     },
+     {
+      "name": "Turn it up",
+      "detail": "For boring tasks, add challenge, time pressure, novelty or humour. [4]"
+     },
+     {
+      "name": "Turn it down",
+      "detail": "For stressful tasks, break them up, exercise, breathe or get support. [4]"
+     },
+     {
+      "name": "Protect the peak",
+      "detail": "Guard the conditions where you're at your best. [4]"
+     }
+    ],
+    "example": {
+     "title": "A product manager's week",
+     "items": [
+      "**Bored:** weekly status report → do it as a 25-minute sprint",
+      "**Stressed:** quarterly planning → split it into three sessions",
+      "**Peak:** customer interviews → protect Tuesday mornings for them"
+     ]
+    }
+   },
+   "reflect": [
+    "When were you last at the top of your game? What made that possible?",
+    "Which temperament is missing from your team?"
+   ],
+   "practice": {
+    "time": "20 min",
+    "src": [
+     4,
+     7
+    ],
+    "steps": [
+     "Rate today's main task from 1 (bored) to 10 (overwhelmed).",
+     "Under 4: add a challenge or a deadline. Over 7: break it into steps.",
+     "Before you start, run STOP: Stop, Take a breath, Observe, Proceed.",
+     "Tonight, write three things you're grateful for, and protect your sleep."
+    ]
+   },
+   "inSedi": "Break an overwhelming task into small steps as a project in Timely's Planning view.",
+   "sources": [
+    {
+     "text": "Fabritius, Friederike, and Hans W. Hagemann. *The Leading Brain: Powerful Science-Based Strategies for Achieving Peak Performance*. TarcherPerigee, 2017. Part 1 Reaching Your Peak; Part 2 Changing Your Brain; Part 3 Building Dream Teams."
+    },
+    {
+     "text": "Library Journal, review of *The Leading Brain*.",
+     "url": "https://libraryjournal.com/review/the-leading-brain-powerful-science-based-strategies-for-achieving-peak-performance"
+    },
+    {
+     "text": "Knowledge at Wharton, “The Leading Brain” (interview with Hans Hagemann).",
+     "url": "https://knowledge.wharton.upenn.edu/article/the-leading-brain"
+    },
+    {
+     "text": "Greater Good Magazine (UC Berkeley), “How to Hack Your Brain for Peak Performance”.",
+     "url": "https://greatergood.berkeley.edu/article/item/how_to_hack_your_brain_for_peak_performance"
+    },
+    {
+     "text": "Entrepreneur, “Finding your stress sweet spot to perform at your best”.",
+     "url": "https://www.entrepreneur.com/living/finding-your-stress-sweet-spot-to-perform-at-your-best/298079"
+    },
+    {
+     "text": "Open Library record (table of contents).",
+     "url": "https://openlibrary.org/isbn/9780143129356.json"
+    },
+    {
+     "text": "Publishers Weekly, *The Leading Brain* listing.",
+     "url": "https://www.publishersweekly.com/9780143129356"
+    },
+    {
+     "text": "Blinkist, *The Leading Brain*.",
+     "url": "https://www.blinkist.com/books/the-leading-brain-en"
+    },
+    {
+     "text": "Goodreads, *The Leading Brain*.",
+     "url": "https://www.goodreads.com/book/show/30763727"
+    },
+    {
+     "text": "Yerkes, R. M., & Dodson, J. D. (1908). The relation of strength of stimulus to rapidity of habit-formation. *Journal of Comparative Neurology and Psychology*, 18(5), 459–482."
+    },
+    {
+     "text": "Fisher, Helen. *Why Him? Why Her? Finding Real Love by Understanding Your Personality Type*. Henry Holt, 2009 (origin of the Explorer, Builder, Director and Negotiator temperaments)."
+    },
+    {
+     "text": "Afterburner, “Brain chemistry and high-performing teams” (on the book's dopamine, noradrenaline and acetylcholine).",
+     "url": "https://www.afterburner.com/blog/brain-chemistry-and-high-performing-teams/"
+    }
+   ],
+   "verify": [
+    "Author bios (neuropsychologist / consultant) from secondary sources; confirm.",
+    "'Neurococktail' wording from Library Journal; the DNA of peak performance (dopamine, noradrenaline, acetylcholine) is secondary-sourced."
+   ]
+  },
+  {
+   "id": "the-brain-that-changes-itself",
+   "emoji": "🧩",
+   "title": "The Brain That Changes Itself",
+   "author": "Norman Doidge, MD",
+   "year": 2007,
+   "publisher": "Viking",
+   "discipline": "Neuroplasticity",
+   "about": "*Stories of Personal Triumph from the Frontiers of Brain Science*: a psychiatrist's account of the scientists and patients who showed that the adult brain keeps rewiring itself. [1,2]",
+   "authorBio": "Norman Doidge is a psychiatrist and psychoanalyst. [3]",
+   "principle": {
+    "name": "Design for the brain you're building",
+    "body": "For a long time the brain was thought to be fixed, with each region doing one job for life. Doidge tells the story of the research that overturned that view: what we repeatedly do and pay attention to physically reshapes the brain. Every repeated action is practice for something, so choose what you rehearse. [1,3,4]"
+   },
+   "framework": {
+    "name": "How the brain rewires",
+    "src": [
+     1,
+     3,
+     4
+    ],
+    "intro": "Four ideas that run through the book's case studies. [3,4]",
+    "parts": [
+     {
+      "name": "Fire together, wire together",
+      "tagline": "Repetition builds connections",
+      "src": [
+       3,
+       10,
+       12
+      ],
+      "what": "Neurons that are active at the same time strengthen their links. The phrase summarizes Donald Hebb's 1949 rule, popularized by neuroscientist Carla Shatz. [10,12]",
+      "how": [
+       "Pair the behavior you want with a consistent cue and setting [3]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Same chair, same time for reading"
+       },
+       {
+        "label": "Your work",
+        "text": "A fixed ritual before deep work"
+       },
+       {
+        "label": "Your space",
+        "text": "A desk used only for focused tasks"
+       }
+      ]
+     },
+     {
+      "name": "Use it or lose it",
+      "tagline": "Competitive plasticity",
+      "src": [
+       4,
+       5
+      ],
+      "what": "Brain territory is contested. Skills you practise claim more of it, and skills you neglect lose ground. [4,5]",
+      "how": [
+       "Practise what you want to keep, little and often [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Ten minutes of a language every day"
+       },
+       {
+        "label": "Your work",
+        "text": "Keep writing even when you manage"
+       },
+       {
+        "label": "Your space",
+        "text": "The instrument left out, not in its case"
+       }
+      ]
+     },
+     {
+      "name": "The plastic paradox",
+      "tagline": "Plasticity cuts both ways",
+      "src": [
+       6,
+       7
+      ],
+      "what": "The same flexibility that lets us change also locks in rigid habits. Doidge compares it to ski tracks: the more a path is used, the harder it is to leave. [6,7]",
+      "how": [
+       "Interrupt unwanted loops early, before the track deepens [6]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Phone out of reach before bed"
+       },
+       {
+        "label": "Your work",
+        "text": "Notice the moment you reach for email"
+       },
+       {
+        "label": "Your space",
+        "text": "Rearrange the room that triggers the habit"
+       }
+      ]
+     },
+     {
+      "name": "Focused attention matters",
+      "tagline": "Divided attention doesn't rewire",
+      "src": [
+       8
+      ],
+      "what": "Doidge reports Michael Merzenich's finding that lasting change in brain maps needs close attention. Divided attention doesn't produce it. [8]",
+      "how": [
+       "Practise one thing at a time, fully engaged [8]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Practise without a podcast on"
+       },
+       {
+        "label": "Your work",
+        "text": "Learn a tool in a focused hour, not in between"
+       },
+       {
+        "label": "Your space",
+        "text": "A practice spot with nothing else in it"
+       }
+      ]
+     }
+    ],
+    "note": "The book's cases include Paul Bach-y-Rita's balance device for Cheryl Schiltz, Edward Taub's constraint-induced therapy after stroke, Alvaro Pascual-Leone's finding that mental practice of piano changed brain maps much like physical practice, and V.S. Ramachandran's mirror box for phantom-limb pain. These are stories, not treatment advice. [3,4,8,9]"
+   },
+   "system": {
+    "name": "The Rewire Routine",
+    "origin": "By Design",
+    "intro": "A practice routine built from the book's principles.",
+    "steps": [
+     {
+      "name": "Pick one skill",
+      "detail": "Something you want to grow, not maintain. [4]"
+     },
+     {
+      "name": "Rehearse it in your head",
+      "detail": "Pascual-Leone's piano study suggests vivid mental practice helps. [8]"
+     },
+     {
+      "name": "Block the workaround",
+      "detail": "Inspired by Taub's constraint-induced therapy: make the easy shortcut unavailable. [9]"
+     },
+     {
+      "name": "Practise with full attention",
+      "detail": "Short, focused sessions, no multitasking. [8]"
+     },
+     {
+      "name": "Little and often",
+      "detail": "Steady practice beats cramming. [11]"
+     }
+    ],
+    "example": {
+     "title": "Learning to draw",
+     "items": [
+      "**Skill:** drawing faces",
+      "**Rehearse:** picture the proportions before each sketch",
+      "**Block:** no eraser for the first ten minutes",
+      "**Attention:** 15 minutes with no music",
+      "**Often:** every day for a month"
+     ]
+    }
+   },
+   "reflect": [
+    "What have you been unintentionally practising lately?",
+    "Which skill are you losing because you stopped using it?"
+   ],
+   "practice": {
+    "time": "15 min/day",
+    "src": [
+     8,
+     9
+    ],
+    "origin": "By Design",
+    "steps": [
+     "Pick one skill to grow this month.",
+     "Each day, rehearse it vividly in your head for five minutes.",
+     "Then practise for ten minutes with full attention and one shortcut removed.",
+     "Track how it feels after a week."
+    ]
+   },
+   "inSedi": "Make the practice a daily Routine in Timely, and keep notes on progress in Brainly.",
+   "sources": [
+    {
+     "text": "Doidge, Norman. *The Brain That Changes Itself: Stories of Personal Triumph from the Frontiers of Brain Science*. Viking, 2007. Ch. 1 A Woman Perpetually Falling; ch. 3 Redesigning the Brain; ch. 5 Midnight Resurrections; ch. 6 Brain Lock Unlocked; ch. 7 Pain; ch. 8 Imagination."
+    },
+    {
+     "text": "Marmot Library Network catalogue record (contents).",
+     "url": "https://cmc.marmot.org/Record/.b27054974"
+    },
+    {
+     "text": "Readingraphics, summary of *The Brain That Changes Itself*.",
+     "url": "https://readingraphics.com/?p=71866"
+    },
+    {
+     "text": "Lake Forest College, book review of *The Brain That Changes Itself*.",
+     "url": "https://lakeforest.edu/live/files/ahlstrandbookreviewpdf.pdf"
+    },
+    {
+     "text": "Antoine Buteau, “Lessons from Norman Doidge”.",
+     "url": "https://www.antoinebuteau.com/lessons-from-norman-doidge.md"
+    },
+    {
+     "text": "Psychotherapy Networker, “Neuroplasticity isn't always best” (the plastic paradox).",
+     "url": "https://www.psychotherapynetworker.org/article/neuroplasticity-isnt-always-best/"
+    },
+    {
+     "text": "Brain Science Podcast, episode 26, interview with Norman Doidge.",
+     "url": "https://brainsciencepodcast.com/bsp/neuroplasticity-with-dr-norman-doidge-bsp-26.html"
+    },
+    {
+     "text": "Brian Martin, comments on *The Brain That Changes Itself* (Merzenich, Pascual-Leone; p. 68 on divided attention).",
+     "url": "https://documents.uow.edu.au/~bmartin/pubs/comments/0809plasticbrain.html"
+    },
+    {
+     "text": "Shortform, “Norman Doidge on neuroplasticity” (Taub, Ramachandran).",
+     "url": "https://www.shortform.com/blog/norman-doidge-neuroplasticity/"
+    },
+    {
+     "text": "Hebb, D. O. *The Organization of Behavior*. Wiley, 1949."
+    },
+    {
+     "text": "Siderite, review of *The Brain That Changes Itself*.",
+     "url": "https://siderite.dev/blog/the-brain-that-changes-itself-by-norman.html"
+    },
+    {
+     "text": "Shatz, C. J. (1992). The developing brain. *Scientific American*, 267(3), 60–67 (source of the phrase “cells that fire together wire together”)."
+    }
+   ],
+   "verify": [
+    "Doidge bio (psychiatrist, psychoanalyst) cited to a summary; confirm on publisher page."
+   ]
+  },
+  {
+   "id": "blue-zones-of-happiness",
+   "emoji": "🌍",
+   "title": "The Blue Zones of Happiness",
+   "author": "Dan Buettner",
+   "year": 2017,
+   "publisher": "National Geographic",
+   "discipline": "Environmental design",
+   "about": "*Lessons from the World's Happiest People*: what the happiest places on Earth have in common, and how to redesign your own surroundings so wellbeing becomes the easy default. Foreword by Ed Diener. [1,2]",
+   "authorBio": "Dan Buettner is a National Geographic Fellow and explorer, known for identifying the world's longevity hotspots, the Blue Zones. [1]",
+   "principle": {
+    "name": "Design your surroundings, not your willpower",
+    "body": "Buettner's research suggests that the happiest people don't try harder. They live in places that nudge them toward good days: walkable streets, short commutes, close friends nearby, homes that invite rest. Change the environment and the behavior follows. [1,4,5]"
+   },
+   "framework": {
+    "name": "The Three Strands of Happiness",
+    "src": [
+     1,
+     3
+    ],
+    "intro": "Buettner braids happiness from three strands, and finds a country that excels at each. The happiest people have all three. [1,3]",
+    "parts": [
+     {
+      "name": "Pleasure",
+      "tagline": "Enjoying your days · Costa Rica",
+      "src": [
+       1,
+       3,
+       4
+      ],
+      "what": "Day-to-day positive emotion: smiling, laughing, feeling good. Costa Rica stands out, with strong family and faith ties, lots of daily socializing, and a relaxed outlook. [3,4]",
+      "how": [
+       "Build more daily social time and small enjoyable rituals [4,6]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A long, unhurried lunch with someone you like"
+       },
+       {
+        "label": "Your work",
+        "text": "A coworker friend you actually talk to"
+       },
+       {
+        "label": "Your space",
+        "text": "A porch or kitchen table people gather at"
+       }
+      ]
+     },
+     {
+      "name": "Purpose",
+      "tagline": "Meaning and engagement · Denmark",
+      "src": [
+       1,
+       3,
+       4
+      ],
+      "what": "Doing meaningful work that uses your strengths. In Denmark, a strong safety net covers the basics, so people choose work for interest, and many belong to clubs and volunteer. [3,4,5]",
+      "how": [
+       "Join a club or volunteer, and look for work that uses your strengths [4,6]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "An evening volunteering for a cause you care about"
+       },
+       {
+        "label": "Your work",
+        "text": "A project that uses your best skill"
+       },
+       {
+        "label": "Your space",
+        "text": "A community garden plot"
+       }
+      ]
+     },
+     {
+      "name": "Pride",
+      "tagline": "Satisfaction with life · Singapore",
+      "src": [
+       1,
+       3,
+       4
+      ],
+      "what": "How you rate your life overall. Singapore scores high thanks to security, clear paths to success and financial stability, sometimes at the cost of daily enjoyment. [3,4]",
+      "how": [
+       "Live within your means and set goals you can see yourself reaching [7]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A monthly money check-in"
+       },
+       {
+        "label": "Your work",
+        "text": "A clear goal for the next 12 months"
+       },
+       {
+        "label": "Your space",
+        "text": "A savings pot that fills automatically"
+       }
+      ]
+     }
+    ],
+    "note": "The book also includes a Blue Zones Happiness Test to show which strand is weakest for you. [1,4]"
+   },
+   "system": {
+    "name": "The Life Radius Redesign",
+    "src": [
+     1,
+     2,
+     4
+    ],
+    "intro": "Buettner's practical chapters work through the areas of life that surround you. Pick one and make a few lasting changes. [1,2]",
+    "steps": [
+     {
+      "name": "Community",
+      "detail": "Favour walkable streets, nature and trust. Where you live shapes how you feel. [4,7]"
+     },
+     {
+      "name": "Workplace",
+      "detail": "Shorten the commute, use your strengths, have a friend at work and take all your holidays. [4,5,6]"
+     },
+     {
+      "name": "Social network",
+      "detail": "More real-world time with a few close friends, regular family meals, less time with negative people. [6,8]"
+     },
+     {
+      "name": "Home",
+      "detail": "Natural light and plants, one TV kept out of the main room, a yearly declutter. [4]"
+     },
+     {
+      "name": "Finances and inner life",
+      "detail": "Live within your means, know your purpose, volunteer, and step outside your comfort zone. [7,9]"
+     }
+    ],
+    "example": {
+     "title": "A happier year, one domain at a time",
+     "items": [
+      "**Community:** walk to the café instead of driving",
+      "**Workplace:** negotiate one remote day to cut the commute",
+      "**Social:** a standing Sunday dinner with family",
+      "**Home:** move the TV out of the living room",
+      "**Inner life:** a monthly volunteer shift"
+     ]
+    }
+   },
+   "reflect": [
+    "Which strand is thinnest in your life right now: pleasure, purpose or pride?",
+    "What in your surroundings makes a good day harder than it needs to be?"
+   ],
+   "practice": {
+    "time": "30 min",
+    "src": [
+     1,
+     4,
+     6
+    ],
+    "steps": [
+     "Take the Blue Zones Happiness Test, or simply rate pleasure, purpose and pride from 1 to 10.",
+     "Pick the weakest strand and the area of life most tied to it.",
+     "Log how many hours you spent with people yesterday.",
+     "Make one change to your surroundings this week, and one standing social ritual."
+    ]
+   },
+   "inSedi": "Give each strand its own board in Boardly, with one goal on each.",
+   "sources": [
+    {
+     "text": "Buettner, Dan. *The Blue Zones of Happiness: Lessons from the World's Happiest People*. National Geographic, 2017. Ch. 3–5 (Costa Rica, Denmark, Singapore), ch. 7–12 (Designing happy communities, workplace, social network, home, financial well-being, inner life).",
+     "url": "https://www.porchlightbooks.com/products/blue-zones-of-happiness-dan-buettner-9781426218484"
+    },
+    {
+     "text": "Calgary Public Library catalogue record (table of contents).",
+     "url": "https://link.calgarylibrary.ca/resource/JR_oAYBTMnE"
+    },
+    {
+     "text": "Buettner, Dan. “These Are the World's Happiest Places”, *National Geographic*, November 2017.",
+     "url": "https://www.nationalgeographic.com/magazine/article/worlds-happiest-places"
+    },
+    {
+     "text": "Experience Life, “How to Be Happy” (interview with Dan Buettner).",
+     "url": "https://experiencelife.lifetime.life/article/how-to-be-happy/"
+    },
+    {
+     "text": "Knowledge at Wharton podcast, “Blue Zones of Happiness” with Dan Buettner.",
+     "url": "https://knowledge.wharton.upenn.edu/podcast/knowledge-at-wharton-podcast/blue-zones-happiness/"
+    },
+    {
+     "text": "Salon, “How to improve happiness in America”, 26 November 2017.",
+     "url": "https://www.salon.com/2017/11/26/how-to-improve-happiness-in-america"
+    },
+    {
+     "text": "CNBC/NBC, book excerpt on Gallup's well-being markers (Dan Witters).",
+     "url": "https://www.nbcnewyork.com/news/business/money-report/if-you-answer-yes-to-these-15-questions-you-are-happier-than-most-people-says-longevity-researcher/5095877/"
+    },
+    {
+     "text": "Dr Happy, “32 proven ways to become happier” (from the book).",
+     "url": "https://drhappy.com.au/2017/11/01/32-proven-ways-to-become-happier/"
+    },
+    {
+     "text": "Island Scene, “Are you happy?” (summary of the inner-life chapter).",
+     "url": "https://islandscene.com/are-you-happy"
+    }
+   ],
+   "verify": [
+    "'Life Radius' is the publisher's term; mapping it to six domains is our inference from the chapter titles.",
+    "Finance advice confirmed only at headline level."
+   ]
+  },
+  {
+   "id": "designing-your-work-life",
+   "emoji": "🛠️",
+   "title": "Designing Your Work Life",
+   "author": "Bill Burnett and Dave Evans",
+   "year": 2020,
+   "publisher": "Alfred A. Knopf",
+   "discipline": "Design thinking",
+   "about": "*How to Thrive and Change and Find Happiness at Work*: the authors of *Designing Your Life* apply design thinking to the job you already have, before deciding whether to leave. Reissued in 2021 as *Designing Your New Work Life*. [1,2]",
+   "authorBio": "Bill Burnett and Dave Evans teach the Designing Your Life course at Stanford University. [3]",
+   "principle": {
+    "name": "Redesign before you resign",
+    "body": "Most people think the only fix for a bad job is a new one. Burnett and Evans argue that you can almost always make the job you have work better first, by reframing stuck beliefs, running small experiments and accepting “good enough for now” as a base to build on. [1,4,5]"
+   },
+   "framework": {
+    "name": "Reframe · Mix · Redesign",
+    "origin": "By Design",
+    "src": [
+     1,
+     4
+    ],
+    "intro": "Three of the book's core tools, in the order we find useful. [1,4]",
+    "parts": [
+     {
+      "name": "Reframe dysfunctional beliefs",
+      "tagline": "Every chapter opens with one",
+      "src": [
+       4,
+       5
+      ],
+      "what": "A stuck belief keeps you stuck. Turn it into a reframe you can act on, such as moving from feeling like a cog in the machine to seeing yourself as a lever that can move it. [4]",
+      "how": [
+       "Write the belief down, then rewrite it as something you could test this week [4]",
+       "Practice “good enough for now”: not forever, just a stable base to improve from [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "“I hate Mondays” → “What would make Monday mornings 10% better?”"
+       },
+       {
+        "label": "Your work",
+        "text": "“Nothing will change here” → “What's one thing I could try?”"
+       },
+       {
+        "label": "Your space",
+        "text": "“My desk is depressing” → “What's one thing I'd add?”"
+       }
+      ]
+     },
+     {
+      "name": "The Maker's Mix",
+      "tagline": "Money, impact, expression",
+      "src": [
+       3,
+       5,
+       6
+      ],
+      "what": "Money versus meaning is a false choice. Instead, rate three kinds of making: **money-making**, **impact-making** and **expression-making**, and set the balance you want, like faders on a mixing desk. [3,5]",
+      "how": [
+       "Score each from 1 to 100 for your current job, then set your ideal mix [3]",
+       "Close gaps with small prototypes, including outside work [3]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A creative hobby tops up expression"
+       },
+       {
+        "label": "Your work",
+        "text": "Volunteer for a project with visible impact"
+       },
+       {
+        "label": "Your space",
+        "text": "A side gig that adds income"
+       }
+      ]
+     },
+     {
+      "name": "Don't resign, redesign",
+      "tagline": "Four options before you quit",
+      "src": [
+       7,
+       3
+      ],
+      "what": "**Reframe and re-enlist** (a new why for the same job), **remodel** (change the role), **relocate** (another role in the company), **reinvent** (retrain inside the company). [7]",
+      "how": [
+       "Try them in that order, from smallest change to largest [7]",
+       "If you do leave, practise generative quitting: leave in a way that sets up what's next [6,8]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "Reframe: the commute becomes podcast-learning time"
+       },
+       {
+        "label": "Your work",
+        "text": "Remodel: trade a task you dread for one you like"
+       },
+       {
+        "label": "Your space",
+        "text": "Relocate: join the team you keep helping anyway"
+       }
+      ]
+     }
+    ],
+    "note": "The book also uses the ARC of autonomy, relatedness and competence (from self-determination theory) to diagnose what's missing at work. Odyssey Plans and the Good Time Journal come from the authors' earlier book, *Designing Your Life*. [5,9]"
+   },
+   "system": {
+    "name": "The Good Work Journal",
+    "src": [
+     4
+    ],
+    "intro": "This book's version of the Good Time Journal: a short daily log that shows what makes work good for you. [4]",
+    "steps": [
+     {
+      "name": "Learned",
+      "detail": "Each day, note something you learned. [4]"
+     },
+     {
+      "name": "Initiated",
+      "detail": "Note something you started or took the lead on. [4]"
+     },
+     {
+      "name": "Helped",
+      "detail": "Note someone you helped. [4]"
+     },
+     {
+      "name": "Review weekly",
+      "detail": "Look for surprises and which category dominates. [4]"
+     },
+     {
+      "name": "Boost the gap",
+      "detail": "Plan one way to grow the missing category, then notice how it feels. [4]"
+     }
+    ],
+    "example": {
+     "title": "Three weeks of entries",
+     "items": [
+      "**Learned:** a faster way to build the report",
+      "**Initiated:** suggested a Friday demo",
+      "**Helped:** walked a new hire through the codebase",
+      "**Pattern:** “helped” days were the best days",
+      "**Boost:** volunteer to mentor once a week"
+     ]
+    }
+   },
+   "reflect": [
+    "What's the one belief about your work that feels most stuck?",
+    "If your job were “good enough for now”, what would you build on first?"
+   ],
+   "practice": {
+    "time": "20 min",
+    "src": [
+     3,
+     4
+    ],
+    "steps": [
+     "Write your most stuck belief about work, then reframe it as a question you could test.",
+     "Score your Maker's Mix: money, impact and expression from 1 to 100, now and ideally.",
+     "Pick the biggest gap and design one small prototype to close it.",
+     "Start a Good Work Journal tonight: one line each for learned, initiated and helped."
+    ]
+   },
+   "inSedi": "Make the reframed question a project in Timely's Planning view, with the prototype as its first task.",
+   "sources": [
+    {
+     "text": "Burnett, Bill, and Dave Evans. *Designing Your Work Life: How to Thrive and Change and Find Happiness at Work*. Alfred A. Knopf, 2020. Ch. “Money or meaning”, “Mind-set, grit, and the ARC of your career”, “Don't resign, redesign!”, “Quitting well”."
+    },
+    {
+     "text": "Bayside Library catalogue record, *Designing Your New Work Life* (2021 edition contents).",
+     "url": "https://bayside.spydus.com/cgi-bin/spydus.exe/FULL/WPAC/BIBENQ/274335629/30214904,241"
+    },
+    {
+     "text": "IDEO U, “Designing Your Work Life” (Maker's Mix, redesign options).",
+     "url": "https://www.ideou.com/blogs/inspiration/designing-your-work-life"
+    },
+    {
+     "text": "Goodreads reader highlights, *Designing Your Work Life* (reframes, good enough for now, Good Work Journal).",
+     "url": "https://www.goodreads.com/notes/50236450-designing-your-work-life/12325277-jason-sands"
+    },
+    {
+     "text": "National Career Development Association, review of *Designing Your Work Life*.",
+     "url": "https://ftp.ncda.org/aws/NCDA/pt/sd/news_article/361394/_PARENT/CC_layout_details/false"
+    },
+    {
+     "text": "getAbstract journal, on *Designing Your Work Life*.",
+     "url": "https://journal.getabstract.com/?p=64261"
+    },
+    {
+     "text": "TODAY, Burnett and Evans on “Don't resign, redesign”.",
+     "url": "https://www.today.com/today/amp/tdna174799"
+    },
+    {
+     "text": "*Stanford Magazine*, “How to Quit Your Job”.",
+     "url": "https://stanfordmag.org/contents/how-to-quit-your-job"
+    },
+    {
+     "text": "Burnett, Bill, and Dave Evans. *Designing Your Life*. Knopf, 2016 (Odyssey Plans, Good Time Journal)."
+    }
+   ],
+   "verify": [
+    "Author bio (Stanford course) is well known but cite a primary page before launch."
+   ]
+  },
+  {
+   "id": "the-art-of-gathering",
+   "emoji": "🕯️",
+   "title": "The Art of Gathering",
+   "author": "Priya Parker",
+   "year": 2018,
+   "publisher": "Riverhead Books (Penguin Random House)",
+   "discipline": "Experience design",
+   "about": "*How We Meet and Why It Matters*: a facilitator's guide to designing gatherings of every kind, from dinners to meetings to funerals, around a clear purpose. [1,2]",
+   "authorBio": "Priya Parker is a facilitator and strategic adviser who helps groups have meaningful conversations. [2]",
+   "principle": {
+    "name": "Design for a purpose, not a category",
+    "body": "“Dinner party”, “meeting” and “birthday” are formats, not reasons. Parker argues that most gatherings disappoint because we copy the format and skip the purpose. A good purpose is specific and even disputable: reasonable people could disagree with it. [2,3]"
+   },
+   "framework": {
+    "name": "The arc of a gathering",
+    "src": [
+     2,
+     4
+    ],
+    "intro": "The book follows a gathering from first idea to final goodbye. Five of its moves: [2,4]",
+    "parts": [
+     {
+      "name": "Decide why",
+      "tagline": "A specific, disputable purpose",
+      "src": [
+       2,
+       3
+      ],
+      "what": "A funeral can be to mourn a death or to celebrate a life. Those lead to very different gatherings. Choose. [2,3]",
+      "how": [
+       "Ask why three times until the purpose is something someone could disagree with [2]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "A dinner “to welcome the new neighbours into the street”"
+       },
+       {
+        "label": "Digital",
+        "text": "A call “to decide, not to update”"
+       },
+       {
+        "label": "Experience",
+        "text": "A birthday “to thank the people who got me through this year”"
+       }
+      ]
+     },
+     {
+      "name": "Close doors",
+      "tagline": "Exclude with generosity",
+      "src": [
+       2
+      ],
+      "what": "The guest list is the first test of your purpose. Who to leave out, the size of the group and the venue all shape what can happen. [2]",
+      "how": [
+       "Invite only the people who serve the purpose [2]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "A room just big enough to feel full"
+       },
+       {
+        "label": "Digital",
+        "text": "Six people on the call, not twenty"
+       },
+       {
+        "label": "Experience",
+        "text": "No plus-ones for a reunion dinner"
+       }
+      ]
+     },
+     {
+      "name": "Generous authority",
+      "tagline": "Don't be a chill host",
+      "src": [
+       2,
+       4
+      ],
+      "what": "Hosts who stay hands-off leave guests unprotected. Use your authority generously: protect guests, connect them, and treat them as equals. [2,4]",
+      "how": [
+       "Introduce people, step in when someone dominates, and set the tone [4]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Seating planned so strangers meet"
+       },
+       {
+        "label": "Digital",
+        "text": "The host calls on quiet voices by name"
+       },
+       {
+        "label": "Experience",
+        "text": "Gently cutting off the long speech"
+       }
+      ]
+     },
+     {
+      "name": "Pop-up rules",
+      "tagline": "A temporary alternative world",
+      "src": [
+       4
+      ],
+      "what": "Explicit, temporary rules that hold only for this gathering replace unspoken etiquette and let people from different backgrounds play the same game. [4]",
+      "how": [
+       "Set two or three simple rules, like no phones or no job titles [4]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "Phones in a basket at the door"
+       },
+       {
+        "label": "Digital",
+        "text": "Cameras on, no multitasking, 45 minutes"
+       },
+       {
+        "label": "Experience",
+        "text": "No talking about work until dessert"
+       }
+      ]
+     },
+     {
+      "name": "Open and close with intention",
+      "tagline": "The threshold and the ending",
+      "src": [
+       2,
+       5,
+       6
+      ],
+      "what": "Don't open with logistics: prime guests beforehand and mark a threshold into the gathering. Don't end with thank-yous: give a last call, look inward at what happened, then turn outward toward ordinary life. [2,5,6]",
+      "how": [
+       "Send a note beforehand that sets the mood [5]",
+       "End with a closing ritual, not an announcement [6]"
+      ],
+      "examples": [
+       {
+        "label": "Physical",
+        "text": "A moment of silence before the meal"
+       },
+       {
+        "label": "Digital",
+        "text": "One word from everyone to close the call"
+       },
+       {
+        "label": "Experience",
+        "text": "A postcard mailed to guests a week later"
+       }
+      ]
+     }
+    ],
+    "note": "The book also describes **15 Toasts**, a dinner format where each guest gives a short, honest toast on a shared theme. [4]"
+   },
+   "system": {
+    "name": "The Gathering Design Canvas",
+    "origin": "By Design",
+    "intro": "Plan any gathering in five passes, built from Parker's chapters.",
+    "steps": [
+     {
+      "name": "Purpose",
+      "detail": "Write it until someone could disagree with it. [2,3]"
+     },
+     {
+      "name": "People",
+      "detail": "Who serves the purpose, and who doesn't. [2]"
+     },
+     {
+      "name": "Rules",
+      "detail": "Two or three pop-up rules. [4]"
+     },
+     {
+      "name": "Threshold",
+      "detail": "How guests are primed and welcomed in. [5]"
+     },
+     {
+      "name": "Close",
+      "detail": "Last call, look inward, turn outward. [6]"
+     }
+    ],
+    "example": {
+     "title": "A team offsite",
+     "items": [
+      "**Purpose:** decide the one bet we make next year, not “team building”",
+      "**People:** the eight who own the decision",
+      "**Rules:** no laptops, no titles",
+      "**Threshold:** each person sends one question in advance",
+      "**Close:** everyone states the bet in their own words, then leaves together"
+     ]
+    }
+   },
+   "reflect": [
+    "Think of the last gathering you hosted. What was it really for?",
+    "Who did you invite out of habit rather than purpose?"
+   ],
+   "practice": {
+    "time": "30 min",
+    "src": [
+     2,
+     4,
+     6
+    ],
+    "steps": [
+     "Pick an upcoming gathering: a dinner, a meeting, a celebration.",
+     "Write its category, then ask “why?” three times and rewrite the purpose until it's disputable.",
+     "Write two pop-up rules and a 30-second opening.",
+     "Design the ending: a last call and one shared moment of reflection."
+    ]
+   },
+   "inSedi": "Plan the gathering as a project in Timely's Planning view, and put the event on the calendar with its purpose in the details.",
+   "sources": [
+    {
+     "text": "Parker, Priya. *The Art of Gathering: How We Meet and Why It Matters*. Riverhead Books, 2018. Ch. 1 Decide Why You're Really Gathering; ch. 2 Close Doors; ch. 3 Don't Be a Chill Host; ch. 4 Create a Temporary Alternative World; ch. 5 Never Start a Funeral with Logistics; ch. 6 Keep Your Best Self Out of My Gathering; ch. 7 Cause Good Controversy; ch. 8 Accept That There Is an End."
+    },
+    {
+     "text": "Notable Capital, *The Art of Gathering* book summary.",
+     "url": "https://portal.notablecap.com/marketing-resource-book-summaries/the-art-of-gathering"
+    },
+    {
+     "text": "University of York, notes on *The Art of Gathering*.",
+     "url": "https://www-users.york.ac.uk/~ss44/books/pages/p/PriyaParker.htm"
+    },
+    {
+     "text": "SuperSummary, *The Art of Gathering* summary.",
+     "url": "https://supersummary.com/the-art-of-gathering/summary"
+    },
+    {
+     "text": "Books That Slay, “The Art of Gathering: Summary and Analysis”.",
+     "url": "https://booksthatslay.com/the-art-of-gathering-summary-and-analysis/"
+    },
+    {
+     "text": "Rise with Drew, “How to close our event with a bang and not a whimper”.",
+     "url": "https://risewithdrew.com/how-to-close-our-event-with-a-bang-and-not-a-whimper/"
+    }
+   ],
+   "verify": [
+    "Author bio from a summary source; confirm on priyaparker.com."
+   ]
+  },
+  {
+   "id": "our-tribal-future",
+   "emoji": "🔥",
+   "title": "Our Tribal Future",
+   "author": "David R. Samson",
+   "year": 2023,
+   "publisher": "St. Martin's Press",
+   "discipline": "Evolutionary anthropology",
+   "about": "*How to Channel Our Foundational Human Instincts into a Force for Good*: an evolutionary anthropologist argues that tribalism is a core human drive, and that we can direct it toward belonging and trust instead of division. [1,2]",
+   "authorBio": "David R. Samson is an evolutionary anthropologist at the University of Toronto. The book won the 2023 Balsillie Prize for Public Policy. [3]",
+   "principle": {
+    "name": "Design for belonging, not against it",
+    "body": "Samson argues that we can't remove the urge to form tribes. It's an evolved drive that helped our ancestors survive, and he calls it the **Tribe Drive**. The question is where we point it: into small, real, trusting groups, or into abstract online camps that feed division. [1,4,5]"
+   },
+   "framework": {
+    "name": "From tribe drive to Team Human",
+    "src": [
+     4,
+     5
+    ],
+    "intro": "Samson's main ideas, in the order the argument builds. These are his proposals; some are debated by other scholars. [4,6]",
+    "parts": [
+     {
+      "name": "The Tribe Drive",
+      "tagline": "Belonging is an instinct",
+      "src": [
+       1,
+       6
+      ],
+      "what": "Humans evolved to belong to nested groups, from family to band to tribe. The need is as basic as hunger. [1,6]",
+      "how": [
+       "Notice which groups you actually draw identity and support from [5]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "List the groups you'd say “we” about"
+       },
+       {
+        "label": "Your work",
+        "text": "Name the team you'd stay late for"
+       },
+       {
+        "label": "Your space",
+        "text": "The place where people know your name"
+       }
+      ]
+     },
+     {
+      "name": "The Trust Paradox",
+      "tagline": "Cooperating with strangers",
+      "src": [
+       4
+      ],
+      "what": "Our minds were built for kin and friends, yet we cooperate with millions of strangers. Samson describes trust growing in stages, from kin to friends to tribes held together by shared symbols. [4]",
+      "how": [
+       "Use shared symbols and rituals to build trust between people who don't know each other yet [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A club shirt that starts conversations"
+       },
+       {
+        "label": "Your work",
+        "text": "Team rituals that welcome new people"
+       },
+       {
+        "label": "Your space",
+        "text": "A neighbourhood noticeboard"
+       }
+      ]
+     },
+     {
+      "name": "Campcrafting",
+      "tagline": "Small groups, close together",
+      "src": [
+       4,
+       6
+      ],
+      "what": "Put social energy into small face-to-face groups modelled on the hunter-gatherer camp of about 20 to 30 people. Samson calls the practice of reducing distance between people **intentional proximity**. [4,6]",
+      "how": [
+       "Create a recurring gathering for a small group, from a weekly brunch upward [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A standing weekly meal with the same friends"
+       },
+       {
+        "label": "Your work",
+        "text": "A small cross-team lunch group"
+       },
+       {
+        "label": "Your space",
+        "text": "Shared tools on the street"
+       }
+      ]
+     },
+     {
+      "name": "Rituals and the meta-tribe",
+      "tagline": "A vaccine for tribalism",
+      "src": [
+       4,
+       5
+      ],
+      "what": "Modern life, he argues, is under-ritualized. Rituals and symbols build trust. To protect against harmful tribalism he proposes **metabelief** (holding beliefs that change with evidence) and a shared identity he calls Team Human. [4,5]",
+      "how": [
+       "Add a simple ritual to a group you care about [4]",
+       "Write down what evidence would change your mind on a belief you hold [4]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A toast to start every family dinner"
+       },
+       {
+        "label": "Your work",
+        "text": "“What would change our mind?” on every proposal"
+       },
+       {
+        "label": "Your space",
+        "text": "A yearly street party"
+       }
+      ]
+     }
+    ],
+    "note": "One academic reviewer, Joachim Krueger, questions some of the book's evolutionary claims and new terms. Read the ideas as Samson's proposals, not settled findings. [6]"
+   },
+   "system": {
+    "name": "Campcraft Your Circle",
+    "origin": "By Design",
+    "intro": "Turn the book's ideas into a small, lasting group.",
+    "steps": [
+     {
+      "name": "Map your tribes",
+      "detail": "List the groups you belong to and mark each as face-to-face or abstract. [5]"
+     },
+     {
+      "name": "Shift your energy",
+      "detail": "Move time toward the face-to-face ones. [4,5]"
+     },
+     {
+      "name": "Gather a camp",
+      "detail": "Invite 4 to 10 people to a recurring meeting. [4]"
+     },
+     {
+      "name": "Give it a ritual",
+      "detail": "A name, a symbol or an opening ritual that's yours. [4]"
+     },
+     {
+      "name": "Check your beliefs",
+      "detail": "Practise metabelief together: what would change our minds? [4]"
+     }
+    ],
+    "example": {
+     "title": "A neighbourhood supper club",
+     "items": [
+      "**Map:** most of your “we” is online",
+      "**Shift:** one fewer evening scrolling each week",
+      "**Gather:** six neighbours, first Sunday of the month",
+      "**Ritual:** each host picks a song to open the meal",
+      "**Beliefs:** one friendly debate topic per dinner"
+     ]
+    }
+   },
+   "reflect": [
+    "Which of your tribes would show up for you in a hard week?",
+    "Where is your tribal instinct being used by someone else's algorithm?"
+   ],
+   "practice": {
+    "time": "8 weeks",
+    "src": [
+     4,
+     5
+    ],
+    "steps": [
+     "List the groups you're proud to belong to, and mark each face-to-face or abstract.",
+     "Pick 4 to 10 people for a small recurring gathering.",
+     "Give it a name or a simple opening ritual.",
+     "Hold it for eight weeks, then decide together whether to keep going."
+    ]
+   },
+   "inSedi": "Put the gathering on Timely as a recurring event, and keep the guest list and ritual ideas in Brainly.",
+   "sources": [
+    {
+     "text": "Samson, David R. *Our Tribal Future: How to Channel Our Foundational Human Instincts into a Force for Good*. St. Martin's Press, 2023. Ch. 1 The Tribe Drive; appendix, The Tribal Signaling Hypothesis.",
+     "url": "https://academic.macmillan.com/academictrade/9781250272249/ourtribalfuture"
+    },
+    {
+     "text": "Publishers Weekly, *Our Tribal Future* listing.",
+     "url": "https://www.publishersweekly.com/9781250272249"
+    },
+    {
+     "text": "Open Book, “Anthropologist David R. Samson Wins $60,000 Balsillie Prize for Public Policy”.",
+     "url": "https://open-book.ca/News/Anthropologist-David-R.-Samson-Wins-60-000-Balsillie-Prize-for-Public-Policy"
+    },
+    {
+     "text": "Samson, David R. “Our Tribal Future” Book Bite, Next Big Idea Club (the author's summary of his key ideas).",
+     "url": "https://nextbigideaclub.com/magazine/tribal-future-channel-foundational-human-instincts-force-good-bookbite/43142/"
+    },
+    {
+     "text": "The Hub, “The rise of the meta-tribe” (interview with David Samson).",
+     "url": "https://thehub.ca/podcasts/the-rise-of-the-meta-tribe-anthropologist-david-samson-on-how-modern-society-can-harness-tribalism-for-good"
+    },
+    {
+     "text": "Krueger, Joachim I. Review of *Our Tribal Future* (2023).",
+     "url": "https://bpb-us-e1.wpmucdn.com/sites.ucsc.edu/dist/0/158/files/2023/08/FinalKruegeronSamson-revision.pdf"
+    }
+   ],
+   "verify": [
+    "'Identity stack' exercise is from the author's interview (source 5); confirm whether it appears in the book.",
+    "Not to be confused with Tribal Leadership (Logan, King & Fischer-Wright, 2008)."
+   ]
+  },
+  {
+   "id": "the-psychology-of-interpersonal-relations",
+   "emoji": "🤝",
+   "title": "The Psychology of Interpersonal Relations",
+   "author": "Fritz Heider",
+   "year": 1958,
+   "publisher": "John Wiley & Sons",
+   "discipline": "Social psychology",
+   "about": "A founding text of social psychology. Heider studied “naive psychology”: the common-sense theories everyone uses to explain why other people do what they do. [1,2]",
+   "authorBio": "Fritz Heider (1896–1988) was an Austrian-born psychologist whose work on attribution and balance shaped modern social psychology. [2]",
+   "principle": {
+    "name": "Design for how people explain each other",
+    "body": "We constantly guess at the causes of other people's behavior, and those guesses shape how we treat them. Heider noticed we lean toward explaining others' actions by who they are rather than by the situation they're in. Later researchers named that tilt the fundamental attribution error. [2,3]"
+   },
+   "framework": {
+    "name": "Attribution and Balance",
+    "src": [
+     2
+    ],
+    "intro": "Two of Heider's ideas that are still used everywhere from design to diplomacy. [2]",
+    "parts": [
+     {
+      "name": "Attribution",
+      "tagline": "Person or situation?",
+      "src": [
+       2,
+       3
+      ],
+      "what": "When someone acts, we explain it either by something inside them (traits, motives) or something outside (the circumstances). We tend to over-weight the inside explanation for others, especially when the behavior annoys us. [2,3]",
+      "how": [
+       "Before judging, list situational reasons someone might act this way [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "The driver who cut you off may be rushing to hospital"
+       },
+       {
+        "label": "Your work",
+        "text": "The late reply may come from an overloaded week, not disrespect"
+       },
+       {
+        "label": "Your space",
+        "text": "The messy kitchen may come from a broken dishwasher"
+       }
+      ]
+     },
+     {
+      "name": "Balance",
+      "tagline": "We like our relationships consistent",
+      "src": [
+       2
+      ],
+      "what": "People prefer their likes and dislikes to fit together: my friend's friend should be my friend, and if I like you and you like an idea, I'm pulled to like it too. An unbalanced triangle creates tension we try to resolve. [2]",
+      "how": [
+       "When you feel tension in a relationship, map the triangle and see which link is out of balance [2]"
+      ],
+      "examples": [
+       {
+        "label": "Your day",
+        "text": "A partner who loves a friend you find difficult"
+       },
+       {
+        "label": "Your work",
+        "text": "A manager you trust backing a plan you doubt"
+       },
+       {
+        "label": "Your space",
+        "text": "Housemates split over a shared rule"
+       }
+      ]
+     }
+    ],
+    "note": "Heider built on an earlier experiment with Marianne Simmel, in which people watching simple moving shapes described them as having intentions and personalities. [2,4]"
+   },
+   "system": {
+    "name": "The Charitable Explanation",
+    "origin": "By Design",
+    "intro": "A short routine for moments of friction with someone.",
+    "steps": [
+     {
+      "name": "Write your first explanation",
+      "detail": "What do you think caused their behavior? [2]"
+     },
+     {
+      "name": "Flip it",
+      "detail": "Write three situational explanations instead. [2,3]"
+     },
+     {
+      "name": "Map the triangle",
+      "detail": "You, them and the issue: which link is negative? [2]"
+     },
+     {
+      "name": "Choose a response",
+      "detail": "Act on the most charitable explanation that's still plausible. [2]"
+     },
+     {
+      "name": "Check it",
+      "detail": "Ask, don't assume. [2]"
+     }
+    ],
+    "example": {
+     "title": "A colleague who keeps missing deadlines",
+     "items": [
+      "**First explanation:** they don't care",
+      "**Flip:** too many projects, unclear priorities, something at home",
+      "**Triangle:** you both care about the launch, but disagree about the timeline",
+      "**Response:** offer to agree on priorities together",
+      "**Check:** ask what's getting in the way"
+     ]
+    }
+   },
+   "reflect": [
+    "Whose behavior have you been explaining by their character rather than their circumstances?",
+    "Which relationship triangle in your life feels out of balance?"
+   ],
+   "practice": {
+    "time": "15 min",
+    "origin": "By Design",
+    "steps": [
+     "Think of someone whose behavior bothers you.",
+     "Write your explanation, then three situational ones.",
+     "Draw the triangle of you, them and the issue, and mark each link + or −.",
+     "Decide on one conversation or one change of view."
+    ]
+   },
+   "inSedi": "Write the reflection as a private note in Brainly, and add the conversation as a task in Taskly.",
+   "sources": [
+    {
+     "text": "Heider, Fritz. *The Psychology of Interpersonal Relations*. John Wiley & Sons, 1958."
+    },
+    {
+     "text": "Wikipedia, “Fritz Heider” (naive psychology, attribution theory, balance theory).",
+     "url": "https://en.wikipedia.org/wiki/Fritz_Heider"
+    },
+    {
+     "text": "Ross, L. (1977). The intuitive psychologist and his shortcomings: Distortions in the attribution process. In L. Berkowitz (Ed.), *Advances in Experimental Social Psychology* (Vol. 10, pp. 173–220). Academic Press (coined “fundamental attribution error”)."
+    },
+    {
+     "text": "Heider, F., & Simmel, M. (1944). An experimental study of apparent behavior. *American Journal of Psychology*, 57(2), 243–259."
+    }
+   ],
+   "verify": [
+    "TITLE CHECK: you wrote 'The Science of Interpersonal Relations'. That exact title is a 2018 self-published book by Ian Tuhovsky. We assumed you meant Heider's classic; confirm.",
+    "Sources are thin (one encyclopedia entry); add a scholarly overview before publishing."
+   ]
+  }
+ ]
 }

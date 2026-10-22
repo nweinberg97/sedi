@@ -1,10 +1,10 @@
-// Sedi — Book notes: short, original summaries of books about habits, focus and wellbeing.
-// Each note credits its author and recommends the book. Nothing is quoted from the books.
+// Sedi — By Design lessons: one principle, framework, system and practice per book.
+// Original summaries with numbered sources; each credits its author and recommends the book.
 
 import * as store from './store.js';
 import { h, icon, modal, toast, uuid } from './util.js';
 
-const FOLDER_NAME = 'Book notes';
+const FOLDER_NAME = 'By Design';
 let cache = null;
 
 export async function loadLibrary() {
@@ -17,15 +17,30 @@ export async function loadLibrary() {
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-/** The note body: plain tags the Brainly editor accepts. */
+// **bold** and *italic*; [n] footnote markers stay as text and match the numbered Sources list.
+const md = s => esc(s ?? '').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
+const cite = src => (src?.length ? ` [${src.join(',')}]` : '');
+const tag = o => (o ? ` (${esc(o)} application)` : '');
+
+/** The note body: only tags the Brainly editor accepts (no links or superscripts). */
 export function noteHtml(b) {
+  const f = b.framework, s = b.system;
   return [
-    `<p><i>A summary of <b>${esc(b.title)}</b> by ${esc(b.author)} (${b.year}), written in Sedi’s own words. Read the book for the full picture.</i></p>`,
-    `<h3>The big idea</h3><p>${esc(b.bigIdea)}</p>`,
-    `<h3>Key ideas</h3><ul>${b.ideas.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`,
-    `<h3>Try this</h3><p>${esc(b.tryThis)}</p>`,
-    `<h3>In Sedi</h3><p>${esc(b.inSedi)}</p>`,
-    `<p><i>Source: ${esc(b.author)}, ${esc(b.title)} (${b.year}). Sedi isn’t affiliated with the author or publisher.</i></p>`,
+    `<p><i>Lesson · ${esc(b.discipline)}. A summary of <b>${esc(b.title)}</b> by ${esc(b.author)} (${b.year}), written in our own words. Read the book for the full picture.</i></p>`,
+    `<p>${md(b.about)}</p>`,
+    `<h3>Principle: ${esc(b.principle.name)}${cite(b.principle.src)}${tag(b.principle.origin)}</h3><p>${md(b.principle.body)}</p>`,
+    `<h3>Framework: ${esc(f.name)}${f.formula ? ` (${esc(f.formula)})` : ''}${cite(f.src)}${tag(f.origin)}</h3>`,
+    f.intro ? `<p>${md(f.intro)}</p>` : '',
+    `<ol>${f.parts.map(p => `<li><b>${esc(p.name)}</b>${p.tagline ? ` · <i>${esc(p.tagline)}</i>` : ''}${cite(p.src)}<br>${md(p.what)}${p.how?.length ? `<ul>${p.how.map(x => `<li>${md(x)}</li>`).join('')}</ul>` : ''}</li>`).join('')}</ol>`,
+    f.note ? `<p><i>${md(f.note)}</i></p>` : '',
+    `<h3>System: ${esc(s.name)}${cite(s.src)}${tag(s.origin)}</h3>`,
+    s.intro ? `<p>${md(s.intro)}</p>` : '',
+    `<ol>${s.steps.map(x => `<li><b>${esc(x.name)}</b>: ${md(x.detail)}</li>`).join('')}</ol>`,
+    `<h3>Reflect</h3><ul>${b.reflect.map(q => `<li><i>${md(q)}</i></li>`).join('')}</ul>`,
+    `<h3>Practice (${esc(b.practice.time)})${cite(b.practice.src)}${tag(b.practice.origin)}</h3><ol>${b.practice.steps.map(x => `<li>${md(x)}</li>`).join('')}</ol>`,
+    b.inSedi ? `<p><b>In Sedi:</b> ${md(b.inSedi)}</p>` : '',
+    `<h4>Sources</h4><ol>${b.sources.map(x => `<li>${md(x.text)}${x.url ? ` ${esc(x.url)}` : ''}</li>`).join('')}</ol>`,
+    `<p><i>Items marked “By Design application” are our application of the book's ideas, not the author's. Named frameworks belong to their authors. Sedi isn't affiliated with any author or publisher.</i></p>`,
   ].join('');
 }
 
@@ -63,21 +78,21 @@ export async function openBookNotes() {
     btn.onclick = () => { if (addBooks([b])) { btn.textContent = 'Added'; btn.disabled = true; toast(`Added “${b.title}” to ${FOLDER_NAME} in Brainly`); } };
     return h('li', { class: 'bn-row' },
       h('span', { class: 'bn-emoji', 'aria-hidden': 'true' }, b.emoji || '📚'),
-      h('span', { class: 'bn-text' }, h('b', {}, b.title), h('small', {}, `${b.author} · ${b.year}`)),
+      h('span', { class: 'bn-text' }, h('b', {}, b.title), h('small', {}, `${b.author} · ${b.discipline}`)),
       btn);
   });
   const body = h('div', { class: 'book-notes' },
-    h('p', {}, 'One-page notes on books about habits, focus and feeling good: the big idea, a few key lessons, one thing to try, and how to do it in Sedi.'),
-    h('p', { class: 'muted' }, 'Every note is our own short summary, credits its author, and is no substitute for the book. If one resonates, please read it — these authors did the real work.'),
+    h('p', {}, 'Lessons on behavior design from great books. Each one gives you a principle, the book’s framework, a system to apply it, and a practice to try today.'),
+    h('p', { class: 'muted' }, 'Every lesson is our own summary with numbered sources, credits its author, and is no substitute for the book. If one resonates, please read it. These authors did the real work.'),
     h('ul', { class: 'bn-list' }, rows),
-    h('a', { class: 'bn-print', href: new URL('../welcome/book-notes.html', import.meta.url).href, target: '_blank', rel: 'noopener' }, icon('download'), 'Printable version (save as PDF)'));
+    h('a', { class: 'bn-print', href: new URL('../welcome/by-design.html', import.meta.url).href, target: '_blank', rel: 'noopener' }, icon('download'), 'Read online or save as PDF'));
   modal({
-    title: 'Book notes', body, className: 'book-notes-modal',
+    title: 'By Design', body, className: 'book-notes-modal',
     actions: [
       { label: 'Close', kind: 'ghost' },
       { label: 'Add all to Brainly', kind: 'primary', onClick: () => {
         const n = addBooks(lib.books);
-        toast(n ? `Added ${n} book note${n === 1 ? '' : 's'} to ${FOLDER_NAME} in Brainly` : 'All the book notes are already in Brainly', { action: 'Open', onAction: () => { location.hash = '#/brainly'; } });
+        toast(n ? `Added ${n} lesson${n === 1 ? '' : 's'} to ${FOLDER_NAME} in Brainly` : 'All the lessons are already in Brainly', { action: 'Open', onAction: () => { location.hash = '#/brainly'; } });
       } },
     ],
   });
