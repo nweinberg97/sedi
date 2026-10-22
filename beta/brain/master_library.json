@@ -1,0 +1,294 @@
+{
+ "version": 1,
+ "description": "Sedi Sovereign Brain library: original summaries of widely used executive-function, habit, occupational-therapy and communication frameworks. Retrieval uses BM25 in the browser.",
+ "chunks": [
+  {
+   "id": "c1",
+   "title": "Two-minute start",
+   "tags": [
+    "procrastination",
+    "starting",
+    "paralysis"
+   ],
+   "text": "When a task feels too big to begin, shrink the entry point until it takes two minutes or less. The goal is not to finish, only to start: open the document, write one sentence, put on running shoes. Starting changes your state from avoiding to doing, and momentum usually carries you further. Rule: after the two minutes you are allowed to stop. Most of the time you won't want to."
+  },
+  {
+   "id": "c2",
+   "title": "Micro-task chunking",
+   "tags": [
+    "overwhelm",
+    "planning",
+    "project",
+    "paralysis",
+    "stuck"
+   ],
+   "text": "Overwhelm usually means the next step is invisible. Write the project at the top of a page, then break it into steps that each take under 15 minutes and begin with a physical verb (open, email, list, draft). If a step still feels heavy, split it again. Circle only the very first step and do it now. Planning the whole project is optional; seeing the next action is not."
+  },
+  {
+   "id": "c3",
+   "title": "Brain dump",
+   "tags": [
+    "overwhelm",
+    "anxiety",
+    "stress",
+    "clarity",
+    "racing thoughts"
+   ],
+   "text": "Working memory holds only a few items at once, so an unwritten to-do list feels like noise. Set a five-minute timer and write every open loop you can think of, big or small, without sorting. When the timer ends, mark the one item that would make today feel lighter if it moved. Everything else is now safely outside your head and can wait."
+  },
+  {
+   "id": "c4",
+   "title": "Implementation intentions",
+   "tags": [
+    "habit",
+    "follow through",
+    "consistency",
+    "plan"
+   ],
+   "text": "Vague intentions fail because they leave the moment of action undecided. Rewrite the goal as an if-then plan: 'If it is 7:00 a.m. and I've poured coffee, then I will write for ten minutes at the kitchen table.' Naming the time, place and trigger lets the cue do the remembering for you. Make one if-then plan per habit, and keep it small enough to do on a bad day."
+  },
+  {
+   "id": "c5",
+   "title": "Habit stacking",
+   "tags": [
+    "habit",
+    "routine",
+    "consistency"
+   ],
+   "text": "Attach a new habit to one you already do automatically. Use the format: after I [current habit], I will [new habit]. For example, after I brush my teeth at night, I will set out tomorrow's clothes. The existing habit works as a reliable trigger. Pick an anchor that happens at the same time and place every day, and make the new behavior tiny at first."
+  },
+  {
+   "id": "c6",
+   "title": "Environment design",
+   "tags": [
+    "habit",
+    "distraction",
+    "focus",
+    "temptation"
+   ],
+   "text": "Behavior follows the path of least resistance, so change the path instead of relying on willpower. Make good habits obvious and easy: leave the book on your pillow, the water bottle on the desk. Make bad habits invisible and awkward: log out of social apps, put the phone in another room during focus blocks. Adding even twenty seconds of friction cuts impulsive use noticeably."
+  },
+  {
+   "id": "c7",
+   "title": "Time-boxing",
+   "tags": [
+    "focus",
+    "time",
+    "planning",
+    "perfectionism"
+   ],
+   "text": "Give a task a fixed container of time instead of an open-ended finish line. Decide the box first (for example 45 minutes), put it on the calendar, and stop when it ends, even if the work is imperfect. Time-boxing turns 'finish the report' into 'work on the report from 2 to 2:45', which is concrete, limited and much easier to begin. Review what got done and box the next chunk."
+  },
+  {
+   "id": "c8",
+   "title": "Focus sprints",
+   "tags": [
+    "focus",
+    "distraction",
+    "energy",
+    "pomodoro"
+   ],
+   "text": "Work in short, protected sprints: 25 minutes of single-task focus, then a 5-minute break away from the screen. Before each sprint, write the one outcome you want from it. During the sprint, jot down any distraction on paper and return to the task. After four sprints, take a longer 20-minute break. The countdown creates gentle urgency and the break prevents fatigue."
+  },
+  {
+   "id": "c9",
+   "title": "Eat the frog",
+   "tags": [
+    "prioritize",
+    "procrastination",
+    "morning",
+    "dread"
+   ],
+   "text": "Identify the one task you are most likely to avoid but that matters most, and do it first, before email and messages. Dread grows the longer a task waits, and finishing it early frees the rest of the day from that background weight. Choose the frog the night before so the morning starts with a decision already made."
+  },
+  {
+   "id": "c10",
+   "title": "Eisenhower sorting",
+   "tags": [
+    "prioritize",
+    "overwhelm",
+    "urgent",
+    "important",
+    "decide"
+   ],
+   "text": "Sort open tasks into four boxes: urgent and important (do now), important but not urgent (schedule it), urgent but not important (delegate or make it quick), neither (delete). Most stress comes from the first box, but most progress comes from the second. Protect at least one block each week for important, non-urgent work before it turns into an emergency."
+  },
+  {
+   "id": "c11",
+   "title": "The 5-second launch",
+   "tags": [
+    "paralysis",
+    "hesitation",
+    "starting",
+    "motivation"
+   ],
+   "text": "When you know what to do but feel frozen, count backward 5-4-3-2-1 and physically move on 1: stand up, open the file, pick up the phone. The countdown interrupts the loop of deliberation and gives your body a cue to act before doubt takes over. Pair it with a pre-chosen first action so there is nothing left to decide at zero."
+  },
+  {
+   "id": "c12",
+   "title": "Body doubling",
+   "tags": [
+    "focus",
+    "adhd",
+    "accountability",
+    "starting"
+   ],
+   "text": "Many people focus better with another person nearby, even if that person is doing something unrelated. Work beside a friend, join a virtual co-working session, or call someone while you both do chores. The quiet presence of another person adds gentle accountability and makes it easier to stay on task. State out loud what you plan to do at the start, and check in at the end."
+  },
+  {
+   "id": "c13",
+   "title": "Temptation bundling",
+   "tags": [
+    "motivation",
+    "habit",
+    "reward",
+    "enjoyment"
+   ],
+   "text": "Pair a task you avoid with something you enjoy, and only allow the enjoyable thing during the task. Listen to a favorite podcast only while walking, or have a special coffee only during admin time. The pleasure becomes linked to the habit, and you start looking forward to it instead of resisting it."
+  },
+  {
+   "id": "c14",
+   "title": "Shrink the change",
+   "tags": [
+    "habit",
+    "consistency",
+    "small steps",
+    "motivation"
+   ],
+   "text": "If a habit keeps failing, it is probably too big for your current life. Shrink it until it feels almost silly: one push-up, one line in a journal, one minute of tidying. Show up for the tiny version every day for two weeks. Consistency builds identity ('I am someone who exercises'), and the size can grow once the routine is automatic."
+  },
+  {
+   "id": "c15",
+   "title": "Done list",
+   "tags": [
+    "motivation",
+    "self-criticism",
+    "progress",
+    "reflection"
+   ],
+   "text": "At the end of the day, write down everything you actually completed, including small things like replying to a message or making lunch. A done list counters the feeling that you achieved nothing and makes progress visible. Review it weekly to notice patterns in when and where you do your best work."
+  },
+  {
+   "id": "c16",
+   "title": "Weekly review",
+   "tags": [
+    "planning",
+    "reflection",
+    "organization",
+    "overwhelm"
+   ],
+   "text": "Once a week, spend 30 minutes resetting: clear your inboxes and notes into one list, look at the past week's calendar for loose ends, look at the next two weeks for preparation needed, and choose three outcomes for the coming week. The review keeps your system trustworthy so your mind can stop holding everything."
+  },
+  {
+   "id": "c17",
+   "title": "Energy mapping",
+   "tags": [
+    "energy",
+    "focus",
+    "tired",
+    "scheduling"
+   ],
+   "text": "Track your energy for a few days on a simple 1-to-5 scale, morning, midday and evening. Then schedule demanding thinking work in your high-energy window, routine admin in medium windows, and rest or easy tasks in the low ones. Matching tasks to energy beats forcing hard work at the wrong time of day."
+  },
+  {
+   "id": "c18",
+   "title": "Visual schedule",
+   "tags": [
+    "routine",
+    "occupational therapy",
+    "transitions",
+    "executive function"
+   ],
+   "text": "A visual schedule externalizes the day so you don't have to hold it in memory. List the day's blocks in order with simple icons or colors, keep it where you can see it, and check off each block as it ends. Seeing what comes next makes transitions smoother and reduces the mental load of deciding what to do."
+  },
+  {
+   "id": "c19",
+   "title": "Task analysis",
+   "tags": [
+    "occupational therapy",
+    "routine",
+    "complex task",
+    "stuck"
+   ],
+   "text": "Occupational therapists break daily activities into their component steps. Pick a routine that keeps going wrong, like getting out the door, and list every step in order: keys, wallet, bag, shoes, lights. Notice which step usually fails, then add a support right there, such as a hook by the door or a checklist on it. Fix the weak step, not the whole routine."
+  },
+  {
+   "id": "c20",
+   "title": "Sensory reset",
+   "tags": [
+    "stress",
+    "overwhelm",
+    "regulation",
+    "anxiety",
+    "break"
+   ],
+   "text": "When you feel overloaded, a short sensory reset can bring your nervous system back to a workable state. Step away for two to five minutes: slow your breathing with a longer exhale, stretch your shoulders and hands, drink water, or look at something far away. Return to the task with one small next step written down."
+  },
+  {
+   "id": "c21",
+   "title": "Transition ritual",
+   "tags": [
+    "transitions",
+    "work",
+    "focus",
+    "shutdown"
+   ],
+   "text": "Switching between tasks costs attention. Create a short ritual for moving between modes: write where you left off, close the tabs for that task, take three breaths, then open only what the next task needs. At the end of the workday, a shutdown ritual of reviewing tomorrow's first task helps your mind fully let go."
+  },
+  {
+   "id": "c22",
+   "title": "Asking for help",
+   "tags": [
+    "social",
+    "communication",
+    "relationships",
+    "requests"
+   ],
+   "text": "Clear requests are easier to say yes to. Use a simple structure: context in one sentence, the specific ask, and a time frame. For example: 'I'm stuck on the budget section. Could you look at it for 15 minutes before Thursday?' Make it easy to decline, and thank the person whatever they answer."
+  },
+  {
+   "id": "c23",
+   "title": "I-statements for hard conversations",
+   "tags": [
+    "social",
+    "conflict",
+    "communication",
+    "relationships"
+   ],
+   "text": "When raising a problem, describe your experience instead of judging the other person. Structure: when [specific event], I felt [emotion], because [need]. Could we [specific request]? For example: 'When plans change last minute, I feel stressed because I need time to adjust. Could we confirm the day before?' This keeps the conversation about solving the issue, not defending character."
+  },
+  {
+   "id": "c24",
+   "title": "Active listening",
+   "tags": [
+    "social",
+    "relationships",
+    "communication",
+    "connection"
+   ],
+   "text": "To make someone feel heard, listen to understand rather than to reply. Reflect back what you heard in your own words, name the feeling you notice, and ask one open question before offering any advice. Example: 'So the deadline moved and you're worried about the team. What part feels hardest?' People open up when they feel understood."
+  },
+  {
+   "id": "c25",
+   "title": "Perfectionism reset",
+   "tags": [
+    "perfectionism",
+    "procrastination",
+    "quality",
+    "fear"
+   ],
+   "text": "Perfectionism often hides as procrastination. Define what a good-enough first version looks like before you start, in one sentence. Then deliberately create a rough draft with permission to be messy, and set a short revision pass afterward. Shipping a 70% version you can improve beats a perfect version that never leaves your head."
+  },
+  {
+   "id": "c26",
+   "title": "Decision fatigue defaults",
+   "tags": [
+    "decisions",
+    "routine",
+    "energy",
+    "simplify"
+   ],
+   "text": "Every small choice drains a little mental energy. Set defaults for recurring decisions: the same breakfast on weekdays, a weekly meal plan, a uniform for work, a fixed time for exercise. Fewer trivial decisions leave more energy for the ones that matter."
+  }
+ ]
+}
