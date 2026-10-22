@@ -259,9 +259,25 @@ export async function exportAllWithFiles() {
 // (AI engine, Google client, Shortcuts name, location, voice/model setup) stays on the device it was set on,
 // so a shared or tampered backup can't redirect your keys or notes.
 const PORTABLE_PREFS = ['boardlyTab', 'brainlyPane', 'calTarget', 'homeTab', 'planOffset', 'reviewDays', 'tasklyCaps', 'timelyAnchor', 'timelyMode', 'timelyPlan', 'timelyView'];
+const oneOf = (...vals) => v => vals.includes(v);
+const isNumMap = v => !!v && typeof v === 'object' && !Array.isArray(v) && Object.values(v).every(n => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n < 1000);
+// Each setting that travels must hold a value the app knows how to show; anything else is left behind.
+const PREF_OK = {
+  boardlyTab: v => typeof v === 'string' && v.length < 200,
+  brainlyPane: oneOf('notes', 'links'),
+  calTarget: oneOf('google', 'ics'),
+  homeTab: oneOf('next', 'recent'),
+  planOffset: isNumMap,
+  reviewDays: v => Number.isInteger(v) && v > 0 && v <= 365,
+  tasklyCaps: isNumMap,
+  timelyAnchor: v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v),
+  timelyMode: oneOf('schedule', 'plan'),
+  timelyPlan: oneOf('projects', 'goals'),
+  timelyView: oneOf('day', 'week', 'month', 'reminders'),
+};
 function portablePrefs(p) {
   const out = {};
-  for (const k of PORTABLE_PREFS) if (p && Object.prototype.hasOwnProperty.call(p, k)) out[k] = p[k];
+  for (const k of PORTABLE_PREFS) if (p && Object.prototype.hasOwnProperty.call(p, k) && PREF_OK[k](p[k])) out[k] = p[k];
   return out;
 }
 const RECORD_KEYS = new Set(['activity', 'boardlyTabs', 'brainFolders', 'commandLog', 'linkFolders', 'onboarded', 'planContainers', 'recur']);
@@ -269,12 +285,55 @@ const TOOLS = new Set(['taskly', 'boardly', 'timely', 'brainly', 'universal']);
 const SAFE_FILE_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'text/plain', 'text/markdown', 'application/octet-stream']);
 const isoOr = (v, fb) => (typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? v : fb);
 /** Coerce an imported card into the shape the app expects, or drop it. */
+const str = (v, max = 500) => typeof v === 'string' && v.length <= max;
+const COLOR = /^#[0-9a-f]{3,8}$/i;
+/** A named list item (a tab, folder or plan list): string id and name, an optional #hex colour, nothing exotic. */
+function cleanItem(x) {
+  if (!x || typeof x !== 'object' || Array.isArray(x) || !str(x.id, 200) || !x.id || !str(x.name ?? '', 200)) return null;
+  const out = JSON.parse(JSON.stringify(x));
+  for (const k of ['__proto__', 'constructor', 'prototype']) delete out[k];
+  out.name = x.name ?? '';
+  if (out.color != null && !(typeof out.color === 'string' && COLOR.test(out.color))) delete out.color;
+  if (out.parentId != null && !str(out.parentId, 200)) delete out.parentId;
+  for (const n of ['x', 'y', 'order']) if (out[n] != null && !Number.isFinite(out[n])) delete out[n];
+  return out;
+}
+const cleanList = v => (Array.isArray(v) ? v.map(cleanItem).filter(Boolean) : null);
+const plainObjs = v => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object' && !Array.isArray(x)).map(x => JSON.parse(JSON.stringify(x))) : null);
+/** Imported records are reshaped into what the app expects; a record that can't be is skipped. */
+function cleanRecord(k, v) {
+  switch (k) {
+    case 'boardlyTabs': case 'brainFolders': case 'linkFolders': return cleanList(v);
+    case 'planContainers': {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+      return { projects: cleanList(v.projects) || [], goals: cleanList(v.goals) || [] };
+    }
+    case 'recur': return plainObjs(v)?.filter(r => str(r.id, 200) && r.id) ?? null;
+    case 'activity': case 'commandLog': return plainObjs(v);
+    case 'onboarded': return typeof v === 'boolean' ? v : null;
+    default: return null;
+  }
+}
+/** Attached-file pointers must be complete, or the card simply loses the attachment. */
+function cleanFileRef(f) {
+  return f && typeof f === 'object' && str(f.fileId, 200) && f.fileId && str(f.name, 500) && (f.size == null || Number.isFinite(f.size)) ? f : undefined;
+}
+
 function cleanCard(c) {
   if (!c || typeof c !== 'object' || typeof c.id !== 'string' || !c.id || c.id.length > 200) return null;
   if (!TOOLS.has(c.tool)) return null;
   const t = now();
   const meta = c.meta && typeof c.meta === 'object' && !Array.isArray(c.meta) ? JSON.parse(JSON.stringify(c.meta)) : {};
   for (const k of ['__proto__', 'constructor', 'prototype']) delete meta[k];
+  for (const k of ['upload', 'pdf']) if (k in meta) { const f = cleanFileRef(meta[k]); if (f) meta[k] = f; else delete meta[k]; }
+  if (meta.color != null && !(typeof meta.color === 'string' && COLOR.test(meta.color))) delete meta.color;
+  if (meta.emoji != null && !str(meta.emoji, 16)) delete meta.emoji;
+  // A link's host comes from its own address (it decides which site the favicon is fetched from).
+  if (typeof meta.url === 'string') {
+    try { const u = new URL(meta.url); if (/^https?:$/.test(u.protocol)) meta.host = u.hostname; else delete meta.host; } catch { delete meta.host; }
+  } else if (meta.host != null && !(typeof meta.host === 'string' && /^[a-z0-9.-]{1,253}$/i.test(meta.host))) delete meta.host;
+  // AI summaries are only ever made on this device; an imported one could put words in Claude's mouth.
+  for (const k of ['summary', 'summaryBy', 'summaryOf', 'summaryAt']) delete meta[k];
   return {
     ...c,
     id: c.id,
@@ -305,8 +364,10 @@ export async function importAll(data, mode = 'merge') {
     }
   }
   const recs = data.records && typeof data.records === 'object' ? data.records : {};
-  for (const [k, v] of Object.entries(recs)) {
+  for (const [k, raw] of Object.entries(recs)) {
     if (!RECORD_KEYS.has(k)) continue;
+    const v = cleanRecord(k, raw);
+    if (v === null) continue;
     if (mode === 'merge' && Array.isArray(v) && Array.isArray(kv[k]) && k !== 'activity' && k !== 'commandLog') {
       const ids = new Set(kv[k].map(x => x?.id));
       kv[k] = [...kv[k], ...v.filter(x => !ids.has(x?.id))];

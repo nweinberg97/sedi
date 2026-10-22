@@ -3494,3 +3494,9 @@ body.is-dragging .taskly-board, body.is-dragging .plan-track { scroll-snap-type:
 .vt-card p { margin: 2px 0 0; font-size: var(--fs-xs); line-height: 1.45; color: var(--muted); }
 .vt-num { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: var(--fs-2xs); font-weight: 600; background: var(--ink); color: var(--paper, #fff); }
 .voice-tips .vi-actions { justify-content: flex-end; }
+
+/* A view that couldn't draw its data */
+.view-error { max-width: 460px; margin: 12vh auto 0; padding: 24px; border-radius: 20px; background: var(--paper, #fff); border: 1px solid var(--line, rgba(0,0,0,.08)); text-align: center; }
+.view-error h2 { margin: 0 0 8px; font-size: var(--fs-lg, 20px); }
+.view-error p { margin: 0 0 16px; color: var(--muted); font-size: var(--fs-sm); line-height: 1.5; }
+.view-error-actions { display: flex; gap: 8px; justify-content: center; }

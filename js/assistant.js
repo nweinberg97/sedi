@@ -291,6 +291,12 @@ async function submit(text, { fromVoice = false } = {}) {
   say(text, 'me');
   // A pending confirmation takes yes/no answers first.
   if (pending) {
+    // Deleting is never done on a spoken "yes": it takes a tap or click on Confirm.
+    if (YES.test(text) && pending.voice && pending.actions.some(a => a.kind === 'delete')) {
+      say(h('p', {}, 'Deleting needs a tap on Confirm, so a misheard “yes” can’t remove anything.'));
+      if (fromVoice) talkBack('To delete, tap Confirm on the screen.');
+      return;
+    }
     if (YES.test(text)) return confirmPending();
     if (NO.test(text)) return cancelPending();
     cancelPending(true);
@@ -674,7 +680,7 @@ function proposeCommands(text, cmds, voice) {
   const box = say(h('div', { class: 'as-confirm' },
     actions.length === 1 ? h('p', {}, `${labels[0]}?`) : h('div', {}, h('p', {}, `Do these ${actions.length} things?`), h('ul', { class: 'as-plan' }, labels.map(l => h('li', {}, l)))),
     h('div', { class: 'as-confirm-actions' },
-      h('span', { class: 'as-confirm-hint' }, voice ? 'Say yes or no' : 'Enter to confirm'),
+      h('span', { class: 'as-confirm-hint' }, voice ? (actions.some(a => a.kind === 'delete') ? 'Tap Confirm to delete' : 'Say yes or no') : 'Enter to confirm'),
       h('button', { class: 'btn ghost sm', type: 'button', onclick: () => cancelPending() }, 'Cancel'),
       h('button', { class: 'btn primary sm', type: 'button', onclick: () => confirmPending() }, actions.length > 1 ? 'Do all' : 'Confirm'))));
   pending = { text, actions, labels, opens, box, voice };
@@ -689,6 +695,7 @@ function confirmPending() {
   const { text, actions, labels, opens, box, voice } = pending;
   pending = null;
   const done = [];
+  const removed = actions.filter(a => a.kind === 'delete').map(a => store.getCard(a.card.id)).filter(Boolean);
   actions.forEach((cmd, i) => {
     try {
       const result = execute(cmd);
@@ -702,7 +709,8 @@ function confirmPending() {
   const past = l => l.replace(/^(Create|Move|Mark|Delete|Rename|Reschedule|Open)\b/, w => ({ Create: 'Created', Move: 'Moved', Mark: 'Marked', Delete: 'Deleted', Rename: 'Renamed', Reschedule: 'Rescheduled', Open: 'Opened' }[w]));
   done.splice(0, done.length, ...done.map(past));
   box.replaceChildren(h('div', {}, h('p', {}, h('strong', {}, 'Done. '), done.length === 1 ? `${done[0]}.` : `${done.length} changes made.`),
-    actions.length > 1 ? h('ul', { class: 'as-plan done' }, done.map(l => h('li', {}, l))) : null));
+    actions.length > 1 ? h('ul', { class: 'as-plan done' }, done.map(l => h('li', {}, l))) : null,
+    removed.length ? h('button', { class: 'btn ghost sm', type: 'button', onclick: e => { removed.forEach(c => { if (!store.getCard(c.id)) store.restoreCard(c); }); e.currentTarget.replaceWith(h('span', { class: 'muted' }, 'Restored.')); } }, removed.length === 1 ? 'Undo delete' : 'Undo deletes') : null));
   if (opens.length) navigate(opens.at(-1).route);
   if (voice) talkBack(done.length === 1 ? `Done. ${done[0]}.` : `Done. ${done.length} changes made.`);
   else if (!session) setState('idle');

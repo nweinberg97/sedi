@@ -99,12 +99,20 @@ async function importFile(file, input) {
   if (data?.app !== 'sedi' || !Array.isArray(data.cards)) { toast('That file isn’t a Sedi backup.', { code: 'IMPORT_NOT_SEDI' }); return; }
   const when = Date.parse(data.exportedAt);
   const run = async mode => {
-    try { await store.importAll(data, mode); toast(mode === 'replace' ? 'Replaced with imported data' : 'Merged imported data'); }
-    catch (e) { toast(`Couldn’t import that file: ${e?.message || 'it looks damaged'}`); }
+    // A copy of everything as it is now: Undo puts it back, and Replace also downloads it first.
+    const before = await store.exportAllWithFiles();
+    if (mode === 'replace') await exportData();
+    try {
+      await store.importAll(data, mode);
+      toast(mode === 'replace' ? 'Replaced with imported data' : 'Merged imported data', {
+        action: 'Undo', duration: 12000,
+        onAction: async () => { await store.importAll(before, 'replace'); toast('Import undone'); },
+      });
+    } catch (e) { toast(`Couldn’t import that file: ${e?.message || 'it looks damaged'}`); }
   };
   modal({
     title: 'Import data',
-    body: h('p', { class: 'muted' }, `${data.cards.length} cards${Number.isNaN(when) ? '' : ` from ${new Date(when).toLocaleString()}`}. Merge keeps your current cards and adds or updates from the file. Replace swaps everything for the file’s contents.`),
+    body: h('p', { class: 'muted' }, `${data.cards.length} cards${Number.isNaN(when) ? '' : ` from ${new Date(when).toLocaleString()}`}. Merge keeps your current cards and adds or updates from the file. Replace swaps everything for the file’s contents, after downloading a copy of what you have now. Only import files you made yourself or fully trust.`),
     actions: [
       { label: 'Cancel', kind: 'ghost' },
       { label: 'Replace', kind: 'ghost', onClick: () => run('replace') },

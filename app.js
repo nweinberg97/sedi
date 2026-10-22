@@ -20,7 +20,18 @@ import * as brainly from './js/brainly.js';
 const VIEWS = { home, taskly, boardly, timely, brainly };
 let viewEl, active = null, renderQueued = false;
 
+/** Another site showing Sedi inside a frame could trick clicks, so Sedi only runs in its own tab
+ *  (the in-chat sandbox preview is the one exception). */
+function framedByAnotherSite() {
+  if (window.SEDI_SANDBOX) return false;
+  try { if (window.top === window.self) return false; } catch {}
+  document.getElementById('app').replaceChildren(h('p', { style: { padding: '24px', fontFamily: 'system-ui' } },
+    'Sedi opens in its own tab. ', h('a', { href: location.href, target: '_top', rel: 'noopener' }, 'Open Sedi')));
+  return true;
+}
+
 async function boot() {
+  if (framedByAnotherSite()) return;
   await store.init();
   seedIfEmpty();
   runMaintenance();
@@ -73,8 +84,24 @@ function mountRoute() {
   viewEl.classList.remove('enter');
   void viewEl.offsetWidth;
   viewEl.classList.add('enter');
-  mod.mount(viewEl);
+  safely(() => mod.mount(viewEl), route);
   document.title = route === 'home' ? 'Sedi' : `${route[0].toUpperCase() + route.slice(1)} · Sedi`;
+}
+
+/** If something in the data stops a view from drawing, say so and keep the rest of Sedi working,
+ *  instead of a blank screen. Nothing is deleted; the person can back up and get help. */
+function safely(fn, route) {
+  try { fn(); }
+  catch (err) {
+    console.error(err);
+    const name = route[0].toUpperCase() + route.slice(1);
+    viewEl.replaceChildren(h('div', { class: 'view-error' },
+      h('h2', {}, `${name} couldn’t open`),
+      h('p', {}, 'Something in your saved data looks damaged, often from an imported file. Your cards are still saved. Download a backup, then try undoing the last import or reloading.'),
+      h('div', { class: 'view-error-actions' },
+        h('button', { class: 'btn primary sm', type: 'button', onclick: () => exportData() }, 'Download data'),
+        h('button', { class: 'btn ghost sm', type: 'button', onclick: () => location.reload() }, 'Reload'))));
+  }
 }
 
 /** Re-render the visible view, but never while someone is typing inside it. */
@@ -87,7 +114,7 @@ function renderAll(force = false) {
   if (editing && !force) { renderQueued = true; return; }
   if (document.body.classList.contains('is-dragging')) { renderQueued = true; setTimeout(() => renderAll(), 300); return; }
   renderQueued = false;
-  active?.mod.render?.();
+  if (active?.mod.render) safely(() => active.mod.render(), active.name);
   if (keep) {
     const el = viewEl.querySelector(`[data-keep="${CSS.escape(keep.key)}"]`);
     if (el && el !== document.activeElement) {

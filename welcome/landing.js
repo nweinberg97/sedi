@@ -1,5 +1,14 @@
 // Sedi landing page scripts (kept in a file so the page can use a strict Content-Security-Policy).
 (() => {
+  // Only show the landing page in its own tab, never framed inside another site.
+  let framed = true;
+  try { framed = window.top !== window.self; } catch {}
+  if (framed) {
+    const a = document.createElement('a');
+    a.href = location.href; a.target = '_top'; a.rel = 'noopener'; a.textContent = 'Open the Sedi page in its own tab';
+    document.body.replaceChildren(a);
+    return;
+  }
   const top = document.getElementById('top');
   const onScroll = () => top.classList.toggle('scrolled', scrollY > 12);
   addEventListener('scroll', onScroll, { passive: true }); onScroll();

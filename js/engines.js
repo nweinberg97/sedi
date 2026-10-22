@@ -133,7 +133,7 @@ export function openEnginesPanel() {
   modal({
     title: 'AI engines', wide: true,
     body: h('div', { class: 'editor' },
-      h('p', {}, 'Sedi’s assistant and note summaries run on an open model on this device by default. Nothing you type leaves your device unless you pick another engine here.'),
+      h('p', {}, 'Sedi’s assistant and note summaries run on an open model on this device by default. Nothing you type leaves your device unless you pick another engine here. With Claude or another online engine, each message is sent along with the titles of your 40 most recent cards, so it can tell which card you mean.'),
       opts, claudeBox, compatBox,
       h('div', { class: 'engine-section' },
         h('strong', {}, 'Voice transcription (optional)'),

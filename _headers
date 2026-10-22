@@ -2,6 +2,9 @@
 # The app's Content-Security-Policy starts as Report-Only: check the browser console on launch day
 # (including the on-device AI and voice downloads), then rename it to Content-Security-Policy to enforce it.
 # Never add bare https://cdn.jsdelivr.net to script-src: it serves any npm package, which would defeat the policy.
+# Before enforcing: replace onnxruntime-web@ with the exact version folder transformers@4.3.0 loads
+# (e.g. https://cdn.jsdelivr.net/npm/onnxruntime-web@1.x.y/dist/ — a source without a trailing slash matches one exact file),
+# or self-host the runtime under /vendor/. "Other engine" addresses must also be added to connect-src.
 
 /*
   X-Content-Type-Options: nosniff
