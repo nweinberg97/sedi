@@ -4,7 +4,7 @@
 
 import * as store from './store.js';
 import {
-  h, icon, uuid, clamp, toast, modal, editInline, download, popover, closePopovers, hashStr,
+  h, icon, uuid, clamp, toast, modal, editInline, download, popover, closePopovers, hashStr, listMode,
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
@@ -245,7 +245,9 @@ function renderDay() {
 
   // Size hours so 6am–8pm fills the visible window exactly.
   requestAnimationFrame(() => {
-    const hourH = Math.max(50, scroll.clientHeight / 12); // roomy enough that hour-long titles wrap (SD-B1)
+    // Phones: the day is part of the page's own scroll (no box scrolling inside a scrolling page), so the hour height is fixed.
+    const phone = listMode();
+    const hourH = phone ? 56 : Math.max(50, scroll.clientHeight / 12); // roomy enough that hour-long titles wrap (SD-B1)
     grid.style.setProperty('--hour', hourH + 'px');
     grid.style.height = hourH * 24 + 'px';
     for (let hr = 0; hr < 24; hr++) {
@@ -280,10 +282,18 @@ function renderDay() {
     };
     if (key === todayKey()) {
       grid.append(h('div', { class: 'now-line', style: { top: (nowMins / 60) * hourH + 'px' } },
-        h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: `Add at ${fmtMinutes(Math.floor(nowMins / 5) * 5)}`, onclick: e => { e.stopPropagation(); addAt(Math.floor(nowMins / 5) * 5, 30); } }, icon('plus'), h('span', {}, 'Now'))));
+        h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: `Add at ${fmtMinutes(Math.floor(nowMins / 5) * 5)}`, onclick: e => { e.stopPropagation(); const at = Math.floor(nowMins / 5) * 5; if (phone) openItemForm(e.currentTarget, { type: 'task', date: key, start: at, pickDate: false }); else addAt(at, 30); } }, icon('plus'), h('span', {}, 'Now'))));
     }
     // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
-    scroll.scrollTop = dayScroll?.key === key ? dayScroll.top : key === todayKey() ? Math.max(0, (nowMins / 60 - 1.25) * hourH) : 7 * hourH;
+    const startTop = key === todayKey() ? Math.max(0, (nowMins / 60 - 1.25) * hourH) : 7 * hourH;
+    if (phone) {
+      // Bring the right hour into view once when you open a day; after that, leave the page where you scrolled it.
+      if (dayScroll?.key !== key) {
+        const page = document.querySelector('.view-host');
+        if (page) page.scrollTop = Math.max(0, grid.getBoundingClientRect().top - page.getBoundingClientRect().top + page.scrollTop + startTop - 12);
+        dayScroll = { key, top: 0 };
+      }
+    } else scroll.scrollTop = dayScroll?.key === key ? dayScroll.top : startTop;
     scroll.addEventListener('scroll', () => { dayScroll = { key, top: scroll.scrollTop }; }, { passive: true });
     // Hover the day: the half hour under the pointer lights up with a + so adding feels natural.
     const ghost = h('div', { class: 'slot-ghost', hidden: true }, h('span', { class: 'slot-ghost-pill' }, icon('plus'), h('span', { class: 'slot-ghost-time' })));
@@ -312,7 +322,9 @@ function renderDay() {
       const p = press; press = null;
       if (!p || Date.now() - lastMoveEnd < 450 || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6 || Date.now() - p.t > 700) return;
       ghost.hidden = true;
-      addAt(slotAt(e));
+      // On a phone a tap opens the add sheet with that time filled in, so a stray tap never makes an event.
+      if (phone) openItemForm(grid, { type: 'task', date: key, start: slotAt(e), pickDate: false });
+      else addAt(slotAt(e));
     });
   });
 }
@@ -876,14 +888,14 @@ function daySelect(value) {
   return wrap;
 }
 /** SD-T14 / SD-T17: a one-off Task, Meeting, Appointment or Work session, with an optional exact time. */
-function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null, pickDate = true, title: heading, routine = false } = {}) {
+function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null, start: startAt = null, pickDate = true, title: heading, routine = false } = {}) {
   const typeSel = h('select', { class: 'field-input sm', 'aria-label': 'Type' }, Object.entries(ITEM_TYPES).filter(([, t]) => !t.span).map(([v, t]) => h('option', { value: v, selected: v === type }, t.label)));
   const title = h('input', { class: 'field-input sm', placeholder: routine ? 'Morning stretch' : { task: 'Pick up the dry cleaning', meeting: 'Sync with Sam', appointment: 'Dentist', work: 'Budget draft' }[type], 'aria-label': 'Title' });
   const dateIn = daySelect(date);
   const dayText = h('span', {}, dayName(date));
-  const dayHead = h('span', { class: 'form-pop-day' }, icon('calendar'), dayText, slot ? h('span', { class: 'muted' }, ` · ${SLOT_LABELS[slot]}`) : null);
+  const dayHead = h('span', { class: 'form-pop-day' }, icon('calendar'), dayText, slot ? h('span', { class: 'muted' }, ` · ${SLOT_LABELS[slot]}`) : startAt != null ? h('span', { class: 'muted' }, ` · ${fmtMinutes(startAt)}`) : null);
   dateIn.querySelector('select').addEventListener('change', () => { if (dateIn.value !== '__pick') dayText.textContent = dayName(dateIn.value); });
-  const { time, dur, read } = timeFields();
+  const { time, dur, read } = timeFields(startAt);
   const slotSel = h('select', { class: 'field-input sm', 'aria-label': 'Part of day' }, SLOTS.map(s => h('option', { value: s, selected: s === (slot || 'morning') }, SLOT_LABELS[s])));
   const sync = () => { slotSel.disabled = !!time.value; dur.disabled = !time.value; };
   time.addEventListener('input', sync); sync();
@@ -1124,6 +1136,7 @@ export function openEventEditor(id) {
 const field = (label, input) => h('label', { class: 'mini-field' }, h('span', { class: 'field-label' }, label), input);
 
 // ---------- .ics export ----------
+const plainText = s => String(s || '').replace(/<\/(div|p|li)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
 const icsEsc = s => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, m => '\\' + m);
 const RRULE = { daily: 'FREQ=DAILY', weekdays: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY' };
 function vevent(c, onDate) {
@@ -1140,19 +1153,32 @@ function vevent(c, onDate) {
     lines.push(`DTSTART;VALUE=DATE:${date}`, `DTEND;VALUE=DATE:${next}`);
   }
   if (m.recurrence && !onDate) lines.push(`RRULE:${rruleFor(m)}`);
-  if (c.description) lines.push(`DESCRIPTION:${icsEsc(c.description)}`);
+  const desc = plainText(c.description);
+  if (desc) lines.push(`DESCRIPTION:${icsEsc(desc)}`);
   if (m.kind === 'reminder') lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEsc(c.title)}`, 'TRIGGER:PT0M', 'END:VALARM');
   lines.push('END:VEVENT');
   return lines;
 }
-const wrapCal = events => ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sedi//Timely//EN', 'CALSCALE:GREGORIAN', ...events, 'END:VCALENDAR'].join('\r\n');
+/** RFC 5545: lines longer than 75 bytes are folded (CRLF + space), and the file ends with CRLF. */
+function foldLine(line) {
+  const bytes = new TextEncoder().encode(line);
+  if (bytes.length <= 75) return line;
+  const out = []; let cur = '', size = 0, limit = 75;
+  for (const ch of line) {
+    const n = new TextEncoder().encode(ch).length;
+    if (size + n > limit) { out.push(cur); cur = ''; size = 0; limit = 74; }
+    cur += ch; size += n;
+  }
+  out.push(cur);
+  return out.join('\r\n ');
+}
+const wrapCal = events => ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sedi//Timely//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', ...events, 'END:VCALENDAR'].map(foldLine).join('\r\n') + '\r\n';
 const slug = s => (s || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 export function exportCard(c) {
   if (!c) return;
   download(`${slug(c.title)}.ics`, wrapCal(vevent(c)), 'text/calendar');
   toast('Saved. Open the file and your calendar adds it.');
 }
-const plainText = s => String(s || '').replace(/<\/(div|p|li)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 /** A prefilled Google Calendar event (opens in a new tab; you press Save there). */
 export function googleCalendarUrl(c) {
   const m = c.meta || {};
@@ -1189,49 +1215,70 @@ export function addToCalendar(anchor, id, { choose = false } = {}) {
     h('label', { class: 'cal-remember small muted' }, h('input', { type: 'checkbox', checked: true, onchange: e => { remember = e.target.checked; } }), ' Remember, and do it in one click next time')));
 }
 // ---------- Apple Reminders via Shortcuts (SD-B2) ----------
+// Sedi hands each card to an Apple Shortcut, which adds it to Reminders. Web pages can't reach Reminders
+// directly, so the shortcut is the bridge.
+// When a shared iCloud link for the ready-made "Sedi Reminder" shortcut exists, put it here: everyone then
+// installs it in one tap instead of building it.
+export const REMINDER_SHORTCUT_URL = '';
 const shortcutName = () => store.pref('reminderShortcut', 'Sedi Reminder');
-/** What Sedi hands the shortcut: one line of JSON, so a missing date can't break it. */
+const onApple = () => /Mac|iPhone|iPad|iPod/.test(navigator.platform || '') || /Macintosh|iPhone|iPad/.test(navigator.userAgent);
+/** What Sedi hands the shortcut: one line of JSON. `when` is written the way Shortcuts reads dates best. */
 export function reminderPayload(c) {
   const m = c.meta || {};
-  const due = m.date ? `${m.date}T${m.start != null ? `${pad(Math.floor(m.start / 60))}:${pad(m.start % 60)}` : '09:00'}:00` : '';
-  const notes = /<\/?[a-z][\s\S]*>/i.test(c.description || '') ? '' : (c.description || '');
-  return JSON.stringify({ title: c.title, due, notes });
+  const hhmm = m.start != null ? `${pad(Math.floor(m.start / 60))}:${pad(m.start % 60)}` : '09:00';
+  const due = m.date ? `${m.date}T${hhmm}:00` : '';
+  const when = m.date ? new Date(`${m.date}T${hhmm}:00`).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  const notes = plainText(c.description || '');
+  return JSON.stringify({ title: c.title, when, due, notes });
 }
 const shortcutUrl = text => `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName())}&input=text&text=${encodeURIComponent(text)}`;
 export function sendToReminders(c) {
   if (!c) return;
+  if (!onApple()) { toast('Apple Reminders works on a Mac, iPhone or iPad. Here, add it to your calendar instead.'); return; }
   const url = shortcutUrl(reminderPayload(c));
   if (!store.pref('reminderShortcutReady')) return openRemindersSetup(url);
   location.href = url;
-  toast('Opening Shortcuts… If nothing happens, check the setup in Menu → Apple Reminders.');
+  toast(`Sent to Shortcuts. “${c.title.slice(0, 30)}” should appear in Reminders in a moment.`, { action: 'Not working?', onAction: () => openRemindersSetup(url), duration: 7000 });
 }
 export function openRemindersSetup(pendingUrl) {
+  if (!onApple()) {
+    modal({ title: 'Apple Reminders', body: h('div', { class: 'editor' },
+      h('p', {}, 'Sending to Reminders works on a Mac, iPhone or iPad, through Apple’s Shortcuts app.'),
+      h('p', { class: 'muted' }, 'On this device, use “Add to calendar” on any card instead: it works with Google Calendar, Outlook and Apple Calendar.')) });
+    return;
+  }
   const name = h('input', { class: 'field-input', value: shortcutName(), 'aria-label': 'Shortcut name' });
+  const result = h('p', { class: 'muted small rem-test-result' });
   const test = () => {
     store.setPref('reminderShortcut', name.value.trim() || 'Sedi Reminder');
     const t = new Date(Date.now() + 5 * 60e3);
-    location.href = shortcutUrl(JSON.stringify({ title: 'Sedi test reminder', due: `${dateKey(t)}T${pad(t.getHours())}:${pad(t.getMinutes())}:00`, notes: 'If this shows up in Reminders, the bridge works.' }));
+    const k = dateKey(t), mins = t.getHours() * 60 + t.getMinutes();
+    location.href = shortcutUrl(reminderPayload({ title: 'Sedi test reminder', description: 'If this shows up in Reminders, the bridge works.', meta: { date: k, start: mins } }));
+    result.textContent = 'Sent. Check Reminders: “Sedi test reminder”, due in 5 minutes. If Shortcuts says it can’t find the shortcut, check the name matches exactly.';
   };
+  const steps = REMINDER_SHORTCUT_URL
+    ? h('ol', { class: 'steps' },
+      h('li', {}, h('a', { href: REMINDER_SHORTCUT_URL, target: '_blank', rel: 'noopener', class: 'btn sm primary' }, 'Get the Sedi Reminder shortcut'), ' and press “Add Shortcut”.'),
+      h('li', {}, 'Come back and press “Send a test reminder”.'))
+    : h('ol', { class: 'steps' },
+      h('li', {}, 'Open the Shortcuts app and create a new shortcut named exactly as below.'),
+      h('li', {}, 'Add “Get Dictionary from Input”, with Shortcut Input as the input.'),
+      h('li', {}, 'Add “Get Dictionary Value” for the key “title”.'),
+      h('li', {}, 'Add “Add New Reminder” and set its text to that Dictionary Value.'),
+      h('li', {}, 'To get alerts: before “Add New Reminder”, add “Get Dictionary Value” for “when”, then “Get Dates from Input”. In “Add New Reminder”, turn on “Remind Me” and choose those Dates. (Cards without a date then arrive without an alert.)'),
+      h('li', {}, 'Come back and press “Send a test reminder”.'));
   modal({
     title: 'Send to Apple Reminders', wide: true,
     body: h('div', { class: 'editor' },
-      h('p', { class: 'muted' }, 'Sedi hands each reminder to an Apple Shortcut on your Mac or iPhone. Build it once (about 3 minutes):'),
-      h('ol', { class: 'steps' },
-        h('li', {}, 'Open the Shortcuts app and create a new shortcut. Name it exactly as below.'),
-        h('li', {}, 'In the shortcut’s details (ⓘ), turn on “Receive Text input”, and if there’s no input, “Stop and respond”.'),
-        h('li', {}, 'Add “Get Dictionary from Input” (input: Shortcut Input).'),
-        h('li', {}, 'Add “Get Dictionary Value” → Value for “title”. Add another “Get Dictionary Value” → Value for “due”.'),
-        h('li', {}, 'Add “If” → the “due” value → “has any value”.'),
-        h('li', {}, 'Inside If: “Add New Reminder” with the title value, turn on “Remind Me”, and set the date to the “due” value. (If Shortcuts won’t accept it, put “Get Dates from Input” on “due” first.)'),
-        h('li', {}, 'Inside Otherwise: “Add New Reminder” with the title value and no alert.'),
-        h('li', {}, 'Come back here and press “Send a test reminder”. A reminder called “Sedi test reminder” should appear, due in 5 minutes.')),
-      h('label', { class: 'field-label' }, 'Shortcut name'), name,
-      h('p', { class: 'muted small' }, 'Works in Safari or Chrome on macOS and iOS. Your browser asks to open Shortcuts the first time.')),
+      h('p', { class: 'muted' }, 'Web pages can’t reach Reminders directly, so Sedi hands each card to an Apple Shortcut that adds it for you. Set it up once on each Mac or iPhone you use:'),
+      steps,
+      h('label', { class: 'field-label' }, 'Shortcut name'), name, result,
+      h('p', { class: 'muted small' }, 'The first time, your browser asks whether to open Shortcuts. Choose Allow (or Always Allow).')),
     actions: [
       { label: 'Send a test reminder', kind: 'ghost', onClick: () => { test(); return true; } },
       { label: 'Cancel', kind: 'ghost' },
       {
-        label: typeof pendingUrl === 'string' ? 'It works, send it' : 'Save', kind: 'primary', onClick: () => {
+        label: typeof pendingUrl === 'string' ? 'It works, send it' : 'It works', kind: 'primary', onClick: () => {
           store.setPref('reminderShortcut', name.value.trim() || 'Sedi Reminder');
           store.setPref('reminderShortcutReady', true);
           if (typeof pendingUrl === 'string') location.href = pendingUrl.replace(/name=[^&]*/, `name=${encodeURIComponent(shortcutName())}`);

@@ -76,8 +76,9 @@ export function openGooglePanel() {
   modal({
     title: 'Google account', wide: true,
     body: h('div', { class: 'editor' },
-      h('p', {}, 'Connect Google to create Google Docs from Brainly notes and save PDFs to Drive. Sedi only gets access to files it creates, nothing else in your Drive.'),
-      h('p', { class: 'muted small' }, 'Because Sedi has no server, Google needs a one-time “client ID” for your copy of Sedi. It’s free:'),
+      h('p', {}, h('b', {}, 'You don’t need this to use Google Docs. '), 'In any Brainly note, “Open as Google Doc” copies the note and opens a new doc for you to paste into. No setup.'),
+      h('p', {}, 'Connecting is optional and for people comfortable with Google Cloud: Sedi then creates the doc with your text already in it, and can save PDFs to Drive. It only gets access to files it creates.'),
+      h('p', { class: 'muted small' }, 'Because Sedi has no server, Google needs a one-time “client ID” for your copy of Sedi (free, about 10 minutes):'),
       h('ol', { class: 'steps' },
         h('li', {}, 'Go to console.cloud.google.com, create a project (any name), and enable the “Google Drive API”.'),
         h('li', {}, 'APIs & Services → OAuth consent screen: choose External, add your own email as a test user.'),

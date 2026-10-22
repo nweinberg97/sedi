@@ -1,5 +1,6 @@
 // Sedi — persistent chrome: header + menu drawer, tool navigator, Universal Board, trash bin, routing.
 
+import { openDataInfo, markBackedUp } from './datainfo.js';
 import { IS_BETA } from './env.js';
 import * as store from './store.js';
 import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp, homeSpot } from './util.js';
@@ -9,6 +10,7 @@ import { openBrainPanel } from './brain.js';
 import { openRemindersSetup } from './timely.js';
 import { openEnginesPanel } from './engines.js';
 import { openGooglePanel } from './google.js';
+import { openBookNotes } from './booknotes.js';
 
 export const ROUTES = ['home', 'taskly', 'boardly', 'timely', 'brainly'];
 const NAV_ORDER = ['taskly', 'boardly', 'home', 'timely', 'brainly'];
@@ -54,15 +56,17 @@ export function buildDrawer() {
   const item = (ic, label, sub, onclick, cls = '', navoroId = null) =>
     h('button', { class: `drawer-item ${cls}`, 'aria-label': label, 'data-navoro-id': navoroId, onclick: () => { toggleDrawer(false); onclick?.(); } },
       icon(ic), h('span', { class: 'drawer-text' }, h('span', {}, label), sub ? h('small', {}, sub) : null));
-  const fileInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: e => importFile(e.target.files[0], e.target) });
+  const fileInput = importInput = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: e => importFile(e.target.files[0], e.target) });
   drawer = h('aside', { class: 'drawer', 'aria-label': 'Menu' },
     h('div', { class: 'drawer-list' },
+      item('lock', 'Your data', 'Where it lives, and how to keep it safe', showDataInfo),
       item('sync', 'Sync devices', 'Coming later', null, 'disabled'),
       item('download', 'Download data', 'Save everything as a .json file', exportData),
       item('upload', 'Import data', 'Load a Sedi .json file', () => fileInput.click()),
-      item('brain', 'Sovereign Brain', 'Private, on-device coach', openBrainPanel),
-      item('atom', 'AI engines', 'On-device by default; add others if you like', openEnginesPanel),
-      item('file', 'Google account', 'Create Google Docs from Brainly', openGooglePanel),
+      item('book', 'Book notes', 'Ideas from great books on habits and focus', openBookNotes),
+      item('brain', 'On-device AI', 'Optional: private answers and coaching', openBrainPanel),
+      item('atom', 'Other AI services', 'Use Claude or your own AI instead', openEnginesPanel),
+      item('file', 'Google Docs', 'Works without setup; connecting is optional', openGooglePanel),
       item('bell', 'Apple Reminders', 'Set up the Shortcuts bridge', openRemindersSetup),
       item('home', 'Reset button positions', 'Put moved buttons back in place', resetPositions),
       h('div', { class: 'drawer-sep' }),
@@ -74,9 +78,12 @@ export function buildDrawer() {
   return drawer;
 }
 
-async function exportData() {
+let importInput = null;
+export const showDataInfo = () => openDataInfo({ onBackup: exportData, onImport: () => importInput?.click() });
+export async function exportData() {
   const data = await store.exportAllWithFiles();
   download(`sedi-${todayKey()}.json`, JSON.stringify(data, null, 2));
+  markBackedUp();
   toast(`Downloaded your Sedi data${data.files?.length ? ` (including ${data.files.length} PDF${data.files.length === 1 ? '' : 's'})` : ''}`);
 }
 

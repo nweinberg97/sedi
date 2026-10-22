@@ -234,7 +234,9 @@ export function initDnd(navigate) {
 
   function autoScroll() {
     const z = drag.zone;
-    const sc = z?.closest('[data-autoscroll]') || z?.querySelector?.('[data-autoscroll]');
+    let sc = z?.closest('[data-autoscroll]') || z?.querySelector?.('[data-autoscroll]');
+    // On phones many lists grow with the page instead of scrolling themselves; scroll the page then.
+    if (!sc || sc.scrollHeight <= sc.clientHeight + 2) sc = document.querySelector('.view-host');
     if (!sc) return;
     const r = sc.getBoundingClientRect();
     const edge = 36;

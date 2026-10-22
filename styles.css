@@ -3330,8 +3330,70 @@ body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .hom
   .modal.note-modal .modal-body { flex: 1; display: flex; flex-direction: column; }
   .modal.note-modal .rich-editor { flex: 1; max-height: none !important; }
 }
+@media (max-width: 700px) {
+  /* The atom: solid and dark on phones so it never blends into a white page or the cards under it */
+  .assistant-token {
+    background: radial-gradient(circle at 35% 30%, #3a3f55 0%, #15171f 70%) !important; color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 10px 26px -6px rgba(20, 30, 70, 0.55), 0 0 0 7px rgba(91, 141, 239, 0.18) !important;
+    z-index: 48 !important;
+  }
+  .assistant-token::before, .assistant-token::after { display: none !important; } /* the glow layer washed out the icon */
+  .assistant-token svg, .assistant-token .atom-mark { color: #fff !important; stroke: #fff; }
+  .assistant-token[aria-expanded="true"] { background: radial-gradient(circle at 35% 30%, #4a5170 0%, #1d2030 70%) !important; }
+  .assistant-token.is-listening, .assistant-token.holding { background: radial-gradient(circle at 35% 30%, #ff7a7e 0%, #e5484d 70%) !important; }
+}
+@media (max-width: 700px) {
+  /* Timely: the plan for the day / week / month comes first, then the calendar */
+  .day-layout, .period-layout { display: flex !important; flex-direction: column !important; gap: 12px !important; }
+  .day-layout > .day-plan, .period-layout > .day-plan { order: -1; width: auto !important; max-height: none !important; position: static !important; }
+  .day-plan .day-plan-list { max-height: none !important; }
+  /* The day timeline is part of the page scroll, not a box scrolling inside a scrolling page */
+  .day-col { height: auto !important; min-height: 0 !important; }
+  .day-scroll { height: auto !important; max-height: none !important; overflow: visible !important; flex: none !important; }
+
+  /* Add forms (new task, meeting, routine…) open as a bottom sheet instead of a floating box */
+  .popover:has(.form-pop) {
+    position: fixed !important; left: 8px !important; right: 8px !important; top: auto !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important; width: auto !important; max-width: none !important;
+    max-height: 82dvh; overflow-y: auto; border-radius: var(--r-xl) !important; padding: 16px !important; z-index: 120 !important;
+    box-shadow: 0 -10px 40px -10px rgba(20, 30, 60, 0.35), 0 0 0 100vmax rgba(17, 17, 17, 0.25) !important;
+  }
+  .popover:has(.form-pop) .form-pop { gap: 10px; }
+  .popover:has(.form-pop) .btn.primary { height: 44px; font-size: var(--fs-md); }
+}
 /* Desktop never shows the phone-only note details */
 @media (min-width: 701px) { .b-note-snip, .b-note-when { display: none !important; } }
 
 .drag-keeper { position: fixed; left: -10000px; top: 0; width: 1px; height: 1px; overflow: hidden; visibility: hidden; pointer-events: none; }
 .universal-trigger.drop-over { scale: 1.25; box-shadow: 0 0 0 6px color-mix(in srgb, var(--brainly) 35%, transparent) !important; transition: scale 0.15s; }
+
+/* ---------- Your data ---------- */
+.di { display: flex; flex-direction: column; gap: 14px; }
+.di-lede { font-size: var(--fs-md); line-height: 1.5; color: var(--ink-2); max-width: 62ch; }
+.di-status { display: grid; gap: 2px; background: var(--well); border-radius: var(--r-lg); padding: 6px; }
+.di-row { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r); }
+.di-row svg { width: 16px; height: 16px; color: var(--muted); }
+.di-label { color: var(--muted); font-size: var(--fs-sm); }
+.di-row b { font-weight: 600; font-size: var(--fs-sm); text-align: right; }
+.di-row.ok b { color: var(--ok); }
+.di-row.warn b { color: #b26a00; }
+.di-callout { display: flex; gap: 10px; align-items: flex-start; background: #fff6e0; border: 1px solid #f2d79a; color: #5d4300; border-radius: var(--r); padding: 10px 12px; font-size: var(--fs-sm); line-height: 1.45; }
+.di-callout svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+.di-h { font-size: var(--fs-sm); font-weight: 650; margin-top: 2px; }
+.di-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+.di-faq { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+.di-qa summary { cursor: pointer; padding: 8px 0; font-weight: 600; font-size: var(--fs-sm); }
+.di-qa p { margin: 0 0 8px; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.5; }
+
+/* Book notes */
+.book-notes p { margin: 0 0 var(--s-2); }
+.book-notes .muted { color: var(--muted); font-size: var(--fs-sm); }
+.bn-list { list-style: none; margin: var(--s-3) 0; padding: 0; display: grid; gap: 6px; }
+.bn-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; background: var(--surface-2, rgba(127,127,127,.08)); }
+.bn-emoji { font-size: 22px; width: 28px; text-align: center; }
+.bn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bn-text small { color: var(--muted); }
+.bn-row .btn[disabled] { opacity: .55; }
+.bn-print { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); }
+.bn-print svg { width: 16px; height: 16px; }
+@media (max-width: 640px) { .b-books { padding: 0 10px; } }

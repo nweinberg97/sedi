@@ -44,7 +44,7 @@ The floating atom (bottom of the screen) is the assistant. Tap it and talk, or p
 
 ## Feature: Privacy and on-device AI
 
-By default, voice is turned into text on your device and the recording is wiped right after; only the words are kept. The default AI engine runs in your browser, so nothing you type leaves your device. You can optionally add Claude or another AI service with your own key in AI engines. API keys stay on this device and are never included in Download data.
+By default, voice starts right away with your browser's speech recognition (in Chrome, Google processes that audio) and switches to private on-device hearing once its one-time download finishes; after that, recordings are wiped as soon as they're turned into text. To never use the browser's recognition, choose Private, on this device in Voice and hearing. Mics in cards and notes use the browser's recognition. The default AI engine runs in your browser, so nothing you type leaves your device. You can optionally add Claude or another AI service with your own key in Other AI services. API keys stay on this device and are never included in Download data.
 
 ## How to get help in Sedi
 
@@ -434,18 +434,18 @@ Prerequisites: A Mac, iPhone or iPad with the Shortcuts app.
 2. Click **More**, then **Voice and hearing…**.
 3. Click **Remove voice downloads**.
 
-## How to turn on the Sovereign Brain
+## How to turn on the on-device AI
 
 Prerequisites: A one-time download of about 500 MB (Light) or 1.2 GB (Full).
 
 1. Click **Open menu** in the top right.
-2. Click **Sovereign Brain**.
+2. Click **On-device AI**.
 3. Choose Light or Full, then click **Download and enable**.
 
-## How to remove the Sovereign Brain
+## How to remove the on-device AI
 
 1. Click **Open menu** in the top right.
-2. Click **Sovereign Brain**.
+2. Click **On-device AI**.
 3. Click **Turn off and remove download**.
 
 ## How to use Claude or another AI engine
@@ -453,20 +453,20 @@ Prerequisites: A one-time download of about 500 MB (Light) or 1.2 GB (Full).
 Prerequisites: Your own API key from Anthropic or another service, or Ollama on your Mac.
 
 1. Click **Open menu** in the top right.
-2. Click **AI engines**.
+2. Click **Other AI services**.
 3. Choose Claude or Other engine and enter your key or address.
 4. Click **Test**, then **Save**.
 
 ## How to remove saved API keys
 
 1. Click **Open menu** in the top right.
-2. Click **AI engines**.
+2. Click **Other AI services**.
 3. Click **Remove saved keys**.
 
-## How to connect your Google account
+## How to connect your Google account (optional)
 
 1. Click **Open menu** in the top right.
-2. Click **Google account**.
+2. Click **Google Docs**.
 3. Follow the four setup steps and paste your **OAuth client ID**.
 4. Click **Connect** and sign in to Google.
 
@@ -538,7 +538,7 @@ Resolution: Upload a smaller file, or save a link to the file instead with **Pas
 
 Your browser's storage for Sedi is full.
 
-Resolution: Delete large files you no longer need from Brainly, remove voice downloads in Voice and hearing, or remove the Sovereign Brain in the menu.
+Resolution: Delete large files you no longer need from Brainly, remove voice downloads in Voice and hearing, or remove the on-device AI in the menu.
 
 ## Troubleshooting: Microphone access is blocked.
 
@@ -568,13 +568,13 @@ Resolution: Search a city in the **Weather** panel instead, or allow location fo
 
 Google Docs and Drive need an internet connection and your own Google setup.
 
-Resolution: Get online, then click **Open menu**, **Google account**, and **Connect**.
+Resolution: Get online, then click **Open menu**, **Google Docs**, and **Connect**.
 
-## Troubleshooting: Add your Anthropic API key in Menu → AI engines.
+## Troubleshooting: Add your Anthropic API key in Menu → Other AI services.
 
 Claude is selected as the assistant's engine but no key is saved.
 
-Resolution: Click **Open menu**, then **AI engines**, add your key and click **Save**, or switch back to On-device.
+Resolution: Click **Open menu**, then **Other AI services**, add your key and click **Save**, or switch back to On-device.
 
 ## Glossary
 
@@ -596,5 +596,25 @@ Resolution: Click **Open menu**, then **AI engines**, add your key and click **S
 - **My links** — Brainly's column for links, PDFs and files.
 - **Assistant** — The atom at the bottom. Talk or type to ask about your cards or change them.
 - **Private voice** — On-device speech-to-text. Recordings are wiped after transcription.
-- **Sovereign Brain** — An optional private coach that runs a small AI model in your browser.
-- **AI engines** — Where you choose the assistant's engine: on-device, Claude, or another service with your own key.
+- **On-device AI** — Optional. A small AI model that runs in your browser, so the assistant can answer open questions and coach you without sending anything anywhere. Without it, the assistant still finds your cards, says what's next and makes changes you ask for.
+- **Other AI services** — Use Claude or another AI service with your own key instead of the on-device AI.
+
+
+## Your data: where it lives and how to keep it safe
+
+Sedi has no accounts and no server. Everything you make is stored in this browser on this device, so your browser holds the only copy unless you save a backup.
+
+1. Click **Open menu** in the top right.
+2. Click **Your data** to see where it's stored, when you last backed up, and what can erase it.
+3. Click **Download a backup** to save everything as one file. **Import a backup** restores it in any browser.
+
+What erases Sedi: clearing "cookies and site data" (Safari: "history and website data") for this site, closing a private or incognito window, or using a different browser, profile or device. Clearing only cached images and files does not. Safari can remove data from sites you haven't opened for about a week, so on a Mac or iPhone add Sedi to your Dock or Home Screen.
+
+## How to add book notes to Brainly
+
+Book notes are one-page summaries of books about habits, focus and wellbeing, like Atomic Habits by James Clear and Tiny Habits by BJ Fogg. Each has the big idea, key lessons, one thing to try and how to do it in Sedi. They're short summaries in Sedi's own words, credited to each author, and meant to point you to the books.
+
+1. Open **Brainly** and click **Books**, or open the menu and click **Book notes**.
+2. Click **Add** next to a book, or **Add all to Brainly**.
+3. The notes appear in the **Book notes** folder. Edit them like any other note.
+4. To print them or save them as a PDF, click **Printable version**.

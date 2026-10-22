@@ -1,6 +1,7 @@
 // Sedi — Brainly: search, My Links (links, text files, PDFs in collapsible folders), and a free-form canvas
 // of notes (rounded squares) and folders (which can hold folders).
 
+import { openBookNotes } from './booknotes.js';
 import * as store from './store.js';
 import {
   h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml, relTime,
@@ -76,7 +77,8 @@ export function mount(el) {
       h('div', { class: 'search' }, icon('search', 'search-icon'), searchInput, results),
       h('div', { class: 'brain-actions' },
         h('button', { class: 'btn primary sm', onclick: () => addNote() }, icon('plus'), 'Note'),
-        h('button', { class: 'btn ghost sm', onclick: () => addFolder() }, icon('folder'), 'Folder'))),
+        h('button', { class: 'btn ghost sm', onclick: () => addFolder() }, icon('folder'), 'Folder'),
+        h('button', { class: 'btn ghost sm b-books', title: 'Book notes', onclick: () => openBookNotes() }, icon('book'), 'Books'))),
     h('div', { class: 'brain-body' }, dash, canvas)));
   setupFileDrop();
   canvas.addEventListener('pointerover', e => { hovered = e.target.closest('.b-note, .b-folder'); });
@@ -717,13 +719,13 @@ function openFolder(fid) {
     const path = [];
     for (let p = f; p; p = folderById(p.parentId)) path.unshift(p);
     const subs = childFolders(fid);
-    const notes = folderNotes(fid).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const notes = folderNotes(fid).sort((a, b) => (a.meta?.bookOrder ?? 1e9) - (b.meta?.bookOrder ?? 1e9) || b.updatedAt.localeCompare(a.updatedAt));
     box.replaceChildren(
-      h('div', { class: 'crumbs' }, path.map((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, i < path.length - 1 ? h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name) : h('strong', {}, p.name)])),
+      h('div', { class: 'crumbs' }, path.flatMap((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, i < path.length - 1 ? h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name) : h('strong', {}, p.name)]).filter(Boolean)),
       subs.length ? h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, 'Folders'),
         h('div', { class: 'fv-folders' }, subs.map(s => h('div', { class: 'fv-folder', style: { '--folder': s.color || '#A796CB' } },
           h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(s.id); } }, h('span', { class: 'bf-emoji' }, s.emoji || '🗂️'), h('span', {}, s.name), dotsRow(folderNotes(s.id), 6)),
-          h('button', { class: 'chip ghost', title: 'Move this folder out onto the canvas', onclick: () => saveFolder(s.id, { parentId: null, ...freeSpot() }) }, 'Move out'))))) : null,
+          h('button', { class: 'chip ghost', title: 'Move this folder out onto the canvas', onclick: () => saveFolder(s.id, { parentId: null, ...freeSpot() }) }, 'Move out'))))) : '',
       h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, notes.length ? 'Notes · drag one out to move it' : 'Notes'),
         notes.length ? h('div', { class: 'fv-notes' }, notes.map(n => {
           const el = h('article', { class: 'b-note in-folder', dataset: { drag: 'card', id: n.id }, tabindex: 0, style: { '--note': noteColor(n) } },
@@ -837,29 +839,38 @@ export function openNote(id, isNew = false) {
   };
   // One click, no setup: copy the note, open a new Google Doc with its title, paste.
   // (If a Google account is connected in the menu, Sedi creates the doc with the text already in it.)
-  const createDoc = async () => {
+  // Browsers only let a page open a tab during the click itself, so the tab opens first and everything
+  // slow (creating the doc, copying) happens after.
+  const createDoc = () => {
     save();
     const now = store.getCard(id);
+    const createUrl = `https://docs.google.com/document/create?title=${encodeURIComponent(now.title || 'Note')}`;
     if (google.isSetUp() && store.pref('googleConnected')) {
+      const tab = window.open('', '_blank');
       docStatus.textContent = 'Creating your Google Doc…';
-      try {
-        const url = await google.createDoc(now.title, noteText(now));
+      google.createDoc(now.title, noteText(now)).then(url => {
         store.updateCard(id, { meta: { docLinks: [...(now.meta?.docLinks || []), { kind: 'gdoc', url, title: `${now.title} (Google Doc)` }] } }, { log: true, logLabel: 'Created a Google Doc' });
         paintDocs(); docStatus.textContent = 'Created and linked.';
-        window.open(url, '_blank', 'noopener');
-        return;
-      } catch { /* fall back to copy-and-open */ }
+        if (tab) tab.location.href = url; else window.open(url, '_blank', 'noopener');
+      }).catch(() => {
+        if (tab) tab.location.href = createUrl;
+        docStatus.textContent = 'Couldn’t create it automatically, so a blank doc opened. Your note is in Brainly to copy.';
+      });
+      return;
     }
     const html = `<h1>${escapeHtml(now.title || '')}</h1>${sanitize(now.description || '')}`;
     const plain = `${now.title}\n\n${noteText(now)}`;
-    let copied = false;
+    // Start the copy inside the click, then open the doc.
+    let copying;
     try {
-      if (navigator.clipboard?.write && window.ClipboardItem) await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([plain], { type: 'text/plain' }) })]);
-      else await navigator.clipboard.writeText(plain);
-      copied = true;
-    } catch { /* clipboard blocked; the doc still opens */ }
-    window.open(`https://docs.google.com/document/create?title=${encodeURIComponent(now.title || 'Note')}`, '_blank', 'noopener');
-    docStatus.textContent = copied ? 'Opened a new Google Doc. Your note is copied: press ⌘V (Ctrl V) there.' : 'Opened a new Google Doc.';
+      copying = navigator.clipboard?.write && window.ClipboardItem
+        ? navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([plain], { type: 'text/plain' }) })])
+        : navigator.clipboard.writeText(plain);
+    } catch { copying = Promise.reject(); }
+    window.open(createUrl, '_blank', 'noopener');
+    Promise.resolve(copying).then(() => true, () => false).then(copied => {
+      docStatus.textContent = copied ? `Opened a new Google Doc. Your note is copied: press ${/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘V' : 'Ctrl V'} there.` : 'Opened a new Google Doc. Copy your note from here and paste it in.';
+    });
     showAttach('Optional: paste the new doc’s address to keep it linked here');
   };
   const docs = h('div', { class: 'note-docs' },

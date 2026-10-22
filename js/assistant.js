@@ -506,8 +506,20 @@ async function answer(q, { voice = false } = {}) {
       bubble.firstChild.replaceChildren(h('span', { class: 'muted' }, `${engineLabel()} couldn’t answer: ${err.message || err}. Showing matches instead.`));
     }
   }
-  if (brain.isEnabled() && (COACH.test(q) || !hits.length)) {
-    const bubble = say(h('div', { class: 'as-stream' }, h('span', { class: 'muted' }, brain.brainState().status === 'ready' ? 'Thinking…' : 'Waking the brain…')));
+  // The on-device AI answers only once it's loaded; until then the reply never waits on it.
+  if (brain.isEnabled() && brain.brainState().status !== 'ready' && (COACH.test(q) || !hits.length)) {
+    brain.warmUp();
+    try {
+      const [top] = COACH.test(q) ? await brain.retrieve(q, 1) : [];
+      if (top) {
+        say(h('div', {}, h('p', {}, h('strong', {}, top.title)), h('p', { class: 'as-framework' }, top.text),
+          h('small', { class: 'as-sources' }, 'From Sedi’s library. The on-device AI is loading and will tailor answers in a moment.')));
+        return `${top.title}. ${top.text}`;
+      }
+    } catch {}
+  }
+  if (brain.isEnabled() && brain.brainState().status === 'ready' && (COACH.test(q) || !hits.length)) {
+    const bubble = say(h('div', { class: 'as-stream' }, h('span', { class: 'muted' }, 'Thinking…')));
     try {
       const ctx = hits.slice(0, 4).map(c => ({ title: c.title, where: TOOL_NAMES[c.tool] }));
       // Spoken replies start with the first finished sentence instead of waiting for the whole answer.
@@ -523,7 +535,7 @@ async function answer(q, { voice = false } = {}) {
       bubble.firstChild.replaceChildren(renderText(res.text), h('small', { class: 'as-sources' }, `From: ${res.sources.join(', ')}`), engineTag(engineLabel('local')));
       return res.text;
     } catch (err) {
-      bubble.firstChild.replaceChildren(h('span', { class: 'muted' }, `The brain couldn’t answer: ${err.message || err}. Showing matches instead.`));
+      bubble.firstChild.replaceChildren(h('span', { class: 'muted' }, `The on-device AI couldn’t answer: ${err.message || err}. Showing matches instead.`));
     }
   }
   if (hits.length) {

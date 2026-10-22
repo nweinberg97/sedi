@@ -126,11 +126,16 @@ export async function ensureLoaded() {
   if (!p?.enabled) return null;
   return loadModel(p.model, { fromCacheOnly: true });
 }
+/** Start loading in the background so answers are ready when you ask; never makes anyone wait. */
+export function warmUp() {
+  if (!isEnabled() || state.status === 'ready' || state.status === 'loading') return;
+  ensureLoaded().catch(() => {});
+}
 
 /** Ask the coach. `sediContext` is a short list of the user's own relevant cards. */
 export async function ask(question, sediContext = [], onToken) {
   const gen = await ensureLoaded();
-  if (!gen) throw new Error('Sovereign Brain is off');
+  if (!gen) throw new Error('The on-device AI is off');
   const chunks = await retrieve(`${question} ${sediContext.map(c => c.title).join(' ')}`, 3);
   const ctx = chunks.map((c, i) => `[${i + 1}] ${c.title}: ${c.text}`).join('\n\n');
   const mine = sediContext.length ? `\n\nRelevant items from the user's Sedi:\n${sediContext.map(c => `- ${c.title}${c.where ? ` (${c.where})` : ''}`).join('\n')}` : '';
@@ -152,7 +157,7 @@ export async function ask(question, sediContext = [], onToken) {
 /** Plain generation with the on-device model (used for summaries and general chat). */
 export async function complete(messages, { maxTokens = 220, onToken } = {}) {
   const gen = await ensureLoaded();
-  if (!gen) throw new Error('Sovereign Brain is off');
+  if (!gen) throw new Error('The on-device AI is off');
   let text = '';
   const streamer = TextStreamer ? new TextStreamer(gen.tokenizer, {
     skip_prompt: true, skip_special_tokens: true,
@@ -184,14 +189,15 @@ export function openBrainPanel() {
   paint(state);
   const unsub = onBrainChange(paint);
   modal({
-    title: 'Sovereign Brain', wide: true, onClose: unsub,
+    title: 'On-device AI', wide: true, onClose: unsub,
     body: h('div', { class: 'editor' },
-      h('p', {}, 'A private coach for focus, habits and getting unstuck. It runs entirely in this browser: nothing you type leaves your device.'),
+      h('p', {}, h('b', {}, 'What it is: '), 'a small AI model that runs inside your browser, so nothing you type leaves your device. Turn it on and the assistant (the atom) can answer open questions, like “how do I start this project?” or “help me plan a calmer week”, using your own cards and a built-in library of habit and focus techniques.'),
+      h('p', { class: 'muted small' }, h('b', {}, 'Without it, '), 'the assistant still finds anything you’ve saved, tells you what’s next, and makes the changes you ask for. Turn this on only if you want open-ended answers and coaching.'),
       h('p', { class: 'muted small' }, `One-time download, cached for offline use. ${hasWebGPU() ? 'Your browser supports WebGPU, so it will run on your graphics chip.' : 'WebGPU isn’t available here, so it will run on your CPU (slower). Chrome on a recent Mac works best.'}`),
       opts, bar, status,
       h('p', { class: 'muted small' }, 'Use it from the assistant (the atom at the bottom) or press ⌘K / Ctrl K.')),
     actions: [
-      ...(isEnabled() ? [{ label: 'Turn off and remove download', kind: 'ghost', onClick: async () => { await disable(true); toast('Sovereign Brain removed from this device'); } }] : []),
+      ...(isEnabled() ? [{ label: 'Turn off and remove download', kind: 'ghost', onClick: async () => { await disable(true); toast('On-device AI removed from this device'); } }] : []),
       { label: 'Close', kind: 'ghost' },
       {
         label: isEnabled() ? 'Reload model' : 'Download and enable', kind: 'primary', onClick: async () => {
@@ -201,7 +207,7 @@ export function openBrainPanel() {
             if (quota - usage < 1.6e9 && choice === 'full') toast('Storage is tight. The Light model may fit better.');
           }
           generator = null;
-          enable(choice).then(() => toast('Sovereign Brain is ready')).catch(() => {});
+          enable(choice).then(() => toast('On-device AI is ready')).catch(() => {});
           return true;
         },
       },
