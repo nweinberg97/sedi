@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atomic Habits · By Design</title>
+<meta name="description" content="A free guide to Atomic Habits by James Clear: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g1">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-03-Atomic-Habits.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 03</span><span>Atomic Habits · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Habit formation</p>
+     <h1>Atomic Habits</h1>
+     <p class="subtitle">An Easy &amp; Proven Way to Build Good Habits &amp; Break Bad Ones</p>
+     <p class="byline">James Clear · 2018</p>
+     <div class="sp"></div>
+     <p class="lead">James Clear shows how tiny improvements compound into remarkable results, and gives a practical system for designing the cues, cravings and rewards behind every habit you want to build or break.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a>,<a href="#s9">9</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>A clear, memorable system you can apply to any habit<sup class="fn"><a href="#s2">2</a></sup></span></li><li><span>Stories from athletes, artists and scientists that make the ideas stick<sup class="fn"><a href="#s1">1</a></sup></span></li><li><span>Practical tools like habit stacking and the Two-Minute Rule<sup class="fn"><a href="#s6">6</a>,<a href="#s8">8</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">⚛️</span><div><p class="kick dark">Get the book</p><p><b>Atomic Habits</b> by James Clear</p><p class="muted" style="font-size:13.5px">Avery (Penguin Random House), 2018. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Atomic Habits</i> by James Clear. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 03</span><span>Atomic Habits · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Systems beat goals</h2>
+     <p class="lead">Clear argues that goals set the direction but systems make the progress: you fall to the level of your systems. Getting about 1% better each day compounds, even when results stay invisible for a long time. He calls that stretch the Plateau of Latent Potential.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a>,<a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Every action is a vote</h3><p>Habits shape identity. Decide who you want to become, then prove it to yourself with small wins. Change works best from identity outward.<sup class="fn"><a href="#s4">4</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Environment beats willpower</h3><p>Make the cues for good habits obvious and hide the cues for bad ones. The easiest habit is the one already set up for you.<sup class="fn"><a href="#s2">2</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Never miss twice</h3><p>Missing once is an accident. Missing twice is the start of a new pattern, so get straight back on track.<sup class="fn"><a href="#s10">10</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Atomic Habits</i> by James Clear. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 03</span><span>Atomic Habits · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>The Four Laws of Behavior Change<sup class="fn"><a href="#s2">2</a></sup></h2>
+     
+     <p class="lead">Every habit runs through a loop: cue, craving, response, reward. Each law shapes one stage. To break a habit, invert the law.<sup class="fn"><a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Make it obvious</h3><p class="tag">Cue · invert: make it invisible</p><p>A habit starts with a cue you notice. Decide exactly when and where you'll act.<sup class="fn"><a href="#s2">2</a>,<a href="#s6">6</a></sup></p><span class="tip"><b>Try:</b> I will [behavior] at [time] in [location].<sup class="fn"><a href="#s6">6</a></sup></span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Make it attractive</h3><p class="tag">Craving · invert: unattractive</p><p>The more appealing a habit, the more likely you'll do it.<sup class="fn"><a href="#s2">2</a></sup></p><span class="tip"><b>Try:</b> Temptation bundling: pair a need with a want.<sup class="fn"><a href="#s7">7</a></sup></span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Make it easy</h3><p class="tag">Response · invert: make it difficult</p><p>Reduce friction for good habits and add it to bad ones.<sup class="fn"><a href="#s2">2</a></sup></p><span class="tip"><b>Try:</b> Two-Minute Rule: start with a version under two minutes.<sup class="fn"><a href="#s8">8</a></sup></span></div></div><div class="glass part row"><span class="num">4</span><div><h3>Make it satisfying</h3><p class="tag">Reward · invert: unsatisfying</p><p>We repeat what feels good straight away.<sup class="fn"><a href="#s2">2</a></sup></p><span class="tip"><b>Try:</b> Track it so progress is visible.<sup class="fn"><a href="#s10">10</a></sup></span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Atomic Habits</i> by James Clear. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 03</span><span>Atomic Habits · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">The Habits Scorecard</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Clear's exercise for noticing what you already do.<sup class="fn"><a href="#s5">5</a></sup></p><ol class="steps"><li><span>List everything you do from the moment you wake up.</span></li><li><span>Mark each habit +, – or = for the person you want to be.</span></li><li><span>Don't change anything yet. Just notice.</span></li></ol></div><div class="white"><h3 style="font-size:22px">Habit stacking</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Clear's formula for linking a new habit to an old one.<sup class="fn"><a href="#s6">6</a></sup></p><ol class="steps"><li><span>List habits you already do every day without fail.</span></li><li><span>Pick one that happens at the right time and place.</span></li><li><span>Write it: After [current habit], I will [new habit].</span></li><li><span>Make the cue precise, like “when I close my laptop at lunch”.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Atomic Habits</i> by James Clear. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 03</span><span>Atomic Habits · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>Do the Habits Scorecard for one ordinary day.</span></li><li><span>Pick one new habit and shrink it to two minutes.</span></li><li><span>Stack it onto an existing habit.</span></li><li><span>Track it every day, and never miss twice.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>Which of your current habits are votes for the person you want to become?</p><p>What does your current system reliably produce?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Add the stacked habit as a daily Routine in Timely and tick it off to keep your streak visible.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>Atomic Habits</i> by James Clear. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 03</span><span>Atomic Habits · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">⚛️ <b>Atomic Habits</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">James Clear · Avery (Penguin Random House) · 2018</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with James Clear or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Clear, James. <i>Atomic Habits</i>. Avery, 2018. Ch. 1–2 (1% gains, Plateau of Latent Potential, identity), ch. 4 (Habits Scorecard), ch. 5 (implementation intentions, habit stacking), ch. 8 (temptation bundling), ch. 13 (Two-Minute Rule), ch. 16 (habit tracking, never miss twice).</li><li id="s2">Clear, James. “Atomic Habits: summary”, jamesclear.com. <a href="https://jamesclear.com/atomic-habits-summary" rel="noopener">jamesclear.com/atomic-habits-summary</a></li><li id="s3">SuperSummary, <i>Atomic Habits</i>: important quotes (Plateau of Latent Potential). <a href="https://supersummary.com/atomic-habits/important-quotes" rel="noopener">supersummary.com/atomic-habits/important-quotes</a></li><li id="s4">Clear, James. “Identity-Based Habits”, jamesclear.com. <a href="https://jamesclear.com/identity-based-habits" rel="noopener">jamesclear.com/identity-based-habits</a></li><li id="s5">Clear, James. “The Habits Scorecard”, jamesclear.com. <a href="https://jamesclear.com/habits-scorecard" rel="noopener">jamesclear.com/habits-scorecard</a></li><li id="s6">Clear, James. “Habit Stacking”, jamesclear.com. <a href="https://jamesclear.com/habit-stacking" rel="noopener">jamesclear.com/habit-stacking</a></li><li id="s7">Clear, James. “Temptation Bundling”, jamesclear.com. The idea comes from Milkman, Minson &amp; Volpp (2014), <i>Management Science</i>, 60(2), 283–299. <a href="https://jamesclear.com/temptation-bundling" rel="noopener">jamesclear.com/temptation-bundling</a></li><li id="s8">Clear, James. “How to Stop Procrastinating” (Two-Minute Rule), jamesclear.com. <a href="https://jamesclear.com/how-to-stop-procrastinating" rel="noopener">jamesclear.com/how-to-stop-procrastinating</a></li><li id="s9">Wikipedia, “Atomic Habits” (publication details). <a href="https://en.wikipedia.org/wiki/Atomic_Habits" rel="noopener">en.wikipedia.org/wiki/Atomic_Habits</a></li><li id="s10">LitCharts, <i>Atomic Habits</i> chapter 16 (habit tracking, never miss twice). <a href="https://www.litcharts.com/lit/atomic-habits/chapter-16" rel="noopener">litcharts.com/lit/atomic-habits/chapter-16</a></li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Atomic Habits</i> by James Clear. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

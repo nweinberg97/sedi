@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Indistractable · By Design</title>
+<meta name="description" content="A free guide to Indistractable by Nir Eyal with Julie Li: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g2">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-02-Indistractable.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 02</span><span>Indistractable · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Attention</p>
+     <h1>Indistractable</h1>
+     <p class="subtitle">How to Control Your Attention and Choose Your Life</p>
+     <p class="byline">Nir Eyal with Julie Li · 2019</p>
+     <div class="sp"></div>
+     <p class="lead">Nir Eyal, who once wrote about building habit-forming products, turns to the other side: how to stop distraction from running your day, with a four-part model and dozens of practical tactics.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a>,<a href="#s3">3</a>,<a href="#s7">7</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>A fresh take: distraction starts inside us, not in our phones<sup class="fn"><a href="#s3">3</a></sup></span></li><li><span>Tactics for email, meetings, group chat and your phone<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></span></li><li><span>Chapters on raising indistractable kids and building focused workplaces<sup class="fn"><a href="#s4">4</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">🎯</span><div><p class="kick dark">Get the book</p><p><b>Indistractable</b> by Nir Eyal with Julie Li</p><p class="muted" style="font-size:13.5px">BenBella Books, 2019. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Indistractable</i> by Nir Eyal with Julie Li. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 02</span><span>Indistractable · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Distraction is an escape from discomfort</h2>
+     <p class="lead">Eyal argues that most distraction is an attempt to escape an uncomfortable feeling such as boredom, loneliness or worry. Technology is only the proximate cause. Learn to handle the feeling, plan your time around your values, and the pull of distraction loses much of its power.<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Traction vs. distraction</h3><p>Traction is any action that moves you toward what you intend; distraction moves you away. You can only call something a distraction if you know what you meant to do.<sup class="fn"><a href="#s3">3</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Ask of every trigger</h3><p>Is this trigger serving me, or am I serving it? Keep the pings that lead to traction and remove the rest.<sup class="fn"><a href="#s3">3</a>,<a href="#s6">6</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Willpower isn't a battery</h3><p>Eyal reviews research suggesting that believing willpower runs out makes us give up sooner. Reimagine your temperament as well as the task.<sup class="fn"><a href="#s4">4</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Indistractable</i> by Nir Eyal with Julie Li. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 02</span><span>Indistractable · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>The Indistractable Model<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></h2>
+     
+     <p class="lead">Eyal's four-part model, from the inside out.<sup class="fn"><a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Master internal triggers</h3><p class="tag">Deal with the discomfort</p><p>Notice the feeling that comes before distraction, and stay with it instead of escaping.<sup class="fn"><a href="#s3">3</a></sup></p><span class="tip"><b>Try:</b> The 10-minute rule: wait ten minutes before giving in.<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Make time for traction</h3><p class="tag">Plan your values into time</p><p>Timebox your week across three domains: You, Relationships and Work.<sup class="fn"><a href="#s3">3</a></sup></p><span class="tip"><b>Try:</b> Schedule sync: agree your calendar with those who depend on it.<sup class="fn"><a href="#s4">4</a>,<a href="#s6">6</a></sup></span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Hack back external triggers</h3><p class="tag">Pings, dings and interruptions</p><p>Tactics for email, group chat, meetings, your phone and your desktop.<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></p><span class="tip"><b>Try:</b> No agenda, no meeting.<sup class="fn"><a href="#s6">6</a></sup></span></div></div><div class="glass part row"><span class="num">4</span><div><h3>Prevent distraction with pacts</h3><p class="tag">Decide in advance</p><p>Effort pacts add friction, price pacts put money at stake, and identity pacts change how you see yourself.<sup class="fn"><a href="#s3">3</a></sup></p><span class="tip"><b>Try:</b> Call yourself indistractable, and act like it.<sup class="fn"><a href="#s3">3</a></sup></span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Indistractable</i> by Nir Eyal with Julie Li. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 02</span><span>Indistractable · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">The Distraction Tracker</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Eyal's log for finding your internal triggers.<sup class="fn"><a href="#s3">3</a></sup></p><ol class="steps"><li><span>Keep a card or note open while you work.</span></li><li><span>Each time you get distracted, write the time and the feeling just before.</span></li><li><span>After three days, look for the most common feelings and triggers.</span></li><li><span>Choose one fix for the biggest one.</span></li></ol></div><div class="white"><h3 style="font-size:22px">The timeboxed week</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Eyal's way to turn values into a calendar.<sup class="fn"><a href="#s3">3</a></sup></p><ol class="steps"><li><span>Start from a blank weekly template.</span></li><li><span>Add blocks for You, then Relationships, then Work.</span></li><li><span>Follow it for a week, then reflect and refine.</span></li><li><span>Share it with your manager or partner.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Indistractable</i> by Nir Eyal with Julie Li. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 02</span><span>Indistractable · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>Run the Distraction Tracker for three days.</span></li><li><span>Try the 10-minute rule on the most common urge.</span></li><li><span>Turn off every notification that doesn't come from a person.</span></li><li><span>Timebox next week across You, Relationships and Work.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>What feeling usually comes right before you get distracted?</p><p>Which trigger around you serves someone else's goals, not yours?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Timebox your week in Timely's day view, including blocks for yourself and your people, not just work.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>Indistractable</i> by Nir Eyal with Julie Li. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 02</span><span>Indistractable · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">🎯 <b>Indistractable</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Nir Eyal with Julie Li · BenBella Books · 2019</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Nir Eyal with Julie Li or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Eyal, Nir, with Julie Li. <i>Indistractable: How to Control Your Attention and Choose Your Life</i>. BenBella Books, 2019. Part 1 internal triggers (ch. 6 the 10-minute rule); Part 2 traction (ch. 12 schedule sync); Part 3 external triggers (ch. 17 meetings); Part 4 pacts (ch. 23–25).</li><li id="s2">Publishers Weekly, <i>Indistractable</i> listing. <a href="https://www.publishersweekly.com/9781948836531" rel="noopener">publishersweekly.com/9781948836531</a></li><li id="s3">Eyal, Nir. <i>Indistractable</i> lesson plan for educators, nirandfar.com, 2020. <a href="https://www.nirandfar.com/wp-content/uploads/2025/02/Indistractable_Lesson_Plan_for_Educators_07152020.pdf" rel="noopener">nirandfar.com/wp-content/uploads/2025/02/Indistractable_Lesson_Plan_for_Educators_07152020.pdf</a></li><li id="s4">SuperSummary, <i>Indistractable</i> summary. <a href="https://www.supersummary.com/indistractable/summary/" rel="noopener">supersummary.com/indistractable/summary</a></li><li id="s5">Goodreads, quote on the ten-minute rule from <i>Indistractable</i>. <a href="https://www.goodreads.com/quotes/10243212-we-implemented-a-ten-minute-rule-and-promised-that-if-we" rel="noopener">goodreads.com/quotes/10243212-we-implemented-a-ten-minute-rule-and-promised-that-if-we</a></li><li id="s6">Graham Mann, <i>Indistractable</i> book notes. <a href="https://grahammann.net/book-notes/indistractable-nir-eyal" rel="noopener">grahammann.net/book-notes/indistractable-nir-eyal</a></li><li id="s7">Eyal, Nir, with Ryan Hoover. <i>Hooked: How to Build Habit-Forming Products</i>. Portfolio, 2014.</li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Indistractable</i> by Nir Eyal with Julie Li. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

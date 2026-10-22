@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feel-Good Productivity · By Design</title>
+<meta name="description" content="A free guide to Feel-Good Productivity by Ali Abdaal: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g1">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-05-Feel-Good-Productivity.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 05</span><span>Feel-Good Productivity · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Positive psychology</p>
+     <h1>Feel-Good Productivity</h1>
+     <p class="subtitle">How to Do More of What Matters to You</p>
+     <p class="byline">Ali Abdaal · 2023</p>
+     <div class="sp"></div>
+     <p class="lead">A doctor-turned-YouTuber makes the case that feeling good is the engine of productivity, not the reward for it, and gives research-backed experiments for bringing more energy into your work.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>A warm, practical book that makes productivity feel lighter<sup class="fn"><a href="#s2">2</a></sup></span></li><li><span>Every chapter ends with small experiments to try<sup class="fn"><a href="#s2">2</a></sup></span></li><li><span>Clear explanations of the research behind each idea<sup class="fn"><a href="#s1">1</a>,<a href="#s3">3</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">☀️</span><div><p class="kick dark">Get the book</p><p><b>Feel-Good Productivity</b> by Ali Abdaal</p><p class="muted" style="font-size:13.5px">Celadon Books (US); Cornerstone Press (UK), 2023. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Feel-Good Productivity</i> by Ali Abdaal. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 05</span><span>Feel-Good Productivity · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Feeling good comes first</h2>
+     <p class="lead">Abdaal argues the discipline-and-pressure approach has it backwards. Positive feelings give us energy, energy makes work easier to start and keep going, and progress then feels good too. So instead of forcing yourself to work, change how the work feels.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a>,<a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Make it fun</h3><p>Ask: what would this look like if it were fun? Small changes, like music, a game, or doing it with someone, can transform a dull task.<sup class="fn"><a href="#s3">3</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Goals that energise</h3><p>Abdaal suggests NICE goals: Near-term, Input-based, Controllable and Energising, instead of distant targets you can't control.<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Three kinds of burnout</h3><p>Overexertion (doing too much), depletion (not recharging) and misalignment (doing what doesn't fit you). Each needs a different fix.<sup class="fn"><a href="#s2">2</a>,<a href="#s3">3</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Feel-Good Productivity</i> by Ali Abdaal. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 05</span><span>Feel-Good Productivity · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>Energise · Unblock · Sustain<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></h2>
+     
+     <p class="lead">The book's three parts: what gives us energy, what stops us starting, and what keeps us going.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Energise</h3><p class="tag">Play, Power and People</p><p>Lightness and curiosity, a sense of confidence and control, and feeling part of something with others.<sup class="fn"><a href="#s2">2</a>,<a href="#s3">3</a></sup></p><span class="tip"><b>Try:</b> Teach what you're learning to build confidence.<sup class="fn"><a href="#s12">12</a></sup></span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Unblock</h3><p class="tag">Uncertainty, Fear and Inertia</p><p>Seek clarity, find courage, and make starting easy.<sup class="fn"><a href="#s2">2</a></sup></p><span class="tip"><b>Try:</b> Commit to just five minutes.<sup class="fn"><a href="#s6">6</a></sup></span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Sustain</h3><p class="tag">Conserve, Recharge, Align</p><p>Protect your energy, refill it, and make sure your work points where you want to go.<sup class="fn"><a href="#s2">2</a>,<a href="#s3">3</a></sup></p><span class="tip"><b>Try:</b> Sketch alternative futures with an Odyssey Plan.<sup class="fn"><a href="#s5">5</a>,<a href="#s9">9</a></sup></span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Feel-Good Productivity</i> by Ali Abdaal. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 05</span><span>Feel-Good Productivity · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">Taming fear</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Fear tools from the Unblock chapters, each borrowed and credited by Abdaal.<sup class="fn"><a href="#s7">7</a></sup></p><ol class="steps"><li><span>Name the feeling in a word.</span></li><li><span>Ask how much it will matter in 10 minutes, 10 months and 10 years (Suzy Welch's 10/10/10).<sup class="fn"><a href="#s8">8</a></sup></span></li><li><span>Remember the spotlight effect: others notice us far less than we think.<sup class="fn"><a href="#s10">10</a></sup></span></li></ol></div><div class="white"><h3 style="font-size:22px">The Energy Investment Portfolio</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Abdaal's way to avoid overexertion.<sup class="fn"><a href="#s5">5</a>,<a href="#s11">11</a></sup></p><ol class="steps"><li><span>List every commitment and dream competing for your energy.</span></li><li><span>Choose about five active investments.</span></li><li><span>Move the rest to a someday list.</span></li><li><span>Review the portfolio each season.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Feel-Good Productivity</i> by Ali Abdaal. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 05</span><span>Feel-Good Productivity · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>Pick the task you've been avoiding most.</span></li><li><span>Change one thing to make it more fun.</span></li><li><span>Rewrite the goal as a NICE goal.</span></li><li><span>Set a five-minute timer and start.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>Which blocker shows up most for you: uncertainty, fear or inertia?</p><p>Which kind of burnout are you closest to?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Write the NICE goal on the task in Taskly and move it to In progress.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>Feel-Good Productivity</i> by Ali Abdaal. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 05</span><span>Feel-Good Productivity · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">☀️ <b>Feel-Good Productivity</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Ali Abdaal · Celadon Books (US); Cornerstone Press (UK) · 2023</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Ali Abdaal or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Abdaal, Ali. <i>Feel-Good Productivity: How to Do More of What Matters to You</i>. Celadon Books, 2023. Part 1 Energise (ch. 1–3), Part 2 Unblock (ch. 4–6), Part 3 Sustain (ch. 7–9). <a href="https://www.porchlightbooks.com/product/feel-good-productivity-how-to-do-more-of-what-matters-to-you--ali-abdaal" rel="noopener">porchlightbooks.com/product/feel-good-productivity-how-to-do-more-of-what-matters-to-you--ali-abdaal</a></li><li id="s2">Readingraphics, “Book Summary: Feel-Good Productivity”. <a href="https://readingraphics.com/book-summary-feel-good-productivity/" rel="noopener">readingraphics.com/book-summary-feel-good-productivity</a></li><li id="s3">The Art of Manliness podcast #954, interview with Ali Abdaal. <a href="https://www.artofmanliness.com/character/self-improvement/podcast-954-the-feel-good-method-of-productivity/" rel="noopener">artofmanliness.com/character/self-improvement/podcast-954-the-feel-good-method-of-productivity</a></li><li id="s4">Carpe Librum, “Review: Feel-Good Productivity” (NICE goals). <a href="https://www.carpelibrum.net/2025/03/review-feel-good-productivity-ali-abdaal.html" rel="noopener">carpelibrum.net/2025/03/review-feel-good-productivity-ali-abdaal.html</a></li><li id="s5">The Reading Life, “Feel-Good Productivity, Part III”. <a href="https://thereadinglife.beehiiv.com/p/feel-good-productivity-part-iii" rel="noopener">thereadinglife.beehiiv.com/p/feel-good-productivity-part-iii</a></li><li id="s6">Book notes on <i>Feel-Good Productivity</i> (silentcall). <a href="https://silentcall.bearblog.dev/feel-good-productivity-ali-abdaal-book-notes/" rel="noopener">silentcall.bearblog.dev/feel-good-productivity-ali-abdaal-book-notes</a></li><li id="s7">Erica Rankin, “Deal with fear”. <a href="https://ericarankin.beehiiv.com/p/deal-fear" rel="noopener">ericarankin.beehiiv.com/p/deal-fear</a></li><li id="s8">Welch, Suzy. <i>10-10-10: A Life-Transforming Idea</i>. Scribner, 2009.</li><li id="s9">Burnett, Bill, and Dave Evans. <i>Designing Your Life</i>. Knopf, 2016 (origin of the Odyssey Plan).</li><li id="s10">Gilovich, T., Medvec, V. H., &amp; Savitsky, K. (2000). The spotlight effect in social judgment. <i>Journal of Personality and Social Psychology</i>, 78(2), 211–222.</li><li id="s11">Setapp, “Feel-Good Productivity book summary”. <a href="https://setapp.com/lifestyle/feel-good-productivity-ali-abdaal-book-summary" rel="noopener">setapp.com/lifestyle/feel-good-productivity-ali-abdaal-book-summary</a></li><li id="s12">Books That Slay, “Feel-Good Productivity: Summary and Analysis” (the protégé effect). <a href="https://booksthatslay.com/feel-good-productivity-by-ali-abdaal-summary-and-analysis/" rel="noopener">booksthatslay.com/feel-good-productivity-by-ali-abdaal-summary-and-analysis</a></li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Feel-Good Productivity</i> by Ali Abdaal. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

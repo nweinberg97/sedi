@@ -3385,15 +3385,3 @@ body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .hom
 .di-qa summary { cursor: pointer; padding: 8px 0; font-weight: 600; font-size: var(--fs-sm); }
 .di-qa p { margin: 0 0 8px; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.5; }
 
-/* Book notes */
-.book-notes p { margin: 0 0 var(--s-2); }
-.book-notes .muted { color: var(--muted); font-size: var(--fs-sm); }
-.bn-list { list-style: none; margin: var(--s-3) 0; padding: 0; display: grid; gap: 6px; }
-.bn-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; background: var(--surface-2, rgba(127,127,127,.08)); }
-.bn-emoji { font-size: 22px; width: 28px; text-align: center; }
-.bn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.bn-text small { color: var(--muted); }
-.bn-row .btn[disabled] { opacity: .55; }
-.bn-print { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); }
-.bn-print svg { width: 16px; height: 16px; }
-@media (max-width: 640px) { .b-books { padding: 0 10px; } }

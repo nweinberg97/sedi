@@ -1,7 +1,6 @@
 // Sedi — Brainly: search, My Links (links, text files, PDFs in collapsible folders), and a free-form canvas
 // of notes (rounded squares) and folders (which can hold folders).
 
-import { openBookNotes } from './booknotes.js';
 import * as store from './store.js';
 import {
   h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml, relTime,
@@ -77,8 +76,7 @@ export function mount(el) {
       h('div', { class: 'search' }, icon('search', 'search-icon'), searchInput, results),
       h('div', { class: 'brain-actions' },
         h('button', { class: 'btn primary sm', onclick: () => addNote() }, icon('plus'), 'Note'),
-        h('button', { class: 'btn ghost sm', onclick: () => addFolder() }, icon('folder'), 'Folder'),
-        h('button', { class: 'btn ghost sm b-books', title: 'By Design lessons', onclick: () => openBookNotes() }, icon('book'), 'Learn'))),
+        h('button', { class: 'btn ghost sm', onclick: () => addFolder() }, icon('folder'), 'Folder'))),
     h('div', { class: 'brain-body' }, dash, canvas)));
   setupFileDrop();
   canvas.addEventListener('pointerover', e => { hovered = e.target.closest('.b-note, .b-folder'); });
@@ -719,7 +717,7 @@ function openFolder(fid) {
     const path = [];
     for (let p = f; p; p = folderById(p.parentId)) path.unshift(p);
     const subs = childFolders(fid);
-    const notes = folderNotes(fid).sort((a, b) => (a.meta?.bookOrder ?? 1e9) - (b.meta?.bookOrder ?? 1e9) || b.updatedAt.localeCompare(a.updatedAt));
+    const notes = folderNotes(fid).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     box.replaceChildren(
       h('div', { class: 'crumbs' }, path.flatMap((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, i < path.length - 1 ? h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name) : h('strong', {}, p.name)]).filter(Boolean)),
       subs.length ? h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, 'Folders'),

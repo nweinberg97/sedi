@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Blue Zones of Happiness · By Design</title>
+<meta name="description" content="A free guide to The Blue Zones of Happiness by Dan Buettner: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g2">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-10-The-Blue-Zones-of-Happiness.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 10</span><span>The Blue Zones of Happiness · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Environmental design</p>
+     <h1>The Blue Zones of Happiness</h1>
+     <p class="subtitle">Lessons from the World's Happiest People</p>
+     <p class="byline">Dan Buettner · 2017</p>
+     <div class="sp"></div>
+     <p class="lead">The explorer behind the Blue Zones longevity research visits the happiest places on Earth and shows how to redesign your own surroundings so wellbeing becomes the easy default. Foreword by Ed Diener.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>Vivid reporting from Costa Rica, Denmark and Singapore<sup class="fn"><a href="#s1">1</a>,<a href="#s3">3</a></sup></span></li><li><span>Practical changes for your home, work, friendships and money<sup class="fn"><a href="#s4">4</a>,<a href="#s6">6</a></sup></span></li><li><span>A self-test to find where your happiness is thin<sup class="fn"><a href="#s1">1</a>,<a href="#s4">4</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">🌍</span><div><p class="kick dark">Get the book</p><p><b>The Blue Zones of Happiness</b> by Dan Buettner</p><p class="muted" style="font-size:13.5px">National Geographic, 2017. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Blue Zones of Happiness</i> by Dan Buettner. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 10</span><span>The Blue Zones of Happiness · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Shape your surroundings</h2>
+     <p class="lead">Buettner's reporting suggests the happiest people don't try harder. They live in places that make good days easy: walkable streets, short commutes, close friends nearby, homes that invite rest. Change your environment, and your behavior follows.<sup class="fn"><a href="#s1">1</a>,<a href="#s4">4</a>,<a href="#s5">5</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Social time matters</h3><p>Buettner points to research suggesting the happiest people spend about six hours a day with others, far more than most people do.<sup class="fn"><a href="#s6">6</a>,<a href="#s8">8</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>The commute is a tax</h3><p>Long commutes drag down happiness. Living close enough to walk to work is ideal.<sup class="fn"><a href="#s4">4</a>,<a href="#s6">6</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Purpose beats pay</h3><p>In Denmark, a strong safety net frees people to choose work for interest rather than need.<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Blue Zones of Happiness</i> by Dan Buettner. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 10</span><span>The Blue Zones of Happiness · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>The Three Strands of Happiness<sup class="fn"><a href="#s1">1</a>,<a href="#s3">3</a></sup></h2>
+     
+     <p class="lead">Buettner braids happiness from three strands, and finds a country that excels at each.<sup class="fn"><a href="#s1">1</a>,<a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Pleasure</h3><p class="tag">Enjoying your days · Costa Rica</p><p>Day-to-day positive emotion. Costa Ricans enjoy strong family and faith ties and lots of daily socializing.<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></p><span class="tip"><b>Try:</b> Build more small, shared rituals into each day.</span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Purpose</h3><p class="tag">Meaning and engagement · Denmark</p><p>Meaningful activity that uses your strengths, supported by trust, clubs and volunteering.<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a>,<a href="#s5">5</a></sup></p><span class="tip"><b>Try:</b> Join a club or volunteer.<sup class="fn"><a href="#s6">6</a></sup></span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Pride</h3><p class="tag">Satisfaction with life · Singapore</p><p>How you rate your life overall. Singapore scores high thanks to security and clear paths to success.<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></p><span class="tip"><b>Try:</b> Live within your means and set reachable goals.<sup class="fn"><a href="#s7">7</a></sup></span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Blue Zones of Happiness</i> by Dan Buettner. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 10</span><span>The Blue Zones of Happiness · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">The Happiness Test</h3><p class="muted" style="font-size:14px;margin:0 0 12px">The book's self-test for finding your weakest strand.<sup class="fn"><a href="#s1">1</a>,<a href="#s4">4</a></sup></p><ol class="steps"><li><span>Take the test, or rate pleasure, purpose and pride from 1 to 10.</span></li><li><span>Find your weakest strand.</span></li><li><span>Read the chapter for the area of life most tied to it.</span></li></ol></div><div class="white"><h3 style="font-size:22px">Design your Life Radius</h3><p class="muted" style="font-size:14px;margin:0 0 12px">The book's practical chapters, one area of life at a time.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p><ol class="steps"><li><span>Community: favour walkability, nature and trust.<sup class="fn"><a href="#s4">4</a></sup></span></li><li><span>Workplace and home: shorten the commute; keep the TV out of the main room.<sup class="fn"><a href="#s4">4</a></sup></span></li><li><span>Social life: a few close friends, a weekly family meal.<sup class="fn"><a href="#s6">6</a></sup></span></li><li><span>Inner life: know your purpose, volunteer, try new things.<sup class="fn"><a href="#s9">9</a></sup></span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Blue Zones of Happiness</i> by Dan Buettner. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 10</span><span>The Blue Zones of Happiness · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>Rate pleasure, purpose and pride from 1 to 10.</span></li><li><span>Log how many hours you spent with people yesterday.</span></li><li><span>Make one change to your surroundings.</span></li><li><span>Start one standing social ritual.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>Which strand is thinnest in your life right now?</p><p>What in your surroundings makes a good day harder than it needs to be?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Give each strand its own board in Boardly, with one goal on each.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Blue Zones of Happiness</i> by Dan Buettner. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 10</span><span>The Blue Zones of Happiness · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">🌍 <b>The Blue Zones of Happiness</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Dan Buettner · National Geographic · 2017</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Dan Buettner or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Buettner, Dan. <i>The Blue Zones of Happiness</i>. National Geographic, 2017. Ch. 3–5 (Costa Rica, Denmark, Singapore); ch. 7–12 (Designing happy communities, workplace, social network, home, financial well-being, inner life). <a href="https://www.porchlightbooks.com/products/blue-zones-of-happiness-dan-buettner-9781426218484" rel="noopener">porchlightbooks.com/products/blue-zones-of-happiness-dan-buettner-9781426218484</a></li><li id="s2">Calgary Public Library catalogue record (table of contents). <a href="https://link.calgarylibrary.ca/resource/JR_oAYBTMnE" rel="noopener">link.calgarylibrary.ca/resource/JR_oAYBTMnE</a></li><li id="s3">Buettner, Dan. “These Are the World's Happiest Places”, <i>National Geographic</i>, 2017. <a href="https://www.nationalgeographic.com/magazine/article/worlds-happiest-places" rel="noopener">nationalgeographic.com/magazine/article/worlds-happiest-places</a></li><li id="s4">Experience Life, “How to Be Happy” (interview with Dan Buettner). <a href="https://experiencelife.lifetime.life/article/how-to-be-happy/" rel="noopener">experiencelife.lifetime.life/article/how-to-be-happy</a></li><li id="s5">Knowledge at Wharton podcast, “Blue Zones of Happiness”. <a href="https://knowledge.wharton.upenn.edu/podcast/knowledge-at-wharton-podcast/blue-zones-happiness/" rel="noopener">knowledge.wharton.upenn.edu/podcast/knowledge-at-wharton-podcast/blue-zones-happiness</a></li><li id="s6">Salon, “How to improve happiness in America”, 26 November 2017. <a href="https://www.salon.com/2017/11/26/how-to-improve-happiness-in-america" rel="noopener">salon.com/2017/11/26/how-to-improve-happiness-in-america</a></li><li id="s7">CNBC/NBC, book excerpt on Gallup's well-being markers. <a href="https://www.nbcnewyork.com/news/business/money-report/if-you-answer-yes-to-these-15-questions-you-are-happier-than-most-people-says-longevity-researcher/5095877/" rel="noopener">nbcnewyork.com/news/business/money-report/if-you-answer-yes-to-these-15-questions-you-are-happier-than-most-people-says-longevity-researcher/5095877</a></li><li id="s8">Dr Happy, “32 proven ways to become happier”. <a href="https://drhappy.com.au/2017/11/01/32-proven-ways-to-become-happier/" rel="noopener">drhappy.com.au/2017/11/01/32-proven-ways-to-become-happier</a></li><li id="s9">Island Scene, “Are you happy?”. <a href="https://islandscene.com/are-you-happy" rel="noopener">islandscene.com/are-you-happy</a></li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Blue Zones of Happiness</i> by Dan Buettner. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

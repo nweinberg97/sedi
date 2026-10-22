@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Organized Mind · By Design</title>
+<meta name="description" content="A free guide to The Organized Mind by Daniel J. Levitin: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g1">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-07-The-Organized-Mind.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 07</span><span>The Organized Mind · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Cognitive neuroscience</p>
+     <h1>The Organized Mind</h1>
+     <p class="subtitle">Thinking Straight in the Age of Information Overload</p>
+     <p class="byline">Daniel J. Levitin · 2014</p>
+     <div class="sp"></div>
+     <p class="lead">A neuroscientist explains how attention and memory actually work, then shows how to organize your home, your time and your decisions around their limits.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>A clear tour of how your attention system works<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></span></li><li><span>Practical advice for homes, time, work and big decisions<sup class="fn"><a href="#s1">1</a>,<a href="#s5">5</a></sup></span></li><li><span>A brilliant appendix on thinking clearly about risk<sup class="fn"><a href="#s1">1</a>,<a href="#s5">5</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">🗂️</span><div><p class="kick dark">Get the book</p><p><b>The Organized Mind</b> by Daniel J. Levitin</p><p class="muted" style="font-size:13.5px">Dutton (Penguin), 2014. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Organized Mind</i> by Daniel J. Levitin. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 07</span><span>The Organized Mind · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Get it out of your head</h2>
+     <p class="lead">Conscious attention can only handle a small amount of information at a time; Levitin estimates around 120 bits per second. Every open loop you hold in your head competes for that space. Moving information into the world, into places and systems you trust, frees your mind to think.<sup class="fn"><a href="#s1">1</a>,<a href="#s6">6</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Multitasking is switching</h3><p>We don't really do two things at once. We switch rapidly, and every switch costs energy and adds errors.<sup class="fn"><a href="#s6">6</a>,<a href="#s7">7</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Give things a home</h3><p>Designated places for things you often lose, like a hook for your keys, let the environment do the remembering.<sup class="fn"><a href="#s5">5</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Good enough is often best</h3><p>For small decisions, satisfice: accept good enough and save your effort for the choices that matter. The idea comes from Herbert Simon.<sup class="fn"><a href="#s7">7</a>,<a href="#s8">8</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Organized Mind</i> by Daniel J. Levitin. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 07</span><span>The Organized Mind · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>How attention works<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></h2>
+     
+     <p class="lead">Levitin describes several parts of the attentional system. Knowing them explains why focus slips.<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Mind-wandering mode</h3><p class="tag">The daydreaming brain</p><p>A loose, associative state where ideas connect and the brain rests.<sup class="fn"><a href="#s3">3</a></sup></p><span class="tip"><b>Try:</b> Protect time with no input at all.</span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Central executive</h3><p class="tag">The focused brain</p><p>The mode for deliberate work. It and mind-wandering tend to switch each other off.<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></p><span class="tip"><b>Try:</b> Give it one thing at a time.</span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Attentional filter</h3><p class="tag">What gets through</p><p>Screens the flood of input so only some reaches awareness.<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></p><span class="tip"><b>Try:</b> Cut low-value inputs at the source.</span></div></div><div class="glass part row"><span class="num">4</span><div><h3>Attentional switch</h3><p class="tag">Moving between modes</p><p>Shifts you between focus and wandering. Each switch has a cost.<sup class="fn"><a href="#s3">3</a>,<a href="#s6">6</a></sup></p><span class="tip"><b>Try:</b> Batch similar tasks together.</span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Organized Mind</i> by Daniel J. Levitin. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 07</span><span>The Organized Mind · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">Index-card capture</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Levitin's low-tech system for open loops.<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></p><ol class="steps"><li><span>Write each task or idea on its own card.</span></li><li><span>Sort the cards each day: do now, and later.</span></li><li><span>Re-sort as priorities change.</span></li></ol></div><div class="white"><h3 style="font-size:22px">The fourfold table</h3><p class="muted" style="font-size:14px;margin:0 0 12px">From the book's appendix, for reasoning about risk.<sup class="fn"><a href="#s1">1</a>,<a href="#s5">5</a></sup></p><ol class="steps"><li><span>Draw a 2 by 2 grid: test result against actual condition.</span></li><li><span>Fill it with counts per 1,000 people.</span></li><li><span>Read off the real chance that a positive result means you have the condition.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Organized Mind</i> by Daniel J. Levitin. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 07</span><span>The Organized Mind · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>Spend five minutes writing every open loop, one per card or note.</span></li><li><span>Sort them into now and later.</span></li><li><span>Give one thing you often lose a fixed home.</span></li><li><span>Batch your replies into one block a day.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>What are you holding in your head that could live somewhere else?</p><p>Where in your day do you switch most often?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Brain-dump onto the Universal Board, one card per thought, then drag each to Taskly, Timely or Brainly.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Organized Mind</i> by Daniel J. Levitin. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 07</span><span>The Organized Mind · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">🗂️ <b>The Organized Mind</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Daniel J. Levitin · Dutton (Penguin) · 2014</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Daniel J. Levitin or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Levitin, Daniel J. <i>The Organized Mind: Thinking Straight in the Age of Information Overload</i>. Dutton, 2014. Ch. 1–2 (information overload; how attention and memory work), ch. 3 (Organizing Our Homes), ch. 5 (Our Time), ch. 9 (The Power of the Junk Drawer); appendix, Constructing Your Own Fourfold Tables.</li><li id="s2">Wikipedia, “The Organized Mind”. <a href="https://en.wikipedia.org/wiki/The_Organized_Mind" rel="noopener">en.wikipedia.org/wiki/The_Organized_Mind</a></li><li id="s3">Shortform, summary of <i>The Organized Mind</i>. <a href="https://shortform.com/blog/?p=90372" rel="noopener">shortform.com/blog/?p=90372</a></li><li id="s4">Amesbury Public Library catalogue record (table of contents). <a href="https://link.amesburylibrary.org/resource/kD0hBOhgYuk" rel="noopener">link.amesburylibrary.org/resource/kD0hBOhgYuk</a></li><li id="s5">SuperSummary, <i>The Organized Mind</i> summary. <a href="https://www.supersummary.com/the-organized-mind/summary/" rel="noopener">supersummary.com/the-organized-mind/summary</a></li><li id="s6">Farnam Street, “The History of Cognitive Overload”, 2014. <a href="https://fs.blog/2014/09/the-history-of-cognitive-overload/" rel="noopener">fs.blog/2014/09/the-history-of-cognitive-overload</a></li><li id="s7">Review of <i>The Organized Mind</i>, crm.org. <a href="https://crm.org/articles/the-organized-mind" rel="noopener">crm.org/articles/the-organized-mind</a></li><li id="s8">Simon, H. A. (1956). Rational choice and the structure of the environment. <i>Psychological Review</i>, 63(2), 129–138.</li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Organized Mind</i> by Daniel J. Levitin. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

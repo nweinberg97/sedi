@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Art of Gathering · By Design</title>
+<meta name="description" content="A free guide to The Art of Gathering by Priya Parker: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g2">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-12-The-Art-of-Gathering.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 12</span><span>The Art of Gathering · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Experience design</p>
+     <h1>The Art of Gathering</h1>
+     <p class="subtitle">How We Meet and Why It Matters</p>
+     <p class="byline">Priya Parker · 2018</p>
+     <div class="sp"></div>
+     <p class="lead">A facilitator shows why so many of our gatherings fall flat, and how to design meetings, dinners, celebrations and even funerals that people actually remember.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>It will change how you host everything, from a meeting to a birthday<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></span></li><li><span>Memorable stories from gatherings around the world<sup class="fn"><a href="#s2">2</a></sup></span></li><li><span>Specific, surprising advice, like never starting with logistics<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">🕯️</span><div><p class="kick dark">Get the book</p><p><b>The Art of Gathering</b> by Priya Parker</p><p class="muted" style="font-size:13.5px">Riverhead Books (Penguin Random House), 2018. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Art of Gathering</i> by Priya Parker. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 12</span><span>The Art of Gathering · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Purpose over category</h2>
+     <p class="lead">“Dinner party”, “meeting” and “birthday” are formats, not reasons. Parker argues that most gatherings disappoint because we copy the format and skip the purpose. A good purpose is specific, and even disputable: reasonable people could disagree with it.<sup class="fn"><a href="#s2">2</a>,<a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Don't be a chill host</h3><p>Staying hands-off leaves guests unprotected. Use your authority generously: protect guests, connect them, and treat them as equals.<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Exclusion is design</h3><p>Who you leave out, how many people come and where you meet all shape what can happen.<sup class="fn"><a href="#s2">2</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Endings matter</h3><p>Don't end with logistics or thank-yous. Give a last call, look back at what happened, and help people return to ordinary life.<sup class="fn"><a href="#s6">6</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Art of Gathering</i> by Priya Parker. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 12</span><span>The Art of Gathering · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>The arc of a gathering<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a>,<a href="#s4">4</a></sup></h2>
+     
+     <p class="lead">The book follows a gathering from first idea to final goodbye. Five of its moves:<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack compact"><div class="glass part row"><span class="num">1</span><div><h3>Decide why</h3><p class="tag">A specific, disputable purpose</p><p>Is a funeral to mourn a death or celebrate a life? Each leads to a very different gathering.<sup class="fn"><a href="#s2">2</a>,<a href="#s3">3</a></sup></p><span class="tip"><b>Try:</b> Ask “why?” until someone could disagree.</span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Close doors</h3><p class="tag">Exclude with generosity</p><p>The guest list is the first test of your purpose.<sup class="fn"><a href="#s2">2</a></sup></p><span class="tip"><b>Try:</b> Invite only who serves the purpose.</span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Create a temporary world</h3><p class="tag">Pop-up rules</p><p>Explicit rules that hold only for this gathering replace unspoken etiquette.<sup class="fn"><a href="#s4">4</a></sup></p><span class="tip"><b>Try:</b> Try no phones, or no job titles.</span></div></div><div class="glass part row"><span class="num">4</span><div><h3>Open with intention</h3><p class="tag">Never start with logistics</p><p>Prime guests before they arrive and mark a threshold into the gathering.<sup class="fn"><a href="#s2">2</a>,<a href="#s5">5</a></sup></p><span class="tip"><b>Try:</b> Send a note that sets the mood.</span></div></div><div class="glass part row"><span class="num">5</span><div><h3>Cause good controversy</h3><p class="tag">Real over polished</p><p>Invite honesty and productive disagreement instead of everyone's best behavior.<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></p><span class="tip"><b>Try:</b> As host, go first in being real.</span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Art of Gathering</i> by Priya Parker. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 12</span><span>The Art of Gathering · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">15 Toasts</h3><p class="muted" style="font-size:14px;margin:0 0 12px">A dinner format described in the book.<sup class="fn"><a href="#s4">4</a></sup></p><ol class="steps"><li><span>Choose a theme connected to the purpose.</span></li><li><span>During dinner, each guest gives a short, honest toast on it.</span></li><li><span>Let the evening build, one toast at a time.</span></li></ol></div><div class="white"><h3 style="font-size:22px">A closing ritual</h3><p class="muted" style="font-size:14px;margin:0 0 12px">From the book's chapter on endings.<sup class="fn"><a href="#s6">6</a></sup></p><ol class="steps"><li><span>Give a last call so people know the end is near.</span></li><li><span>Look inward: one moment to reflect on what happened.</span></li><li><span>Turn outward: each person names one thing they're taking back with them.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Art of Gathering</i> by Priya Parker. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 12</span><span>The Art of Gathering · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it before your next gathering</h2>
+     <div class="white"><ol class="steps"><li><span>Write its category, then ask “why?” three times.</span></li><li><span>Rewrite the purpose until someone could disagree with it.</span></li><li><span>Write two pop-up rules and a 30-second opening.</span></li><li><span>Design the ending, not just the start.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>What was your last gathering really for?</p><p>Who did you invite out of habit rather than purpose?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Plan the gathering as a project in Timely's Planning view, with its purpose in the event details.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Art of Gathering</i> by Priya Parker. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 12</span><span>The Art of Gathering · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">🕯️ <b>The Art of Gathering</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Priya Parker · Riverhead Books (Penguin Random House) · 2018</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Priya Parker or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Parker, Priya. <i>The Art of Gathering: How We Meet and Why It Matters</i>. Riverhead Books, 2018. Ch. 1 Decide Why You're Really Gathering; ch. 2 Close Doors; ch. 3 Don't Be a Chill Host; ch. 4 Create a Temporary Alternative World; ch. 5 Never Start a Funeral with Logistics; ch. 7 Cause Good Controversy; ch. 8 Accept That There Is an End.</li><li id="s2">Notable Capital, <i>The Art of Gathering</i> book summary. <a href="https://portal.notablecap.com/marketing-resource-book-summaries/the-art-of-gathering" rel="noopener">portal.notablecap.com/marketing-resource-book-summaries/the-art-of-gathering</a></li><li id="s3">University of York, notes on <i>The Art of Gathering</i>. <a href="https://www-users.york.ac.uk/~ss44/books/pages/p/PriyaParker.htm" rel="noopener">www-users.york.ac.uk/~ss44/books/pages/p/PriyaParker.htm</a></li><li id="s4">SuperSummary, <i>The Art of Gathering</i> summary. <a href="https://supersummary.com/the-art-of-gathering/summary" rel="noopener">supersummary.com/the-art-of-gathering/summary</a></li><li id="s5">Books That Slay, “The Art of Gathering: Summary and Analysis”. <a href="https://booksthatslay.com/the-art-of-gathering-summary-and-analysis/" rel="noopener">booksthatslay.com/the-art-of-gathering-summary-and-analysis</a></li><li id="s6">Rise with Drew, “How to close our event with a bang and not a whimper”. <a href="https://risewithdrew.com/how-to-close-our-event-with-a-bang-and-not-a-whimper/" rel="noopener">risewithdrew.com/how-to-close-our-event-with-a-bang-and-not-a-whimper</a></li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Art of Gathering</i> by Priya Parker. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nudge · By Design</title>
+<meta name="description" content="A free guide to Nudge by Richard H. Thaler and Cass R. Sunstein: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g2">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-04-Nudge.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 04</span><span>Nudge · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Behavioral economics</p>
+     <h1>Nudge</h1>
+     <p class="subtitle">Improving Decisions About Health, Wealth, and Happiness</p>
+     <p class="byline">Richard H. Thaler and Cass R. Sunstein · 2008</p>
+     <div class="sp"></div>
+     <p class="lead">A Nobel-winning economist and a legal scholar show how small changes in the way choices are presented can help people make better decisions about their health, money and happiness, without taking any options away.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a>,<a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>The book that brought behavioral economics into everyday policy and design<sup class="fn"><a href="#s2">2</a></sup></span></li><li><span>Memorable real examples, from cafeterias to pension plans<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></span></li><li><span>The Final Edition adds sludge, climate and the pandemic<sup class="fn"><a href="#s5">5</a>,<a href="#s6">6</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">👉</span><div><p class="kick dark">Get the book</p><p><b>Nudge</b> by Richard H. Thaler and Cass R. Sunstein</p><p class="muted" style="font-size:13.5px">Yale University Press; updated as <i>Nudge: The Final Edition</i> (Penguin, 2021), 2008. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Nudge</i> by Richard H. Thaler and Cass R. Sunstein. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 04</span><span>Nudge · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>There is no neutral design</h2>
+     <p class="lead">Someone always decides how options are arranged: what comes first, what's the default, what takes effort. Thaler and Sunstein call that person a choice architect. Since design always influences choice, they argue for designing on purpose to help people while keeping every option open, which they call libertarian paternalism.<sup class="fn"><a href="#s2">2</a>,<a href="#s4">4</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Humans, not Econs</h3><p>Economic models assume perfectly rational Econs. Real Humans think with a fast Automatic System and a slow Reflective System, and make predictable mistakes.<sup class="fn"><a href="#s2">2</a>,<a href="#s7">7</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Defaults are powerful</h3><p>Many people stick with whatever happens if they do nothing. Automatic enrolment in retirement savings is the book's classic example.<sup class="fn"><a href="#s2">2</a>,<a href="#s8">8</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Beware of sludge</h3><p>The Final Edition adds the opposite of a nudge: friction that makes good choices harder, like long forms and hard-to-cancel subscriptions.<sup class="fn"><a href="#s5">5</a>,<a href="#s6">6</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Nudge</i> by Richard H. Thaler and Cass R. Sunstein. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 04</span><span>Nudge · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>NUDGES<sup class="fn"><a href="#s9">9</a></sup></h2>
+     
+     <p class="lead">The authors' checklist of choice-architecture tools. Each letter is one lever.<sup class="fn"><a href="#s9">9</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack compact"><div class="glass part row"><span class="num">1</span><div><h3>iNcentives</h3><p class="tag">Make costs visible</p><p>People respond to incentives they actually notice.<sup class="fn"><a href="#s9">9</a></sup></p><span class="tip"><b>Try:</b> Show the real cost at the moment of choice.</span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Understand mappings</h3><p class="tag">Connect choices to outcomes</p><p>Help people see what each option means for things they care about.<sup class="fn"><a href="#s9">9</a></sup></p><span class="tip"><b>Try:</b> Translate features into results.</span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Defaults</h3><p class="tag">What happens if you do nothing</p><p>Set the default to what most people would choose on reflection.<sup class="fn"><a href="#s2">2</a>,<a href="#s9">9</a></sup></p><span class="tip"><b>Try:</b> Make the good option automatic.</span></div></div><div class="glass part row"><span class="num">4</span><div><h3>Give feedback · Expect error</h3><p class="tag">Design for real people</p><p>Tell people how they're doing, and design so common mistakes are hard to make, like a cash machine that returns your card first.<sup class="fn"><a href="#s9">9</a></sup></p><span class="tip"><b>Try:</b> Add a forcing function for the usual slip.</span></div></div><div class="glass part row"><span class="num">5</span><div><h3>Structure complex choices</h3><p class="tag">Simplify when options multiply</p><p>As choices grow, help people narrow them down.<sup class="fn"><a href="#s9">9</a></sup></p><span class="tip"><b>Try:</b> Offer filters for what matters most.</span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Nudge</i> by Richard H. Thaler and Cass R. Sunstein. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 04</span><span>Nudge · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">Save More Tomorrow</h3><p class="muted" style="font-size:14px;margin:0 0 12px">A program by Thaler and Shlomo Benartzi, described in the book.<sup class="fn"><a href="#s2">2</a>,<a href="#s10">10</a></sup></p><ol class="steps"><li><span>Commit now to save more in the future.</span></li><li><span>Tie each increase to your next pay rise.</span></li><li><span>Let it happen automatically, and stay free to opt out.</span></li></ol></div><div class="white"><h3 style="font-size:22px">A sludge audit</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Applying the Final Edition's sludge chapter to your own life.<sup class="fn"><a href="#s5">5</a>,<a href="#s6">6</a></sup></p><ol class="steps"><li><span>Pick a good habit you keep skipping.</span></li><li><span>Time each step it takes.</span></li><li><span>Remove or prefill one step.</span></li><li><span>Add one step of friction to a habit you want less of.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Nudge</i> by Richard H. Thaler and Cass R. Sunstein. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 04</span><span>Nudge · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>List five recurring choices: savings, subscriptions, your phone's home screen, snacks, calendar invites.</span></li><li><span>For each, write what happens if you do nothing.</span></li><li><span>Change two defaults to what you'd choose on reflection.</span></li><li><span>Run a sludge audit on one good habit.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>Where are you living with a default you never chose?</p><p>Whose choices do you shape, at home or at work?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Make good choices the default in Sedi too: set up a daily Routine in Timely, and use the trash for anything you never act on.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>Nudge</i> by Richard H. Thaler and Cass R. Sunstein. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 04</span><span>Nudge · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">👉 <b>Nudge</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Richard H. Thaler and Cass R. Sunstein · Yale University Press; updated as <i>Nudge: The Final Edition</i> (Penguin, 2021) · 2008</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Richard H. Thaler and Cass R. Sunstein or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Thaler, Richard H., and Cass R. Sunstein. <i>Nudge: Improving Decisions About Health, Wealth, and Happiness</i>. Yale University Press, 2008. Part 1 Humans and Econs; ch. “Choice Architecture”.</li><li id="s2">Wikipedia, “Nudge (book)”. <a href="https://en.wikipedia.org/wiki/Nudge_(book)" rel="noopener">en.wikipedia.org/wiki/Nudge_(book)</a></li><li id="s3">The Nobel Prize, “Richard H. Thaler: Facts”, 2017. <a href="https://www.nobelprize.org/prizes/economic-sciences/2017/thaler/facts/" rel="noopener">nobelprize.org/prizes/economic-sciences/2017/thaler/facts</a></li><li id="s4">getAbstract, <i>Nudge</i> summary. <a href="https://www.getabstract.com/en/summary/nudge/10445" rel="noopener">getabstract.com/en/summary/nudge/10445</a></li><li id="s5">Thaler, Richard H., and Cass R. Sunstein. Preface to <i>Nudge: The Final Edition</i>, in <i>Behavioral Scientist</i>. <a href="https://behavioralscientist.org/thaler-sunstein-preface-to-nudge-the-final-edition/" rel="noopener">behavioralscientist.org/thaler-sunstein-preface-to-nudge-the-final-edition</a></li><li id="s6">Society of Professional Economists, review of <i>Nudge: The Final Edition</i>. <a href="https://spe.org.uk/reading-room/book-reviews/nudge-the-final-edition" rel="noopener">spe.org.uk/reading-room/book-reviews/nudge-the-final-edition</a></li><li id="s7">SuperSummary, <i>Nudge</i> summary. <a href="https://www.supersummary.com/nudge/summary/" rel="noopener">supersummary.com/nudge/summary</a></li><li id="s8">CommonWealth Beacon, “Nudge offers a blueprint for coaxing people to do the right thing”. <a href="https://commonwealthbeacon.org/uncategorized/nudge-offers-a-blueprint-for-coaxing-people-to-do-the-right-thing/" rel="noopener">commonwealthbeacon.org/uncategorized/nudge-offers-a-blueprint-for-coaxing-people-to-do-the-right-thing</a></li><li id="s9">Thaler, R. H., Sunstein, C. R., &amp; Balz, J. P. “Choice Architecture” (2010), the NUDGES checklist. <a href="https://mycourses.aalto.fi/pluginfile.php/1767811/course/section/222382/Choice%20Architecture.pdf" rel="noopener">mycourses.aalto.fi/pluginfile.php/1767811/course/section/222382/Choice%20Architecture.pdf</a></li><li id="s10">Thaler, R. H., &amp; Benartzi, S. (2004). Save More Tomorrow. <i>Journal of Political Economy</i>, 112(S1), S164–S187.</li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Nudge</i> by Richard H. Thaler and Cass R. Sunstein. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

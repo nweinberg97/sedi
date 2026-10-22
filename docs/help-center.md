@@ -609,12 +609,3 @@ Sedi has no accounts and no server. Everything you make is stored in this browse
 3. Click **Download a backup** to save everything as one file. **Import a backup** restores it in any browser.
 
 What erases Sedi: clearing "cookies and site data" (Safari: "history and website data") for this site, closing a private or incognito window, or using a different browser, profile or device. Clearing only cached images and files does not. Safari can remove data from sites you haven't opened for about a week, so on a Mac or iPhone add Sedi to your Dock or Home Screen.
-
-## How to add By Design lessons to Brainly
-
-By Design lessons turn books on behavior design into something you can use, like Tiny Habits by BJ Fogg and Atomic Habits by James Clear. Each lesson has a principle, the book's framework, a system to apply it, a practice to try and how to do it in Sedi. They're our own summaries with numbered sources, credited to each author, and meant to point you to the books.
-
-1. Open **Brainly** and click **Learn**, or open the menu and click **By Design**.
-2. Click **Add** next to a lesson, or **Add all to Brainly**.
-3. The lessons appear in the **By Design** folder. Edit them like any other note.
-4. To read them online or save them as a PDF, click **Read online or save as PDF**.

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Brain That Changes Itself · By Design</title>
+<meta name="description" content="A free guide to The Brain That Changes Itself by Norman Doidge, MD: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g1">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-09-The-Brain-That-Changes-Itself.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 09</span><span>The Brain That Changes Itself · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Neuroplasticity</p>
+     <h1>The Brain That Changes Itself</h1>
+     <p class="subtitle">Stories of Personal Triumph from the Frontiers of Brain Science</p>
+     <p class="byline">Norman Doidge, MD · 2007</p>
+     <div class="sp"></div>
+     <p class="lead">A psychiatrist tells the stories of the scientists and patients who showed that the adult brain keeps rewiring itself, overturning the old belief that it was fixed for life.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a>,<a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>Gripping true stories of recovery and discovery<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></span></li><li><span>An accessible introduction to neuroplasticity<sup class="fn"><a href="#s3">3</a></sup></span></li><li><span>A hopeful, scientific case that change is possible at any age<sup class="fn"><a href="#s4">4</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">🧩</span><div><p class="kick dark">Get the book</p><p><b>The Brain That Changes Itself</b> by Norman Doidge, MD</p><p class="muted" style="font-size:13.5px">Viking, 2007. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Brain That Changes Itself</i> by Norman Doidge, MD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 09</span><span>The Brain That Changes Itself · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>What you practise, you become</h2>
+     <p class="lead">For a long time, scientists thought each brain region did one fixed job. Doidge tells the story of the research that showed otherwise: what we repeatedly do and pay attention to physically reshapes the brain. That cuts both ways, so choose what you rehearse.<sup class="fn"><a href="#s1">1</a>,<a href="#s3">3</a>,<a href="#s4">4</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Use it or lose it</h3><p>Brain territory is contested. Skills you practise claim more of it; skills you neglect lose ground.<sup class="fn"><a href="#s4">4</a>,<a href="#s5">5</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>The plastic paradox</h3><p>The flexibility that lets us change also locks in rigid habits. Doidge compares it to ski tracks: the more a path is used, the harder it is to leave.<sup class="fn"><a href="#s6">6</a>,<a href="#s7">7</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Attention is the key</h3><p>Doidge reports Michael Merzenich's finding that lasting change in brain maps needs close attention. Divided attention doesn't produce it.<sup class="fn"><a href="#s8">8</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Brain That Changes Itself</i> by Norman Doidge, MD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 09</span><span>The Brain That Changes Itself · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>How the brain rewires<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></h2>
+     
+     <p class="lead">Four ideas that run through the book's case studies.<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Fire together, wire together</h3><p class="tag">Repetition builds connections</p><p>Neurons active at the same time strengthen their links. The phrase sums up Donald Hebb's rule.<sup class="fn"><a href="#s10">10</a>,<a href="#s12">12</a></sup></p><span class="tip"><b>Try:</b> Pair a habit with a consistent cue and place.</span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Competitive plasticity</h3><p class="tag">Skills compete for space</p><p>Practised skills expand; neglected ones shrink.<sup class="fn"><a href="#s4">4</a>,<a href="#s5">5</a></sup></p><span class="tip"><b>Try:</b> Practise what you want to keep.</span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Mental practice</h3><p class="tag">Imagining changes the brain</p><p>Alvaro Pascual-Leone found mental practice of piano changed brain maps much like physical practice.<sup class="fn"><a href="#s8">8</a></sup></p><span class="tip"><b>Try:</b> Rehearse vividly before you practise.</span></div></div><div class="glass part row"><span class="num">4</span><div><h3>Constraint</h3><p class="tag">Block the easy way</p><p>Edward Taub's therapy restrains the strong limb so the weak one relearns, in small graded steps.<sup class="fn"><a href="#s9">9</a></sup></p><span class="tip"><b>Try:</b> Remove the shortcut you lean on.</span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Brain That Changes Itself</i> by Norman Doidge, MD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 09</span><span>The Brain That Changes Itself · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">Mental rehearsal</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Inspired by Pascual-Leone's research in the book.<sup class="fn"><a href="#s8">8</a></sup></p><ol class="steps"><li><span>Pick one skill.</span></li><li><span>Rehearse it vividly in your head for five minutes.</span></li><li><span>Then practise it for real with full attention.</span></li><li><span>Track progress over a week.</span></li></ol></div><div class="white"><h3 style="font-size:22px">Interrupt and refocus</h3><p class="muted" style="font-size:14px;margin:0 0 12px">From the book's chapter on obsessive loops.<sup class="fn"><a href="#s5">5</a></sup></p><ol class="steps"><li><span>When a worry loop or urge starts, name it as a habit circuit, not a fact.</span></li><li><span>Switch to a planned, rewarding activity for about 15 minutes.</span></li><li><span>Log it, and notice the loop weakening over time.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Brain That Changes Itself</i> by Norman Doidge, MD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 09</span><span>The Brain That Changes Itself · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this month</h2>
+     <div class="white"><ol class="steps"><li><span>Pick one skill to grow.</span></li><li><span>Rehearse it in your head for five minutes a day.</span></li><li><span>Practise for ten minutes with full attention and one shortcut removed.</span></li><li><span>Keep it little and often: steady practice beats cramming.<sup class="fn"><a href="#s11">11</a></sup></span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>What have you been unintentionally practising lately?</p><p>Which skill are you losing because you stopped using it?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Make the practice a daily Routine in Timely, and keep progress notes in Brainly.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Brain That Changes Itself</i> by Norman Doidge, MD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 09</span><span>The Brain That Changes Itself · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">🧩 <b>The Brain That Changes Itself</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Norman Doidge, MD · Viking · 2007</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Norman Doidge, MD or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Doidge, Norman. <i>The Brain That Changes Itself</i>. Viking, 2007. Ch. 1 A Woman Perpetually Falling; ch. 3 Redesigning the Brain; ch. 5 Midnight Resurrections; ch. 6 Brain Lock Unlocked; ch. 8 Imagination.</li><li id="s2">Marmot Library Network catalogue record (contents). <a href="https://cmc.marmot.org/Record/.b27054974" rel="noopener">cmc.marmot.org/Record/.b27054974</a></li><li id="s3">Readingraphics, summary of <i>The Brain That Changes Itself</i>. <a href="https://readingraphics.com/?p=71866" rel="noopener">readingraphics.com/?p=71866</a></li><li id="s4">Lake Forest College, book review of <i>The Brain That Changes Itself</i>. <a href="https://lakeforest.edu/live/files/ahlstrandbookreviewpdf.pdf" rel="noopener">lakeforest.edu/live/files/ahlstrandbookreviewpdf.pdf</a></li><li id="s5">Antoine Buteau, “Lessons from Norman Doidge”. <a href="https://www.antoinebuteau.com/lessons-from-norman-doidge.md" rel="noopener">antoinebuteau.com/lessons-from-norman-doidge.md</a></li><li id="s6">Psychotherapy Networker, “Neuroplasticity isn't always best”. <a href="https://www.psychotherapynetworker.org/article/neuroplasticity-isnt-always-best/" rel="noopener">psychotherapynetworker.org/article/neuroplasticity-isnt-always-best</a></li><li id="s7">Brain Science Podcast, episode 26, interview with Norman Doidge. <a href="https://brainsciencepodcast.com/bsp/neuroplasticity-with-dr-norman-doidge-bsp-26.html" rel="noopener">brainsciencepodcast.com/bsp/neuroplasticity-with-dr-norman-doidge-bsp-26.html</a></li><li id="s8">Brian Martin, comments on <i>The Brain That Changes Itself</i>. <a href="https://documents.uow.edu.au/~bmartin/pubs/comments/0809plasticbrain.html" rel="noopener">documents.uow.edu.au/~bmartin/pubs/comments/0809plasticbrain.html</a></li><li id="s9">Shortform, “Norman Doidge on neuroplasticity”. <a href="https://www.shortform.com/blog/norman-doidge-neuroplasticity/" rel="noopener">shortform.com/blog/norman-doidge-neuroplasticity</a></li><li id="s10">Hebb, D. O. <i>The Organization of Behavior</i>. Wiley, 1949.</li><li id="s11">Siderite, review of <i>The Brain That Changes Itself</i>. <a href="https://siderite.dev/blog/the-brain-that-changes-itself-by-norman.html" rel="noopener">siderite.dev/blog/the-brain-that-changes-itself-by-norman.html</a></li><li id="s12">Shatz, C. J. (1992). The developing brain. <i>Scientific American</i>, 267(3), 60–67.</li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>The Brain That Changes Itself</i> by Norman Doidge, MD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

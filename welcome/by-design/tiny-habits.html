@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tiny Habits · By Design</title>
+<meta name="description" content="A free guide to Tiny Habits by BJ Fogg, PhD: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g1">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-01-Tiny-Habits.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 01</span><span>Tiny Habits · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Behavior design</p>
+     <h1>Tiny Habits</h1>
+     <p class="subtitle">The Small Changes That Change Everything</p>
+     <p class="byline">BJ Fogg, PhD · 2019</p>
+     <div class="sp"></div>
+     <p class="lead">The founder of Stanford's Behavior Design Lab explains why big changes rarely stick, and how starting absurdly small, in the right spot in your day, makes new habits grow on their own.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>A simple model that explains why any behavior does or doesn't happen<sup class="fn"><a href="#s3">3</a></sup></span></li><li><span>A step-by-step method you can use on any habit, at home or at work<sup class="fn"><a href="#s1">1</a>,<a href="#s6">6</a></sup></span></li><li><span>Dozens of real stories from people who used it, with recipes you can copy<sup class="fn"><a href="#s1">1</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">🌱</span><div><p class="kick dark">Get the book</p><p><b>Tiny Habits</b> by BJ Fogg, PhD</p><p class="muted" style="font-size:13.5px">Houghton Mifflin Harcourt, 2019. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Tiny Habits</i> by BJ Fogg, PhD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 01</span><span>Tiny Habits · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Start tiny, and make it feel good</h2>
+     <p class="lead">Fogg argues that relying on motivation is a trap, because it rises and falls like a wave. Shrink a new habit until it's easy on your worst day, attach it to something you already do, and celebrate the moment you do it. The good feeling is what wires the habit in.<sup class="fn"><a href="#s1">1</a>,<a href="#s4">4</a>,<a href="#s5">5</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Motivation is unreliable</h3><p>Use a high-motivation moment for one-off actions, like signing up or setting things up. For daily habits, rely on ease instead.<sup class="fn"><a href="#s4">4</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Emotions create habits</h3><p>Fogg's term for the feeling of success right after a behavior is Shine. A quick, genuine celebration does more to build a habit than repetition alone.<sup class="fn"><a href="#s5">5</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Help yourself feel successful</h3><p>Choose behaviors you actually want to do and can do, rather than ones you feel you should. Small wins build the confidence for bigger ones.<sup class="fn"><a href="#s1">1</a>,<a href="#s6">6</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Tiny Habits</i> by BJ Fogg, PhD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 01</span><span>Tiny Habits · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>The Fogg Behavior Model<sup class="fn"><a href="#s3">3</a></sup></h2>
+     <p class="formula">B = MAP</p>
+     <p class="lead">A Behavior happens when Motivation, Ability and a Prompt come together at the same moment. If a behavior isn't happening, one of the three is missing.<sup class="fn"><a href="#s3">3</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Motivation</h3><p class="tag">Your desire to do it</p><p>Real, but it rises and falls through the day in what Fogg calls the Motivation Wave.<sup class="fn"><a href="#s4">4</a></sup></p><span class="tip"><b>Try:</b> Match yourself with behaviors you already want.<sup class="fn"><a href="#s1">1</a></sup></span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Ability</h3><p class="tag">How easy it is</p><p>Fogg's Ability Chain: time, money, physical effort, mental effort and fit with your routine. The weakest link decides how hard it feels.<sup class="fn"><a href="#s6">6</a></sup></p><span class="tip"><b>Try:</b> Make it tiny: a Starter Step, or a scaled-back version.<sup class="fn"><a href="#s6">6</a></sup></span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Prompt</h3><p class="tag">What tells you to do it now</p><p>Three kinds: Person prompts (a feeling), Context prompts (something around you) and Action prompts (a routine you already do).<sup class="fn"><a href="#s7">7</a></sup></p><span class="tip"><b>Try:</b> Use an Action prompt, which Fogg calls an Anchor.<sup class="fn"><a href="#s7">7</a></sup></span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Tiny Habits</i> by BJ Fogg, PhD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 01</span><span>Tiny Habits · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">The ABC recipe</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Fogg's formula for a new habit: Anchor, Behavior, Celebration.<sup class="fn"><a href="#s8">8</a>,<a href="#s11">11</a></sup></p><ol class="steps"><li><span>Pick an Anchor: a routine you never skip, like starting the coffee machine.</span></li><li><span>Choose a tiny Behavior that takes under 30 seconds.</span></li><li><span>Write it as: After I [anchor], I will [behavior].</span></li><li><span>Celebrate right away, in a way that feels real to you.</span></li></ol></div><div class="white"><h3 style="font-size:22px">Swarm and Focus Map</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Fogg's way to pick the right behaviors for a goal.<sup class="fn"><a href="#s6">6</a>,<a href="#s10">10</a></sup></p><ol class="steps"><li><span>Write the outcome you want at the centre of a page.</span></li><li><span>Swarm it: list every specific behavior that could help.</span></li><li><span>Plot each one by impact and by how likely you are to do it.</span></li><li><span>Start with the Golden Behaviors: high on both.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Tiny Habits</i> by BJ Fogg, PhD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 01</span><span>Tiny Habits · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>Write one Tiny Habits recipe using the ABC formula.</span></li><li><span>Try Fogg's Maui Habit: each morning, as your feet touch the floor, tell yourself it's going to be a great day.<sup class="fn"><a href="#s9">9</a></sup></span></li><li><span>Turn an annoyance into a cue, which Fogg calls a Pearl Habit.<sup class="fn"><a href="#s6">6</a></sup></span></li><li><span>After seven days, notice which recipe stuck, and scale it up a little.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>Which habit have you been trying to start with willpower alone?</p><p>What's the smallest version of it you'd do even on your worst day?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Save your recipe as a Routine in Timely. The little sound when you tick it is a ready-made celebration.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>Tiny Habits</i> by BJ Fogg, PhD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 01</span><span>Tiny Habits · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">🌱 <b>Tiny Habits</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">BJ Fogg, PhD · Houghton Mifflin Harcourt · 2019</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with BJ Fogg, PhD or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Fogg, BJ. <i>Tiny Habits: The Small Changes That Change Everything</i>. Houghton Mifflin Harcourt, 2019 (© 2020).</li><li id="s2">Publishers Weekly, <i>Tiny Habits</i> listing. <a href="https://publishersweekly.com/9780358003328" rel="noopener">publishersweekly.com/9780358003328</a></li><li id="s3">Fogg, BJ. “Fogg Behavior Model”, behaviormodel.org. <a href="https://behaviormodel.org/" rel="noopener">behaviormodel.org</a></li><li id="s4">The Behavioral Scientist, “Motivation Wave”. <a href="https://www.thebehavioralscientist.com/glossary/motivation-wave" rel="noopener">thebehavioralscientist.com/glossary/motivation-wave</a></li><li id="s5">Fogg, BJ. “How you can use the power of celebration to make new habits stick”, TED Ideas. <a href="https://ideas.ted.com/how-you-can-use-the-power-of-celebration-to-make-new-habits-stick/" rel="noopener">ideas.ted.com/how-you-can-use-the-power-of-celebration-to-make-new-habits-stick</a></li><li id="s6">Shortform, “Tiny Habits” book summary. <a href="https://www.shortform.com/blog/tiny-habits-book/" rel="noopener">shortform.com/blog/tiny-habits-book</a></li><li id="s7">Shortform, “Behavior prompts” (Person, Context and Action prompts). <a href="https://www.shortform.com/blog/behavior-prompts/" rel="noopener">shortform.com/blog/behavior-prompts</a></li><li id="s8">Samuel Thomas Davies, <i>Tiny Habits</i> book notes. <a href="https://samuelthomasdavies.com/tiny-habits" rel="noopener">samuelthomasdavies.com/tiny-habits</a></li><li id="s9">Virgin, “Tiny Habits: how to make resolutions that will last” (the Maui Habit). <a href="https://virgin.com/news/tiny-habits-how-make-resolutions-will-last" rel="noopener">virgin.com/news/tiny-habits-how-make-resolutions-will-last</a></li><li id="s10">Shortform, “Focus Mapping”. <a href="https://www.shortform.com/blog/focus-mapping/" rel="noopener">shortform.com/blog/focus-mapping</a></li><li id="s11">SuperSummary, <i>Tiny Habits</i> summary. <a href="https://www.supersummary.com/tiny-habits/summary/" rel="noopener">supersummary.com/tiny-habits/summary</a></li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Tiny Habits</i> by BJ Fogg, PhD. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

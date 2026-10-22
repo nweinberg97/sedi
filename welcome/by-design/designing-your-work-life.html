@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Designing Your Work Life · By Design</title>
+<meta name="description" content="A free guide to Designing Your Work Life by Bill Burnett and Dave Evans: the big idea, the framework, tools to try and a practice. Not affiliated with the author or publisher.">
+<link rel="icon" href="../../icon.svg">
+<style>@font-face{font-family:"Poppins";font-weight:300;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Light.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:300;font-style:italic;font-display:swap;src:url(../fonts/Poppins-LightItalic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Regular.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:400;font-style:italic;font-display:swap;src:url(../fonts/Poppins-Italic.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:500;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Medium.ttf) format("truetype")}
+@font-face{font-family:"Poppins";font-weight:700;font-style:normal;font-display:swap;src:url(../fonts/Poppins-Bold.ttf) format("truetype")}
+:root{
+  --g1:linear-gradient(135deg,#8b54ff 0%,#7f86f5 48%,#5ddfe6 100%);
+  --g2:linear-gradient(135deg,#4fb2fd 0%,#7c82ef 55%,#9459e8 100%);
+  --ink:#fff; --ink-2:rgba(255,255,255,.9); --ink-3:rgba(255,255,255,.74);
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.32);
+  --deep:#1f1650; --deep-2:#4b3f8f; --accent:#6c3ff0; --soft:#efe9ff;
+  --paper:#f4f2fa; --text:#1b1636;
+  --f:"Poppins","Futura","Avenir Next",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:400 16px/1.55 var(--f);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.topnav{max-width:840px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:500;font-size:15px}
+.topnav a{text-decoration:none}
+.topnav .dl{background:var(--deep);color:#fff;border-radius:999px;padding:9px 18px}
+main{max-width:840px;margin:0 auto;padding:0 16px 56px;display:grid;gap:18px}
+
+/* A page: header strip, body, footer strip. Same skeleton on every page of every guide. */
+.page{color:var(--ink);border-radius:22px;display:flex;flex-direction:column;padding:30px 40px 22px;box-shadow:0 22px 50px -32px rgba(40,20,110,.55);min-height:1050px}
+.g1 .page{background:var(--g1)} .g2 .page{background:var(--g2)}
+.ph,.pf{display:flex;justify-content:space-between;gap:16px;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.pf{letter-spacing:.02em;text-transform:none;font-weight:400;border-top:1px solid rgba(255,255,255,.28);padding-top:10px}
+.pb{flex:1;display:flex;flex-direction:column;padding:26px 0 20px}
+.kick{font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.kick.dark{color:var(--accent)}
+.sp{flex:1;min-height:18px}
+h1{font-weight:700;font-size:60px;line-height:1;letter-spacing:-.02em;margin:4px 0 12px}
+h2{font-weight:700;font-size:44px;line-height:1.06;letter-spacing:-.015em;margin:0 0 14px}
+h3{font-weight:700;font-size:19px;line-height:1.25;margin:0 0 6px}
+.subtitle{font-style:italic;font-weight:300;font-size:20px;line-height:1.4;margin:0 0 16px;color:var(--ink-2)}
+.byline{font-weight:500;font-size:18px;margin:0}
+.lead{font-weight:300;font-size:18px;line-height:1.6;margin:0;color:var(--ink-2)}
+.formula{font-weight:700;font-size:48px;line-height:1;margin:0 0 12px}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:18px 20px}
+.white{background:#fff;color:var(--deep);border-radius:18px;padding:20px 24px}
+.white .muted{color:var(--deep-2)}
+.num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--accent);font-weight:700;font-size:14px;flex:none}
+.white .num{background:var(--soft)}
+.row{display:flex;gap:14px;align-items:flex-start}
+.stack{display:grid;gap:12px}
+p{margin:0}
+ul.checks{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.checks li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+ul.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center;margin-top:1px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:15.5px;line-height:1.5}
+ol.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;display:grid;place-items:center}
+.tag{font-style:italic;font-weight:300;color:var(--ink-2);margin:0 0 6px}
+.tip{display:inline-block;margin-top:8px;background:rgba(255,255,255,.18);border-radius:10px;padding:5px 10px;font-size:14px}
+.part p,.card p{font-weight:300;font-size:15px}
+.stack.compact{gap:9px}.stack.compact .glass{padding:13px 18px}.stack.compact h3{font-size:17.5px;margin-bottom:2px}.stack.compact .tag{margin-bottom:3px}.stack.compact .part p{font-size:14px}.stack.compact .tip{margin-top:5px;font-size:13px}
+.reflect p{font-style:italic;font-weight:300;font-size:23px;line-height:1.35;margin:0 0 14px}
+.getbook{display:flex;gap:16px;align-items:center}
+.gb-emoji{font-size:40px;line-height:1}
+.sources ol{margin:0;padding-left:18px;font-size:10.5px;line-height:1.45;color:var(--ink-2);columns:2;column-gap:24px}
+.sources li{margin:0 0 5px;break-inside:avoid}
+.sources a{color:#fff;word-break:break-word}
+sup.fn{font-size:.6em;font-weight:500;vertical-align:super;line-height:0;margin-left:2px}
+sup.fn a{text-decoration:none;opacity:.85}
+.white sup.fn a{color:var(--accent);opacity:1}
+@media (max-width:640px){
+  .page{padding:22px 20px 16px;border-radius:18px;min-height:0}
+  .ph span:first-child{display:none}
+  h1{font-size:40px} h2{font-size:32px} .formula{font-size:36px}
+  .subtitle{font-size:17px} .lead{font-size:16.5px} .reflect p{font-size:19px}
+  .sources ol{columns:1}
+}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:210mm 297mm;margin:0}
+  html,body{background:#fff}
+  .topnav{display:none}
+  main{max-width:none;padding:0;display:block}
+  .page{width:210mm;height:296.5mm;min-height:0;border-radius:0;box-shadow:none;padding:14mm 16mm 10mm;break-after:page;overflow:hidden}
+  .page:last-child{break-after:auto}
+  .lead{font-size:20px} .part p,.card p{font-size:16px} ul.checks li{font-size:17px} ol.steps li{font-size:16.5px} h3{font-size:20px}
+  .stack.compact .part p{font-size:14.5px} .stack.compact h3{font-size:18px}
+}</style></head>
+<body class="g1">
+<nav class="topnav"><a href="../#guides">← All guides</a><a class="dl" href="pdf/By-Design-11-Designing-Your-Work-Life.pdf" download>Download PDF</a></nav>
+<main>
+<section class="page" aria-label="Page 1">
+  <div class="ph"><span>By Design · Free guide 11</span><span>Designing Your Work Life · 1 / 6</span></div>
+  <div class="pb"><p class="kick">Design thinking</p>
+     <h1>Designing Your Work Life</h1>
+     <p class="subtitle">How to Thrive and Change and Find Happiness at Work</p>
+     <p class="byline">Bill Burnett and Dave Evans · 2020</p>
+     <div class="sp"></div>
+     <p class="lead">The authors of <i>Designing Your Life</i> bring design thinking to the job you already have, so you can make it better before deciding whether to leave. Reissued in 2021 as <i>Designing Your New Work Life</i>.<sup class="fn"><a href="#s1">1</a>,<a href="#s2">2</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Why read it</p>
+     <ul class="checks"><li><span>Practical exercises for anyone who feels stuck at work<sup class="fn"><a href="#s3">3</a>,<a href="#s4">4</a></sup></span></li><li><span>A humane take on money, meaning, burnout and office politics<sup class="fn"><a href="#s5">5</a></sup></span></li><li><span>Smart advice on how to quit well, if you do decide to go<sup class="fn"><a href="#s6">6</a>,<a href="#s8">8</a></sup></span></li></ul>
+     <div class="sp"></div>
+     <div class="white getbook"><span class="gb-emoji" aria-hidden="true">🛠️</span><div><p class="kick dark">Get the book</p><p><b>Designing Your Work Life</b> by Bill Burnett and Dave Evans</p><p class="muted" style="font-size:13.5px">Alfred A. Knopf, 2020. At your local bookshop, your library, or as an audiobook.</p></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Designing Your Work Life</i> by Bill Burnett and Dave Evans. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 2">
+  <div class="ph"><span>By Design · Free guide 11</span><span>Designing Your Work Life · 2 / 6</span></div>
+  <div class="pb"><p class="kick">The big idea</p>
+     <h2>Redesign before you resign</h2>
+     <p class="lead">Most people assume the only fix for a frustrating job is a new one. Burnett and Evans argue that you can almost always make your current job work better first, by reframing stuck beliefs, running small experiments and treating “good enough for now” as a base to build on.<sup class="fn"><a href="#s1">1</a>,<a href="#s4">4</a>,<a href="#s5">5</a></sup></p>
+     <div class="sp"></div>
+     <p class="kick">Three lessons</p>
+     <div class="stack"><div class="glass card row"><span class="num">1</span><div><h3>Reframe stuck beliefs</h3><p>Every chapter starts with a dysfunctional belief and a reframe. Feeling like a cog in a machine becomes being a lever that can move it.<sup class="fn"><a href="#s4">4</a></sup></p></div></div><div class="glass card row"><span class="num">2</span><div><h3>Good enough for now</h3><p>Not forever, just for now. Accepting that gives you a stable base to improve from, instead of waiting to arrive.<sup class="fn"><a href="#s4">4</a></sup></p></div></div><div class="glass card row"><span class="num">3</span><div><h3>Overwhelm isn't burnout</h3><p>Overwhelm can be designed around. True burnout or a toxic workplace may be a reason to leave.<sup class="fn"><a href="#s5">5</a>,<a href="#s7">7</a></sup></p></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Designing Your Work Life</i> by Bill Burnett and Dave Evans. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 3">
+  <div class="ph"><span>By Design · Free guide 11</span><span>Designing Your Work Life · 3 / 6</span></div>
+  <div class="pb"><p class="kick">The framework</p>
+     <h2>Don't Resign, Redesign<sup class="fn"><a href="#s3">3</a>,<a href="#s7">7</a></sup></h2>
+     
+     <p class="lead">Four options to try, smallest first, before deciding to quit.<sup class="fn"><a href="#s7">7</a></sup></p>
+     <div class="sp"></div>
+     <div class="stack"><div class="glass part row"><span class="num">1</span><div><h3>Reframe and re-enlist</h3><p class="tag">A new why for the same job</p><p>Find a fresh reason the work matters to you.<sup class="fn"><a href="#s7">7</a></sup></p><span class="tip"><b>Try:</b> Write down what this job gives you that you'd miss.</span></div></div><div class="glass part row"><span class="num">2</span><div><h3>Remodel</h3><p class="tag">Change the role</p><p>Cosmetic or structural changes to what you do.<sup class="fn"><a href="#s7">7</a></sup></p><span class="tip"><b>Try:</b> Trade one task you dread for one you'd enjoy.</span></div></div><div class="glass part row"><span class="num">3</span><div><h3>Relocate</h3><p class="tag">Move within the company</p><p>Find a different role where you are.<sup class="fn"><a href="#s7">7</a></sup></p><span class="tip"><b>Try:</b> Have coffee with a team you admire.</span></div></div><div class="glass part row"><span class="num">4</span><div><h3>Reinvent</h3><p class="tag">Retrain inside</p><p>Build new skills toward a new career without leaving.<sup class="fn"><a href="#s7">7</a></sup></p><span class="tip"><b>Try:</b> Take on a stretch project.</span></div></div></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Designing Your Work Life</i> by Bill Burnett and Dave Evans. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 4">
+  <div class="ph"><span>By Design · Free guide 11</span><span>Designing Your Work Life · 4 / 6</span></div>
+  <div class="pb"><p class="kick">From the book</p>
+     <h2>Tools to try</h2>
+     <div class="sp"></div>
+     <div class="stack"><div class="white"><h3 style="font-size:22px">The Good Work Journal</h3><p class="muted" style="font-size:14px;margin:0 0 12px">This book's version of the Good Time Journal.<sup class="fn"><a href="#s4">4</a></sup></p><ol class="steps"><li><span>Each day, note what you learned, what you initiated, and who you helped.</span></li><li><span>Keep it going for three to four weeks.</span></li><li><span>Each week, look for surprises and which category dominates.</span></li><li><span>Plan one way to grow the missing category.</span></li></ol></div><div class="white"><h3 style="font-size:22px">The Maker's Mix</h3><p class="muted" style="font-size:14px;margin:0 0 12px">Instead of money versus meaning, rate three kinds of making.<sup class="fn"><a href="#s3">3</a>,<a href="#s5">5</a></sup></p><ol class="steps"><li><span>Score money-making, impact-making and expression-making from 1 to 100.</span></li><li><span>Set your ideal mix, like faders on a mixing desk.</span></li><li><span>Close the biggest gap with a small prototype, inside or outside work.</span></li></ol></div></div>
+     <div class="sp"></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Designing Your Work Life</i> by Bill Burnett and Dave Evans. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 5">
+  <div class="ph"><span>By Design · Free guide 11</span><span>Designing Your Work Life · 5 / 6</span></div>
+  <div class="pb"><p class="kick">Make it yours</p>
+     <h2>Try it this week</h2>
+     <div class="white"><ol class="steps"><li><span>Write your most stuck belief about work, then reframe it.</span></li><li><span>Score your Maker's Mix.</span></li><li><span>Choose one of the four redesign options to try.</span></li><li><span>Start a Good Work Journal tonight.</span></li></ol></div>
+     <div class="sp"></div>
+     <p class="kick">Reflect</p>
+     <div class="reflect"><p>If your job were good enough for now, what would you build on first?</p><p>Which kind of making is missing from your work?</p></div>
+     <div class="sp"></div>
+     <div class="glass" style="font-size:14.5px"><b>Try it in Sedi:</b> Turn your reframe into a project in Timely's Planning view, with the first prototype as its first task.</div></div>
+  <div class="pf"><span>A free guide inspired by <i>Designing Your Work Life</i> by Bill Burnett and Dave Evans. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+<section class="page" aria-label="Page 6">
+  <div class="ph"><span>By Design · Free guide 11</span><span>Designing Your Work Life · 6 / 6</span></div>
+  <div class="pb"><div class="white">
+       <p class="kick dark">Read the book</p>
+       <p style="font-size:19px">🛠️ <b>Designing Your Work Life</b></p>
+       <p class="muted" style="font-size:13.5px;margin:2px 0 10px">Bill Burnett and Dave Evans · Alfred A. Knopf · 2020</p>
+       <p style="font-size:14.5px">This guide only scratches the surface. The book has the research, the stories and the nuance behind every idea here. Buy it from an independent bookshop, borrow it from your library, or listen to the audiobook.</p>
+     </div>
+     <div class="sp"></div>
+     <p class="kick">A note from me</p>
+     <p style="font-size:15px;color:var(--ink-2)">I'm not affiliated with Bill Burnett and Dave Evans or the publisher, and this guide isn't sponsored or endorsed by them. I've learned a lot from this book, so I'm sharing what I took from it, for free, in case it helps you too. Everything here is my own summary, in my own words. The good ideas are the author's; any mistakes are mine.</p>
+     <p style="font-style:italic;margin-top:8px">The maker of Sedi</p>
+     <div class="sp"></div>
+     <div class="sources"><p class="kick">Sources</p><ol><li id="s1">Burnett, Bill, and Dave Evans. <i>Designing Your Work Life</i>. Alfred A. Knopf, 2020. Ch. “Money or meaning”, “My overwhelm is overwhelmed”, “Don't resign, redesign!”, “Quitting well”.</li><li id="s2">Bayside Library catalogue record, <i>Designing Your New Work Life</i> (2021 edition). <a href="https://bayside.spydus.com/cgi-bin/spydus.exe/FULL/WPAC/BIBENQ/274335629/30214904,241" rel="noopener">bayside.spydus.com/cgi-bin/spydus.exe/FULL/WPAC/BIBENQ/274335629/30214904,241</a></li><li id="s3">IDEO U, “Designing Your Work Life”. <a href="https://www.ideou.com/blogs/inspiration/designing-your-work-life" rel="noopener">ideou.com/blogs/inspiration/designing-your-work-life</a></li><li id="s4">Goodreads reader highlights, <i>Designing Your Work Life</i>. <a href="https://www.goodreads.com/notes/50236450-designing-your-work-life/12325277-jason-sands" rel="noopener">goodreads.com/notes/50236450-designing-your-work-life/12325277-jason-sands</a></li><li id="s5">National Career Development Association, review of <i>Designing Your Work Life</i>. <a href="https://ftp.ncda.org/aws/NCDA/pt/sd/news_article/361394/_PARENT/CC_layout_details/false" rel="noopener">ftp.ncda.org/aws/NCDA/pt/sd/news_article/361394/_PARENT/CC_layout_details/false</a></li><li id="s6">getAbstract journal, on <i>Designing Your Work Life</i>. <a href="https://journal.getabstract.com/?p=64261" rel="noopener">journal.getabstract.com/?p=64261</a></li><li id="s7">TODAY, Burnett and Evans on “Don't resign, redesign”. <a href="https://www.today.com/today/amp/tdna174799" rel="noopener">today.com/today/amp/tdna174799</a></li><li id="s8"><i>Stanford Magazine</i>, “How to Quit Your Job”. <a href="https://stanfordmag.org/contents/how-to-quit-your-job" rel="noopener">stanfordmag.org/contents/how-to-quit-your-job</a></li></ol></div></div>
+  <div class="pf"><span>A free guide inspired by <i>Designing Your Work Life</i> by Bill Burnett and Dave Evans. Not affiliated with the author or publisher.</span><span>Please read the book</span></div>
+</section>
+</main>
+</body></html>

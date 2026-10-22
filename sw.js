@@ -7,11 +7,10 @@ const VERSION = `${NS}-v1.16.0`;
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './brain/master_library.json',
-  './brain/library.json', './welcome/by-design.html',
   './js/util.js', './js/store.js', './js/dnd.js', './js/sound.js', './js/cards.js', './js/shell.js', './js/home.js',
   './js/taskly.js', './js/boardly.js', './js/timely.js', './js/brainly.js', './js/speech.js', './js/hearing.js', './js/runtime.js', './js/voice-worker.js', './js/assistant.js',
   './js/brain.js', './js/onboarding.js', './js/commands.js', './js/glass.js', './js/dotfield.js',
-  './js/engines.js', './js/google.js', './js/summaries.js', './js/env.js', './js/celebrate.js', './js/datainfo.js', './js/booknotes.js',
+  './js/engines.js', './js/google.js', './js/summaries.js', './js/env.js', './js/celebrate.js', './js/datainfo.js',
   './navoro/navoro.js', './navoro/navoro-pack.json',
 ];
 const RUNTIME = 'sedi-runtime'; // Sovereign Brain runtime files from the CDN
