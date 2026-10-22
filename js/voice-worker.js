@@ -26,7 +26,7 @@ async function gpu() {
 }
 
 let asr = null, asrModel = null, asrOpts = {}, vad = null, tf = null;
-async function loadAsr({ model, language, englishOnly }) {
+async function loadAsr({ model, language, englishOnly, prefer }) {
   if (asr && asrModel === model) return post({ type: 'asr:ready', device: asr.device });
   asr = null;
   tf = await loadTransformers(model);
@@ -37,13 +37,18 @@ async function loadAsr({ model, language, englishOnly }) {
       { device: 'webgpu', dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' } },
       { device: 'wasm', dtype: 'q8' }]
     : [{ device: 'wasm', dtype: 'q8' }];
-  let lastErr, used = null;
-  for (const opt of tries) {
-    try { asr = await tf.pipeline('automatic-speech-recognition', model, { ...opt, progress_callback: progressReporter('asr') }); used = opt.device; break; }
+  // Start with whatever worked last time on this device, so a failed first try never fetches extra weights again.
+  const key = o => `${o.device}:${JSON.stringify(o.dtype)}`;
+  const known = prefer ? tries.find(o => key(o) === prefer) : null;
+  const order = known ? [known, ...tries.filter(o => o !== known)] : tries;
+  let lastErr, used = null, usedKey = null;
+  for (const opt of order) {
+    try { asr = await tf.pipeline('automatic-speech-recognition', model, { ...opt, progress_callback: progressReporter('asr') }); used = opt.device; usedKey = key(opt); break; }
     catch (err) { lastErr = err; }
   }
   if (!asr) throw lastErr || new Error('Speech model failed to load');
   asr.device = used;
+  asr.optKey = usedKey;
   asrModel = model;
   // English-only models (Moonshine) take no language option; Whisper is told which language to expect.
   asrOpts = englishOnly ? {} : { language, task: 'transcribe' };
@@ -54,7 +59,7 @@ async function loadAsr({ model, language, englishOnly }) {
     vadState = new tf.Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
     vadSr = new tf.Tensor('int64', [RATE], []);
   } catch { vad = null; }
-  post({ type: 'asr:ready', device: used, vad: !!vad });
+  post({ type: 'asr:ready', device: used, vad: !!vad, optKey: usedKey });
 }
 
 // ---------- Listening: voice activity detection + segmentation ----------

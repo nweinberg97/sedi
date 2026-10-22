@@ -1,14 +1,16 @@
 // Sedi service worker: caches the app shell so Sedi opens instantly and works fully offline.
 // Bump VERSION whenever app files change so browsers pick up the new build.
 
-const VERSION = 'sedi-v1.14.0';
+// The /beta/ preview gets its own cache names so the two copies never clear each other's caches.
+const NS = /\/beta\/$/.test(new URL(self.registration.scope).pathname) ? 'sedi-beta' : 'sedi';
+const VERSION = `${NS}-v1.15.0`;
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './brain/master_library.json',
   './js/util.js', './js/store.js', './js/dnd.js', './js/sound.js', './js/cards.js', './js/shell.js', './js/home.js',
   './js/taskly.js', './js/boardly.js', './js/timely.js', './js/brainly.js', './js/speech.js', './js/hearing.js', './js/runtime.js', './js/voice-worker.js', './js/assistant.js',
   './js/brain.js', './js/onboarding.js', './js/commands.js', './js/glass.js', './js/dotfield.js',
-  './js/engines.js', './js/google.js', './js/summaries.js',
+  './js/engines.js', './js/google.js', './js/summaries.js', './js/env.js', './js/celebrate.js',
   './navoro/navoro.js', './navoro/navoro-pack.json',
 ];
 const RUNTIME = 'sedi-runtime'; // Sovereign Brain runtime files from the CDN
@@ -21,7 +23,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k.startsWith('sedi-v') && k !== VERSION).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k.startsWith(`${NS}-v`) && k !== VERSION).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -46,6 +48,8 @@ self.addEventListener('fetch', event => {
     return;
   }
   // App shell: network first (always the newest version when online), cached copy when offline.
+  // The main copy leaves the /beta/ preview to its own service worker.
+  if (NS === 'sedi' && url.origin === self.location.origin && url.pathname.startsWith(new URL('beta/', self.registration.scope).pathname)) return;
   if (url.origin === self.location.origin) {
     event.respondWith((async () => {
       const cache = await caches.open(VERSION);

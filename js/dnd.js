@@ -123,7 +123,7 @@ export function initDnd(navigate) {
   function listIndex(z) {
     // data-list="x" marks a left-to-right list (e.g. Timely's planning lists); data-list="grid" a wrapping grid.
     const mode = z.dataset.list;
-    const items = [...z.querySelectorAll('[data-drag]')].filter(n => n !== drag.el && n.parentElement && n.closest('[data-drop]') === z && n.dataset.drag === drag.kind);
+    const items = [...z.querySelectorAll('[data-drag]')].filter(n => n !== drag.el && n.parentElement && n.parentElement.closest('[data-drop]') === z && n.dataset.drag === drag.kind);
     let idx = items.length, before = null;
     for (let i = 0; i < items.length; i++) {
       const r = items[i].getBoundingClientRect();

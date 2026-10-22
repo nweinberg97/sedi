@@ -83,11 +83,17 @@ async function loadModel(key, { fromCacheOnly = false } = {}) {
       }
     };
     const device = hasWebGPU() ? 'webgpu' : 'wasm';
-    const tries = device === 'webgpu' ? ['q4f16', 'q4'] : ['q4', 'q8'];
+    let f16 = false;
+    if (device === 'webgpu') { try { f16 = !!(await navigator.gpu.requestAdapter())?.features.has('shader-f16'); } catch {} }
+    const tries = device === 'webgpu' ? (f16 ? ['q4f16', 'q4'] : ['q4']) : ['q4', 'q8'];
+    // Reuse the precision that worked last time, so a second set of weights is never fetched.
+    const known = (store.pref('brainDtype') || {})[model.id];
+    const order = known && tries.includes(known) ? [known, ...tries.filter(d => d !== known)] : tries;
     let lastErr;
-    for (const dtype of tries) {
+    for (const dtype of order) {
       try {
         generator = await tf.pipeline('text-generation', model.id, { device, dtype, progress_callback });
+        store.setPref('brainDtype', { ...(store.pref('brainDtype') || {}), [model.id]: dtype });
         break;
       } catch (err) { lastErr = err; }
     }

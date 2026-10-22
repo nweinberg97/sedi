@@ -180,6 +180,9 @@ export function download(filename, content, type = 'application/json') {
 // ---------- Toasts ----------
 export function toast(message, { action, onAction, duration = 3200, code = null } = {}) {
   const host = $('#toasts');
+  // Don't stack the same message twice; give the one already showing a little nudge instead.
+  const same = [...host.children].find(t => t.firstChild?.textContent === message);
+  if (same) { same.classList.remove('bump'); void same.offsetWidth; same.classList.add('bump'); return () => {}; }
   // `code` marks the toast as a recognisable error state (data-navoro-error) for in-app guidance.
   const el = h('div', { class: 'toast', role: 'status', 'data-navoro-error': code }, h('span', {}, message));
   if (action) {

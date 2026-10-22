@@ -29,7 +29,8 @@ const tabCards = tabId => store.cardsWhere(c => c.tool === 'boardly' && c.meta?.
 let dots = null;
 export function mount(el) {
   root = el;
-  tabBar = h('div', { class: 'tabs boardly-tabs', role: 'tablist' });
+  // data-list="x": tabs run left to right and can be dragged into a new order.
+  tabBar = h('div', { class: 'tabs boardly-tabs', role: 'tablist', dataset: { drop: 'boardly-tabbar', accept: 'btab' }, 'data-list': 'x' });
   canvas = h('div', { class: 'board-canvas has-dots', tabindex: 0, 'aria-label': 'Board canvas. G adds a goal, T a task, N a note.', dataset: { drop: 'boardly-canvas', accept: 'card' }, 'data-canvas': '' });
   // The dot pattern is drawn on a canvas so it can drift away from the pointer and ripple on a click.
   dots?.destroy();
@@ -157,6 +158,14 @@ registerDrop('boardly-canvas', ({ id, left, top, zone }) => {
     store.notify({ reason: 'group-move' });
   }
 });
+registerDrop('boardly-tabbar', ({ id, index }) => {
+  const list = tabs();
+  const moving = list.find(t => t.id === id);
+  if (!moving) return false;
+  const rest = list.filter(t => t.id !== id);
+  rest.splice(index ?? rest.length, 0, moving);
+  if (rest.some((t, i) => t.id !== list[i].id)) store.set('boardlyTabs', rest);
+});
 registerDrop('boardly-tab', ({ id, data }) => {
   const card = store.getCard(id);
   if (!card) return false;
@@ -234,7 +243,7 @@ function renderTabs() {
     const del = h('button', { class: 'tab-x icon-btn xs', 'aria-label': `Delete ${t.name}`, onclick: e => { e.stopPropagation(); deleteTab(t); } }, icon('x'));
     const tab = h('div', {
       class: `tab ${t.id === active?.id ? 'active' : ''}`, role: 'tab', tabindex: 0, 'aria-selected': String(t.id === active?.id),
-      style: { '--tab-color': t.color }, dataset: { drop: 'boardly-tab', accept: 'card', tab: t.id },
+      style: { '--tab-color': t.color }, dataset: { drop: 'boardly-tab', accept: 'card', tab: t.id, drag: 'btab', id: t.id }, title: 'Drag to reorder',
       onclick: () => { store.setPref('boardlyTab', t.id); sel.clear(); render(); },
     }, dot, name, list.length > 1 ? del : null);
     name.addEventListener('dblclick', e => { e.stopPropagation(); editInline(name, { onCommit: v => renameTab(t.id, v) }); });

@@ -21,9 +21,12 @@ export const HEARING_MODELS = {
 // download); everyone else gets Whisper Base. "Accurate" is one tap away in Voice and hearing.
 const english = () => (navigator.language || 'en').toLowerCase().startsWith('en');
 export const hearingModelKey = () => store.pref('hearingModel') || (!isSmallDevice() && english() ? 'fast' : 'light');
+/** Pin the model the first time voice is set up, so resizing the window (which changes the
+ *  phone/computer guess) never swaps it for a different download. */
+export const lockHearingModel = () => { if (!store.pref('hearingModel')) store.setPref('hearingModel', hearingModelKey()); };
 export const hearingModel = () => HEARING_MODELS[hearingModelKey()] || HEARING_MODELS.accurate;
 /** True once the chosen model has been downloaded on this device. */
-export const hearingDownloaded = () => store.pref('hearingReady') === hearingModel().id;
+export const hearingDownloaded = () => store.pref('hearingReady') === hearingModel().id || (store.pref('hearingHave') || []).includes(hearingModel().id);
 const RATE = 16000;
 
 let state = { status: 'off', progress: 0, error: null };
@@ -33,7 +36,9 @@ const setState = patch => { state = { ...state, ...patch }; listeners.forEach(fn
 export const hearingState = () => state;
 export const canCapture = !!(navigator.mediaDevices?.getUserMedia && (window.AudioContext || window.webkitAudioContext) && window.Worker);
 /** 'device' (private: on-device only; the default), 'auto' (on-device when ready, browser until then) or 'browser'. */
-export const hearingPref = () => store.pref('hearing', 'device');
+// Default: start instantly with the browser's speech recognition, and switch to the private on-device
+// model once it has downloaded (once, in the background). 'device' and 'browser' stay one tap away.
+export const hearingPref = () => store.pref('hearing', 'auto');
 export const isSmallDevice = () => matchMedia('(max-width: 700px)').matches || (navigator.deviceMemory && navigator.deviceMemory < 6);
 
 // ---------- The voice worker (models run there, off the main thread) ----------
@@ -57,6 +62,7 @@ export function resetHearing() { ready = false; readyModel = null; loading = nul
 /** Download (once) and load the speech model in the worker. Resolves when it's ready, or throws. */
 export function prepareHearing() {
   if (loading) return loading;
+  lockHearingModel();
   const m = hearingModel();
   if (ready && readyModel === m.id) return Promise.resolve(true);
   ready = false;
@@ -65,6 +71,8 @@ export function prepareHearing() {
   loading = (async () => {
     // Model files go to the browser's Cache Storage, not IndexedDB. Check there's room first (a no-op once cached).
     if (!hearingDownloaded()) {
+      // Ask the browser to keep these files when space runs low, so they only ever download once.
+      try { await navigator.storage?.persist?.(); } catch {}
       const room = await roomFor(m.mb);
       if (!room.ok) throw new Error(`Not enough browser storage for the private voice: it needs about ${room.needMb} MB free, and ${room.freeMb} MB is available.`);
     }
@@ -72,14 +80,15 @@ export function prepareHearing() {
     await new Promise((resolve, reject) => {
       const off = onWorker(msg => {
         if (msg.type === 'asr:progress') setState({ progress: msg.progress });
-        else if (msg.type === 'asr:ready') { off(); setState({ device: msg.device, vad: msg.vad }); resolve(); }
+        else if (msg.type === 'asr:ready') { off(); setState({ device: msg.device, vad: msg.vad }); if (msg.optKey) store.setPref('hearingOpt', { ...(store.pref('hearingOpt') || {}), [m.id]: msg.optKey }); resolve(); }
         else if (msg.type === 'asr:error' || msg.type === 'worker:error') { off(); reject(new Error(msg.message)); }
       });
-      w.postMessage({ type: 'asr:load', model: m.id, language: lang(), englishOnly: !!m.englishOnly });
+      w.postMessage({ type: 'asr:load', model: m.id, language: lang(), englishOnly: !!m.englishOnly, prefer: (store.pref('hearingOpt') || {})[m.id] || null });
     });
     ready = true; readyModel = m.id;
     setState({ status: 'ready', progress: 1 });
     store.setPref('hearingReady', m.id);
+    store.setPref('hearingHave', [...new Set([...(store.pref('hearingHave') || []), m.id])]);
     return true;
   })();
   loading.catch(err => setState({ status: 'error', error: err.message || String(err) })).finally(() => { loading = null; });

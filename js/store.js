@@ -2,11 +2,12 @@
 // Cards + structural records live in IndexedDB; small UI preferences live in localStorage.
 // Every mutation writes through immediately, then notifies subscribers on the next frame.
 
+import { NS } from './env.js';
 import { uuid, now } from './util.js';
 
-const DB_NAME = 'sedi';
+const DB_NAME = NS;
 const DB_VERSION = 2; // v2 (additive): adds the 'files' store for PDFs. Nothing renamed or removed.
-const PREFS_KEY = 'sedi.prefs';
+const PREFS_KEY = `${NS}.prefs`;
 export const SCHEMA_VERSION = 1;
 
 let db = null;
@@ -60,7 +61,7 @@ function getAll(store) {
 }
 // If IndexedDB is unavailable (rare private modes), keep everything in localStorage instead.
 function fallbackSave() {
-  try { localStorage.setItem('sedi.fallback', JSON.stringify({ cards: [...cards.values()], kv })); } catch {}
+  try { localStorage.setItem(`${NS}.fallback`, JSON.stringify({ cards: [...cards.values()], kv })); } catch {}
 }
 
 export async function init() {
@@ -72,7 +73,7 @@ export async function init() {
   } catch {
     db = null;
     try {
-      const raw = JSON.parse(localStorage.getItem('sedi.fallback') || 'null');
+      const raw = JSON.parse(localStorage.getItem(`${NS}.fallback`) || 'null');
       raw?.cards?.forEach(c => cards.set(c.id, c));
       Object.assign(kv, raw?.kv || {});
     } catch {}
@@ -221,7 +222,7 @@ const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader()
 const b64ToBlob = (b64, type) => { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type }); };
 
 // ---------- Secrets (API keys): this device only, never exported ----------
-const SECRETS_KEY = 'sedi.secrets';
+const SECRETS_KEY = `${NS}.secrets`;
 export function secret(name) { try { return JSON.parse(localStorage.getItem(SECRETS_KEY) || '{}')[name] || ''; } catch { return ''; } }
 export function setSecret(name, value) {
   try {
@@ -295,7 +296,7 @@ export async function clearAll() {
   for (const k of Object.keys(kv)) delete kv[k];
   prefsCache = {};
   try {
-    Object.keys(localStorage).filter(k => k.startsWith('sedi.')).forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k => k.startsWith(`${NS}.`)).forEach(k => localStorage.removeItem(k));
   } catch {}
   if (db) { db.close(); db = null; }
   await new Promise(res => {

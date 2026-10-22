@@ -3,7 +3,7 @@
 import * as store from './store.js';
 import { h, icon, modal, stripHtml, toast } from './util.js';
 import { crunch } from './sound.js';
-import { listen, canListen } from './speech.js';
+import { dictate as listen, canListen } from './speech.js'; // card mics: instant browser dictation
 
 export const TOOL_NAMES = { taskly: 'Taskly', boardly: 'Boardly', timely: 'Timely', brainly: 'Brainly', universal: 'Universal Board', home: 'Home' };
 export const TYPE_ICON = { goal: 'target', task: 'checklist', note: 'pencil', event: 'calendar', link: 'link' };

@@ -1,5 +1,6 @@
 // Sedi — persistent chrome: header + menu drawer, tool navigator, Universal Board, trash bin, routing.
 
+import { IS_BETA } from './env.js';
 import * as store from './store.js';
 import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp, homeSpot } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
@@ -31,7 +32,8 @@ export function buildHeader() {
     'data-navoro-trigger': '', hidden: true,
   }, icon('help'));
   const header = h('header', { class: 'topbar' },
-    h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home', onclick: e => spinAtom(e.currentTarget) }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi')),
+    h('a', { class: 'brand', href: '#/home', 'aria-label': 'Sedi home', onclick: e => spinAtom(e.currentTarget) }, icon('atom', 'brand-atom'), h('span', {}, 'Sedi'),
+      IS_BETA ? h('span', { class: 'sandbox-pill', title: 'Preview copy with its own separate data' }, 'Sandbox') : null),
     h('div', { class: 'topbar-actions' },
       help,
       h('button', { class: 'icon-btn menu-btn', 'aria-label': 'Open menu', 'aria-expanded': 'false', onclick: toggleDrawer }, icon('menu'))));
@@ -167,7 +169,9 @@ export function markActiveRoute(route) {
 }
 
 // ---------- Universal Board ----------
-const UNI_ITEM_H = 46;
+// The Universal Board is the in-transit shelf: room for 25, with a gentle nudge (once a day) past 8.
+export const UNI_MAX = 25;
+const UNI_NUDGE_AT = 8;
 let uniPanel, uniList, uniCount;
 export function buildUniversal() {
   // SD-H1: a dark 44px circle with a small spiral galaxy, the "universal" place cards pass through.
@@ -175,13 +179,14 @@ export function buildUniversal() {
   const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
-    if (uniFull()) { toast('The board is full. Route or clear a card first.', { code: 'UNIVERSAL_FULL' }); return; }
+    if (uniFull()) { toast(`The board holds ${UNI_MAX} cards. Sort a few into place first.`, { code: 'UNIVERSAL_FULL' }); return; }
     const list = universalCards();
     store.createCard({ type: 'note', title: quick.value.trim(), tool: 'universal', meta: { order: list.length } });
     quick.value = '';
+    setTimeout(maybeNudgeUniversal, 1200);
   });
   uniCount = h('span', { class: 'uni-count' });
-  uniList = h('div', { class: 'uni-list', dataset: { drop: 'universal', accept: 'card' }, 'data-list': '', 'data-navoro-sensitive': '' });
+  uniList = h('div', { class: 'uni-list', dataset: { drop: 'universal', accept: 'card' }, 'data-list': '', 'data-autoscroll': '', 'data-navoro-sensitive': '' });
   uniPanel = h('section', { class: 'universal-panel', 'aria-label': 'Universal Board' },
     h('div', { class: 'uni-head' }, h('h2', {}, 'Universal Board'), uniCount),
     withMic(quick, { label: 'Dictate to the Universal Board' }), uniList,
@@ -202,6 +207,7 @@ export function buildUniversal() {
       const list = universalCards();
       routeCard(id, { tool: 'universal', meta: { order: index ?? list.length } });
       reorder(universalCards(), id, index);
+      setTimeout(maybeNudgeUniversal, 1200);
     },
   });
   return wrap;
@@ -296,16 +302,22 @@ function makeUniversalDraggable(wrap, trigger) {
   });
 }
 const universalCards = () => store.cardsWhere(c => c.tool === 'universal').sort(byOrder);
-function uniCapacity() {
-  const hgt = uniList.clientHeight || 360;
-  return Math.max(3, Math.floor((hgt + 6) / UNI_ITEM_H));
+const uniFull = () => universalCards().length >= UNI_MAX;
+
+/** Once a day, when 8 or more cards are waiting, suggest a quick sort. */
+export function maybeNudgeUniversal() {
+  const n = universalCards().length;
+  const today = todayKey();
+  if (n < UNI_NUDGE_AT || store.pref('uniNudgedOn') === today) return;
+  store.setPref('uniNudgedOn', today);
+  toast(`${n} cards are waiting on the Universal Board. Want to sort a few into place?`, { action: 'Open board', onAction: () => toggleUniversal(true), duration: 9000 });
 }
-const uniFull = () => universalCards().length >= uniCapacity();
 
 export function renderUniversal() {
   if (!uniList) return;
   const list = universalCards();
-  uniCount.textContent = list.length ? `${list.length}/${uniCapacity()}` : '';
+  uniCount.textContent = list.length ? `${list.length}/${UNI_MAX}` : '';
+  uniCount.classList.toggle('busy', list.length >= UNI_NUDGE_AT);
   uniList.replaceChildren(...list.map(c => {
     const el = h('div', { class: 'uni-card', dataset: { drag: 'card', id: c.id } },
       h('div', { class: 'uni-row' }, typeIcon(c.type), h('span', { class: 'uni-title', title: c.title }, c.title)));

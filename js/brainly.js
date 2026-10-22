@@ -9,7 +9,7 @@ import {
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, typeIcon, TOOL_NAMES, flatten, cardChrome, openMoveDialog, trashCard, landed, withMic } from './cards.js';
 import { revealCard } from './shell.js';
-import { listen, canListen } from './speech.js';
+import { dictate as listen, canListen } from './speech.js'; // card mics: instant browser dictation
 import { crunch } from './sound.js';
 import { summaryFor, ensureSummary, noteText } from './summaries.js';
 import * as google from './google.js';

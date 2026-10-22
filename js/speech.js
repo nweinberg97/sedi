@@ -60,6 +60,15 @@ export function listen(opts = {}) {
   }
   return listenBrowser(opts);
 }
+/**
+ * Dictation into cards and notes. Uses the browser's own speech recognition (Web Speech API) so the
+ * mic works the moment you tap it, with no download and no setup. Only browsers without it (e.g. Firefox)
+ * fall back to Sedi's private on-device voice.
+ */
+export function dictate(opts = {}) {
+  if (SR && !transcriber()) return listenBrowser(opts);
+  return listen(opts);
+}
 function listenBrowser({ onInterim, onFinal, onEnd, onError, continuous = true } = {}) {
   const tr = transcriber();
   if (tr) return listenRecorded(tr, { onInterim, onFinal, onEnd, onError });
@@ -79,17 +88,24 @@ function listenBrowser({ onInterim, onFinal, onEnd, onError, continuous = true }
     if (interim) pendingInterim = interim.trim();
     onInterim?.(interim);
   };
+  let fatal = false;
   rec.onerror = e => {
+    if (e.error === 'aborted') return;
+    if (e.error === 'no-speech' && continuous) return; // a pause is normal while dictating; keep listening
     const msg = {
-      'not-allowed': 'Microphone access is blocked. Allow it in your browser’s site settings.',
+      'not-allowed': 'Microphone access is blocked. Click the lock icon in the address bar and allow the microphone.',
+      'service-not-allowed': 'Speech recognition is turned off in this browser.',
       'network': 'Voice input needs an internet connection in this browser.',
       'no-speech': 'Didn’t catch anything. Try again.',
       'audio-capture': 'No microphone found.',
+      'language-not-supported': 'Speech recognition doesn’t support this language here.',
     }[e.error] || `Voice input stopped (${e.error}).`;
-    if (e.error !== 'aborted') onError?.(msg);
+    // These won't fix themselves, so don't keep restarting into them.
+    if (['not-allowed', 'service-not-allowed', 'network', 'audio-capture', 'language-not-supported'].includes(e.error)) fatal = true;
+    onError?.(msg);
   };
   rec.onend = () => {
-    if (!stopped && continuous) { try { rec.start(); return; } catch {} }
+    if (!stopped && !fatal && continuous) { try { rec.start(); return; } catch {} }
     // Some browsers end without marking the last words final; keep them instead of losing them.
     if (pendingInterim) { onFinal?.(pendingInterim); pendingInterim = ''; }
     onEnd?.();

@@ -5,6 +5,7 @@ import { h, icon, toast, popover, closePopovers } from './util.js';
 import { registerDrop } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet, withMic, guardDuplicate } from './cards.js';
 import { crunch, checkSound } from './sound.js';
+import { celebrate } from './celebrate.js';
 
 export const COLUMNS = [
   { id: 'todo', name: 'To do', icon: 'checklist', empty: 'Nothing queued. Add the next thing you’ll start.' },
@@ -173,7 +174,7 @@ function complete(id, btn) {
   const card = btn.closest('.task-card');
   btn.classList.add('ticked');
   card.classList.add('completing');
-  checkSound();
+  celebrate(btn);
   setTimeout(() => completeTask(id), 520);
 }
 

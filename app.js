@@ -5,7 +5,7 @@ import { h, $, debounce, todayKey, toast } from './js/util.js';
 import { initDnd } from './js/dnd.js';
 import {
   buildHeader, buildDrawer, buildNavigator, buildUniversal, buildTrash,
-  currentRoute, navigate, markActiveRoute, renderUniversal,
+  currentRoute, navigate, markActiveRoute, renderUniversal, maybeNudgeUniversal,
 } from './js/shell.js';
 import { buildAssistant } from './js/assistant.js';
 import { seedIfEmpty } from './js/onboarding.js';
@@ -50,6 +50,7 @@ async function boot() {
   if (!navigator.onLine) document.body.classList.add('offline');
 
   registerServiceWorker();
+  setTimeout(maybeNudgeUniversal, 4000);
 }
 
 function mountRoute() {

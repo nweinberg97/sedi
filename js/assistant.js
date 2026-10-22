@@ -26,7 +26,7 @@ let vstate = 'idle';    // idle | listening | hearing | thinking | speaking
 let spokeAlready = false;
 
 export function buildAssistant() {
-  token = h('button', { class: 'assistant-token', 'aria-label': 'Talk to Sedi (⌘K to type)', 'aria-expanded': 'false' }, icon('atom'));
+  token = h('button', { class: 'assistant-token', 'aria-label': 'Talk to Sedi: tap, or hold to talk (⌘K to type)', title: 'Tap to talk · Hold to talk until you let go · Drag to move', 'aria-expanded': 'false' }, icon('atom'));
   output = h('div', { class: 'as-output', 'aria-live': 'polite' });
   input = h('input', { class: 'as-input', placeholder: 'Ask, or tell Sedi what to change', 'aria-label': 'Message the assistant' });
   statusEl = h('span', { class: 'as-status' });
@@ -183,9 +183,20 @@ function positionTray() {
   else tray.style.top = r.bottom + 12 + 'px';
 }
 
-function makeDraggable() {
+// ---------- The atom: tap to talk, hold to talk until you let go, drag to move ----------
+const HOLD_MS = 350;   // pressed this long without moving → push-to-talk
+const DRAG_PX = 12;    // moved further than this → a drag (smaller wobbles still count as a tap)
+/** Saved as fractions of the window, so the atom stays on screen when the window changes size. */
+function placeToken() {
   const pos = store.pref('assistantPos');
-  if (pos) Object.assign(token.style, { left: pos.x + 'px', top: pos.y + 'px', transform: 'none', bottom: 'auto' });
+  if (!pos) { token.removeAttribute('style'); return; }
+  const fx = pos.fx ?? (pos.x != null ? pos.x / innerWidth : null), fy = pos.fy ?? (pos.y != null ? pos.y / innerHeight : null);
+  if (fx == null || fy == null) { token.removeAttribute('style'); return; }
+  const x = clamp(fx * innerWidth, 8, innerWidth - 62), y = clamp(fy * innerHeight, 64, innerHeight - 62);
+  Object.assign(token.style, { left: x + 'px', top: y + 'px', transform: 'none', bottom: 'auto' });
+}
+function makeDraggable() {
+  placeToken();
   const spot = homeSpot(() => {
     const saved = token.style.cssText;
     token.style.cssText = 'transition: none';
@@ -195,37 +206,61 @@ function makeDraggable() {
   });
   const sendHome = () => { token.removeAttribute('style'); store.setPref('assistantPos', null); if (!tray.hidden) positionTray(); };
   addEventListener('sedi:reset-positions', sendHome);
-  let start = null;
+  const pinned = () => matchMedia('(max-width: 700px)').matches; // phones: the atom sits above the tab bar
+  let press = null;
+  const finish = (e, cancelled) => {
+    if (!press || (e && e.pointerId != null && e.pointerId !== press.id)) return;
+    const p = press; press = null;
+    clearTimeout(p.timer);
+    token.classList.remove('pressing', 'dragging', 'holding');
+    try { token.releasePointerCapture(p.id); } catch {}
+    if (p.mode === 'hold') { if (session && (vstate === 'listening' || vstate === 'hearing')) session.stop(); return; }
+    if (p.mode === 'drag') {
+      const r = token.getBoundingClientRect();
+      if (spot.near(r)) sendHome(); else store.setPref('assistantPos', { fx: r.left / innerWidth, fy: r.top / innerHeight });
+      spot.hide();
+      if (!tray.hidden) positionTray();
+      return;
+    }
+    if (cancelled) return;
+    toggle();
+    token.classList.remove('spin'); void token.offsetWidth; token.classList.add('spin'); setTimeout(() => token.classList.remove('spin'), 1100);
+  };
   token.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault(); // no text selection or focus jump while pressing
     const r = token.getBoundingClientRect();
-    start = { x: e.clientX, y: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, moved: false };
-    token.setPointerCapture(e.pointerId);
+    press = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, mode: 'tap' };
+    try { token.setPointerCapture(e.pointerId); } catch {}
+    token.classList.add('pressing');
+    // Hold to talk: opens and listens straight away; letting go ends what you said.
+    if (earsNow()) press.timer = setTimeout(() => {
+      if (press?.mode !== 'tap') return;
+      press.mode = 'hold';
+      token.classList.add('holding');
+      if (tray.hidden) toggle(true); else if (vstate === 'idle') talk();
+    }, HOLD_MS);
   });
   token.addEventListener('pointermove', e => {
-    if (!start) return;
-    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 5) return;
-    if (matchMedia('(max-width: 700px)').matches) return; // phones: the atom is pinned above the tab bar
-    if (!start.moved) spot.show();
-    start.moved = true;
-    const x = clamp(e.clientX - start.ox, 8, innerWidth - 56), y = clamp(e.clientY - start.oy, 64, innerHeight - 56);
+    if (!press || e.pointerId !== press.id || press.mode === 'hold') return;
+    if (press.mode === 'tap') {
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < DRAG_PX || pinned()) return;
+      press.mode = 'drag';
+      clearTimeout(press.timer);
+      token.classList.add('dragging');
+      spot.show();
+    }
+    const x = clamp(e.clientX - press.ox, 8, innerWidth - 62), y = clamp(e.clientY - press.oy, 64, innerHeight - 62);
     Object.assign(token.style, { left: x + 'px', top: y + 'px', transform: 'none', bottom: 'auto' });
     spot.near(token.getBoundingClientRect());
     if (!tray.hidden) positionTray();
   });
-  token.addEventListener('pointerup', () => {
-    if (!start) return;
-    if (start.moved) {
-      const r = token.getBoundingClientRect();
-      if (spot.near(r)) sendHome(); else store.setPref('assistantPos', { x: r.left, y: r.top });
-      spot.hide();
-    }
-    else { toggle(); token.classList.remove('spin'); void token.offsetWidth; token.classList.add('spin'); setTimeout(() => token.classList.remove('spin'), 1100); }
-    start = null;
-  });
-  addEventListener('resize', () => {
-    const r = token.getBoundingClientRect();
-    if (r.right > innerWidth || r.bottom > innerHeight) { token.removeAttribute('style'); store.setPref('assistantPos', null); }
-  });
+  token.addEventListener('pointerup', e => finish(e, false));
+  token.addEventListener('pointercancel', e => finish(e, true));
+  token.addEventListener('lostpointercapture', e => { if (press && e.pointerId === press.id) finish(e, press.mode === 'tap'); });
+  token.addEventListener('click', e => { if (e.detail === 0) toggle(); }); // keyboard: Enter or Space
+  token.addEventListener('contextmenu', e => e.preventDefault());           // long-press on touch screens
+  addEventListener('resize', () => { placeToken(); if (!tray.hidden) positionTray(); });
 }
 
 // ---------- Output helpers ----------
@@ -784,8 +819,9 @@ function openVoiceSettings() {
   // Voice files live in the browser's cache, apart from your cards (which are in IndexedDB).
   const storageNote = h('small', { class: 'muted' }, 'Voice files are stored in your browser’s cache, apart from your cards.');
   const removeBtn = h('button', { class: 'btn ghost sm', type: 'button', onclick: async () => {
-    const n = await removeModelFiles(/whisper|kokoro/i);
-    store.setPref('hearingReady', false); store.setPref('naturalReady', false);
+    const n = await removeModelFiles(/whisper|moonshine|kokoro/i);
+    store.setPref('hearingReady', false); store.setPref('hearingHave', []); store.setPref('naturalReady', false);
+    resetHearing();
     toast(n ? 'Removed the downloaded voice files. They’ll download again if you use voice.' : 'No voice files were stored on this device.');
   } }, icon('trash'), 'Remove voice downloads');
   modal({

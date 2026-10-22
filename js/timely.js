@@ -11,7 +11,8 @@ import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet, withMic } from './cards.js';
 import { todoCards, todoCapacity, completeTask } from './taskly.js';
 import { tick, checkSound } from './sound.js';
-import { listen, canListen } from './speech.js';
+import { celebrate } from './celebrate.js';
+import { dictate as listen, canListen } from './speech.js'; // card mics: instant browser dictation
 import { extractWhen } from './commands.js';
 
 export const SLOTS = ['morning', 'noon', 'afternoon', 'evening', 'night'];
@@ -421,7 +422,7 @@ function dayPlanPanel(key) {
       h('span', { class: 'sync-tag', title: 'This list is Taskly’s To do column. Changes show up in both places.' }, icon('sync'), 'Taskly To do')),
     h('div', { class: 'day-plan-list' }, list.map(c => {
       const el = h('div', { class: 'plan-item', dataset: { drag: 'card', id: c.id } },
-        h('button', { class: 'plan-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); e.currentTarget.classList.add('on'); checkSound(); setTimeout(() => completeTask(c.id), 380); } }, icon('check')),
+        h('button', { class: 'plan-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); e.currentTarget.classList.add('on'); celebrate(e.currentTarget); setTimeout(() => completeTask(c.id), 520); } }, icon('check')),
         h('div', { class: 'plan-main' }, h('span', { class: 'plan-text' }, c.title), notesSnippet(c)),
         h('button', { class: 'icon-btn xs', title: 'Give it a time today', 'aria-label': 'Schedule it today', onclick: e => { e.stopPropagation(); scheduleToday(c.id, key); } }, icon('clock')));
       el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Task' }));
@@ -764,8 +765,10 @@ function periodPlanPanel(kind, key, heading, sub) {
     const el = h('div', { class: `plan-item ${c.meta.done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id } },
       h('button', { class: `plan-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? `Mark “${c.title}” not done` : `Complete “${c.title}”`, onclick: e => {
         e.stopPropagation();
-        if (!c.meta.done) checkSound();
-        store.updateCard(c.id, { meta: { done: !c.meta.done } }, { log: !c.meta.done, logLabel: 'Completed' });
+        const btn = e.currentTarget, was = !!c.meta.done;
+        btn.classList.toggle('on', !was); el.classList.toggle('is-done', !was);
+        if (!was) celebrate(btn);
+        setTimeout(() => store.updateCard(c.id, { meta: { done: !was } }, { log: !was, logLabel: 'Completed' }), was ? 0 : 450);
       } }, icon('check')),
       h('div', { class: 'plan-main' }, h('span', { class: 'plan-text' }, c.title), notesSnippet(c)));
     el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Plan item' }));
@@ -1260,7 +1263,25 @@ function openArchive() {
 // ---------- Planning: an animated carousel of lists you can add and reorder (SD-B8, SD-T5–T8) ----------
 const containers = () => store.get('planContainers', { projects: [], goals: [] });
 const boardContainers = b => containers()[b] || [];
-const planCards = (b, cid) => store.cardsWhere(c => isPlan(c) && c.meta.board === b && c.meta.containerId === cid).sort(byOrder);
+// Open cards first, in their order; finished ones settle at the bottom, most recent first.
+const planCards = (b, cid) => store.cardsWhere(c => isPlan(c) && c.meta.board === b && c.meta.containerId === cid)
+  .sort((x, y) => (!!x.meta.done - !!y.meta.done) || (x.meta.done ? (y.meta.doneAt || '').localeCompare(x.meta.doneAt || '') : byOrder(x, y)));
+
+/** Tick or untick a project task or goal step: celebrate in place first, then let it settle. */
+function togglePlanCard(c, check, row) {
+  const nowDone = !c.meta.done;
+  store.updateCard(c.id, { meta: { done: nowDone, doneAt: nowDone ? new Date().toISOString() : null } },
+    { silent: true, log: true, logLabel: nowDone ? (c.meta.stepKind ? 'Step done' : 'Completed') : 'Reopened' });
+  check.classList.toggle('on', nowDone);
+  row.classList.toggle('done', nowDone);
+  if (nowDone) {
+    const all = planCards(c.meta.board, c.meta.containerId);
+    const finishedAll = all.length > 1 && all.every(x => x.meta.done);
+    celebrate(check, { big: finishedAll });
+    if (finishedAll) row.closest('.ct')?.classList.add('all-done');
+  }
+  setTimeout(() => store.notify({ reason: 'check' }), nowDone ? 650 : 120);
+}
 export const DEFAULT_CONTAINERS = () => ({
   projects: ['Ideas', 'In motion', 'Wrapping up'].map(name => ({ id: uuid(), name })),
   goals: ['Health', 'Craft', 'People'].map(name => ({ id: uuid(), name })),
@@ -1343,12 +1364,19 @@ function containerEl(b, ct) {
     cards.map(c => {
       const t = h('span', { class: 'pc-title', title: c.title }, c.title);
       t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
-      const el = h('div', { class: 'plan-card', dataset: { drag: 'card', id: c.id } }, typeIcon(c.type), h('div', { class: 'pc-main' }, t, notesSnippet(c)));
+      const check = h('button', {
+        class: `step-check round ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? `Mark “${c.title}” not done` : `Mark “${c.title}” done`, 'aria-pressed': String(!!c.meta.done),
+        onclick: e => { e.stopPropagation(); togglePlanCard(c, check, el); },
+      }, icon('check'));
+      const el = h('div', { class: `plan-card ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } }, check, h('div', { class: 'pc-main' }, t, notesSnippet(c)));
       return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }));
     }));
   if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, 'No tasks yet.'));
-  return h('section', { class: 'ct', dataset: { drag: 'ctcol', id: ct.id } },
-    listHead(b, ct, [h('span', { class: 'col-count' }, cards.length || '')]),
+  const done = cards.filter(c => c.meta.done).length;
+  return h('section', { class: `ct ${cards.length > 1 && done === cards.length ? 'all-done' : ''}`, dataset: { drag: 'ctcol', id: ct.id } },
+    listHead(b, ct, [h('span', { class: 'col-count' }, cards.length ? `${done}/${cards.length}` : '')]),
+    cards.length ? h('div', { class: 'ct-progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': cards.length, 'aria-valuenow': done, 'aria-label': `${done} of ${cards.length} done` },
+      h('span', { style: { width: `${(done / cards.length) * 100}%` } })) : null,
     listEl);
 }
 
@@ -1393,10 +1421,9 @@ function stepEl(c) {
   const t = h('span', { class: 'pc-title', title: c.title }, c.title);
   t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
   const el = h('div', { class: `plan-card step step-${kind} ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } },
-    h('button', { class: `step-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? 'Mark not done' : 'Mark done', onclick: e => {
+    h('button', { class: `step-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? 'Mark not done' : 'Mark done', 'aria-pressed': String(!!c.meta.done), onclick: e => {
       e.stopPropagation();
-      if (!c.meta.done) checkSound();
-      store.updateCard(c.id, { meta: { done: !c.meta.done } }, { log: true, logLabel: c.meta.done ? 'Reopened' : 'Step done' });
+      togglePlanCard(c, e.currentTarget, el);
     } }, icon('check')),
     h('span', { class: 'step-kind-icon', title: kind === 'milestone' ? 'Milestone' : 'Next action' }, icon(kind === 'milestone' ? 'flag' : 'arrowR')),
     h('div', { class: 'pc-main' }, t, notesSnippet(c)));
@@ -1477,7 +1504,8 @@ registerDrop('plan-container', ({ id, data, index }) => {
   const c = store.getCard(id);
   if (!c) return false;
   const type = data.board === 'goals' ? 'goal' : 'task';
-  const meta = { board: data.board, containerId: data.container, order: index ?? 0, ...(data.board === 'goals' ? { stepKind: c.meta?.stepKind || 'action', done: !!c.meta?.done } : {}) };
+  const keepDone = isPlan(c) && c.meta?.done ? { done: true, doneAt: c.meta.doneAt } : {};
+  const meta = { board: data.board, containerId: data.container, order: index ?? 0, ...keepDone, ...(data.board === 'goals' ? { stepKind: c.meta?.stepKind || 'action', done: !!c.meta?.done } : {}) };
   if (c.tool !== 'timely') routeCard(id, { tool: 'timely', type, meta });
   else store.updateCard(id, { type, meta }, { replaceMeta: true });
   reorder(planCards(data.board, data.container), id, index);
