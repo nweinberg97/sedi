@@ -3,27 +3,32 @@
 
 // The /beta/ preview gets its own cache names so the two copies never clear each other's caches.
 const NS = /\/beta\/$/.test(new URL(self.registration.scope).pathname) ? 'sedi-beta' : 'sedi';
-const VERSION = `${NS}-v1.17.0`;
+const VERSION = `${NS}-v1.18.0`;
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
   './brain/master_library.json',
   './js/util.js', './js/store.js', './js/dnd.js', './js/sound.js', './js/cards.js', './js/shell.js', './js/home.js',
   './js/taskly.js', './js/boardly.js', './js/timely.js', './js/brainly.js', './js/speech.js', './js/hearing.js', './js/runtime.js', './js/voice-worker.js', './js/assistant.js',
   './js/brain.js', './js/onboarding.js', './js/commands.js', './js/glass.js', './js/dotfield.js',
-  './js/engines.js', './js/google.js', './js/summaries.js', './js/env.js', './js/celebrate.js', './js/datainfo.js',
+  './js/engines.js', './js/google.js', './js/summaries.js', './js/env.js', './js/celebrate.js', './js/datainfo.js', './js/mic-worklet.js',
   './navoro/navoro.js', './navoro/navoro-pack.json',
 ];
-const RUNTIME = 'sedi-runtime'; // Sovereign Brain runtime files from the CDN
+const RUNTIME = 'sedi-runtime-v2'; // on-device AI runtime files (exact, versioned URLs only)
+const runtimeOk = res => res.ok && /javascript|wasm|json|octet-stream/.test(res.headers.get('content-type') || '');
 
 self.addEventListener('install', event => {
   // cache: 'reload' bypasses the browser's HTTP cache so a new version never precaches stale files.
-  event.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
+  // The new version waits until the page says so (the “Reload” toast), so old and new modules never mix in one page.
+  event.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))));
+});
+self.addEventListener('message', event => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k.startsWith(`${NS}-v`) && k !== VERSION).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => (k.startsWith(`${NS}-v`) && k !== VERSION) || k === 'sedi-runtime').map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -42,11 +47,13 @@ self.addEventListener('fetch', event => {
       const cached = await cache.match(req);
       if (cached) return cached;
       const res = await fetch(req);
-      if (res.ok) cache.put(req, res.clone());
+      if (runtimeOk(res)) cache.put(req, res.clone());
       return res;
     })());
     return;
   }
+  // The landing page, guides and PDFs aren't part of the app: leave them to the network.
+  if (url.origin === self.location.origin && url.pathname.includes('/welcome/')) return;
   // App shell: network first (always the newest version when online), cached copy when offline.
   // The main copy leaves the /beta/ preview to its own service worker.
   if (NS === 'sedi' && url.origin === self.location.origin && url.pathname.startsWith(new URL('beta/', self.registration.scope).pathname)) return;
@@ -67,13 +74,14 @@ self.addEventListener('fetch', event => {
   }
 
   // Transformers.js + ONNX runtime from jsDelivr: keep a local copy once downloaded.
-  if (url.hostname === 'cdn.jsdelivr.net') {
+  // Only exact versions (package@1.2.3) are kept, and only real code/data, so a bad or captive-portal response is never stored.
+  if (url.hostname === 'cdn.jsdelivr.net' && /@\d+\.\d+\.\d+/.test(url.pathname)) {
     event.respondWith((async () => {
       const cache = await caches.open(RUNTIME);
       const cached = await cache.match(req);
       if (cached) return cached;
       const res = await fetch(req);
-      if (res.ok) cache.put(req, res.clone());
+      if (runtimeOk(res)) cache.put(req, res.clone());
       return res;
     })());
   }

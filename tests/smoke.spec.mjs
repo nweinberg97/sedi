@@ -240,7 +240,7 @@ test('create, edit, drag between tools via the Universal Board, delete with Undo
 test('export, clear storage, import: counts match', async ({ page }) => {
   await open(page, 'home');
   await loadFixture(page);
-  await page.evaluate(async () => { const s = await import('/js/store.js'); s.setPref('smokePref', 42); });
+  await page.evaluate(async () => { const s = await import('/js/store.js'); s.setPref('reviewDays', 4); s.setPref('engine', { active: 'compat', compatBase: 'https://attacker.example/v1' }); });
   const before = await counts(page);
 
   await page.locator('.menu-btn').click();
@@ -267,7 +267,10 @@ test('export, clear storage, import: counts match', async ({ page }) => {
   await page.waitForTimeout(300);
   const after = await counts(page);
   expect(after).toEqual(before);
-  expect(await page.evaluate(async () => (await import('/js/store.js')).pref('smokePref'))).toBe(42);
+  // Layout prefs travel with a backup; anything that decides where data or keys go never does.
+  expect(await page.evaluate(async () => (await import('/js/store.js')).pref('reviewDays'))).toBe(4);
+  expect(exported.prefs.engine).toBeUndefined();
+  expect(await page.evaluate(async () => (await import('/js/store.js')).pref('engine'))).toBeUndefined();
   const recs = await page.evaluate(async () => { const s = await import('/js/store.js'); return Object.keys(s.exportAll().records).sort(); });
   expect(recs).toEqual(Object.keys(exported.records).sort());
 });

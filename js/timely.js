@@ -1133,7 +1133,7 @@ const field = (label, input) => h('label', { class: 'mini-field' }, h('span', { 
 
 // ---------- .ics export ----------
 const plainText = s => String(s || '').replace(/<\/(div|p|li)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
-const icsEsc = s => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, m => '\\' + m);
+const icsEsc = s => String(s || '').replace(/\\/g, '\\\\').replace(/\r\n?|\n/g, '\\n').replace(/[,;]/g, m => '\\' + m);
 const RRULE = { daily: 'FREQ=DAILY', weekdays: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY' };
 function vevent(c, onDate) {
   const m = c.meta || {};

@@ -240,7 +240,7 @@ export function exportAll() {
     exportedAt: now(),
     cards: allCards(),
     records: { ...kv },
-    prefs: { ...prefs() },
+    prefs: portablePrefs(prefs()),
   };
 }
 /** Export including stored files (PDFs) as base64, so a backup is complete. */
@@ -255,6 +255,39 @@ export async function exportAllWithFiles() {
   return data;
 }
 
+// Only layout choices travel between devices. Anything that decides where data or keys are sent
+// (AI engine, Google client, Shortcuts name, location, voice/model setup) stays on the device it was set on,
+// so a shared or tampered backup can't redirect your keys or notes.
+const PORTABLE_PREFS = ['boardlyTab', 'brainlyPane', 'calTarget', 'homeTab', 'planOffset', 'reviewDays', 'tasklyCaps', 'timelyAnchor', 'timelyMode', 'timelyPlan', 'timelyView'];
+function portablePrefs(p) {
+  const out = {};
+  for (const k of PORTABLE_PREFS) if (p && Object.prototype.hasOwnProperty.call(p, k)) out[k] = p[k];
+  return out;
+}
+const RECORD_KEYS = new Set(['activity', 'boardlyTabs', 'brainFolders', 'commandLog', 'linkFolders', 'onboarded', 'planContainers', 'recur']);
+const TOOLS = new Set(['taskly', 'boardly', 'timely', 'brainly', 'universal']);
+const SAFE_FILE_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'text/plain', 'text/markdown', 'application/octet-stream']);
+const isoOr = (v, fb) => (typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? v : fb);
+/** Coerce an imported card into the shape the app expects, or drop it. */
+function cleanCard(c) {
+  if (!c || typeof c !== 'object' || typeof c.id !== 'string' || !c.id || c.id.length > 200) return null;
+  if (!TOOLS.has(c.tool)) return null;
+  const t = now();
+  const meta = c.meta && typeof c.meta === 'object' && !Array.isArray(c.meta) ? JSON.parse(JSON.stringify(c.meta)) : {};
+  for (const k of ['__proto__', 'constructor', 'prototype']) delete meta[k];
+  return {
+    ...c,
+    id: c.id,
+    type: typeof c.type === 'string' ? c.type : 'note',
+    tool: c.tool,
+    title: typeof c.title === 'string' ? c.title : String(c.title ?? ''),
+    description: typeof c.description === 'string' ? c.description : '',
+    createdAt: isoOr(c.createdAt, t),
+    updatedAt: isoOr(c.updatedAt, t),
+    meta,
+  };
+}
+
 export async function importAll(data, mode = 'merge') {
   if (!data || data.app !== 'sedi' || !Array.isArray(data.cards)) throw new Error('This file is not a Sedi export.');
   if (mode === 'replace') {
@@ -262,17 +295,18 @@ export async function importAll(data, mode = 'merge') {
     for (const k of Object.keys(kv)) delete kv[k];
     if (db) { await tx('cards', 'readwrite', s => s.clear()); await tx('kv', 'readwrite', s => s.clear()); }
   }
-  for (const c of data.cards) {
-    if (!c?.id) continue;
-    const existing = cards.get(c.id);
-    if (!existing || mode === 'replace' || (c.updatedAt || '') > (existing.updatedAt || '')) {
-      const card = { ...c, meta: { ...(c.meta || {}) } };
+  for (const raw of data.cards) {
+    const card = cleanCard(raw);
+    if (!card) continue;
+    const existing = cards.get(card.id);
+    if (!existing || mode === 'replace' || card.updatedAt > (existing.updatedAt || '')) {
       cards.set(card.id, card);
       tx('cards', 'readwrite', s => s.put(card));
     }
   }
-  const recs = data.records || {};
+  const recs = data.records && typeof data.records === 'object' ? data.records : {};
   for (const [k, v] of Object.entries(recs)) {
+    if (!RECORD_KEYS.has(k)) continue;
     if (mode === 'merge' && Array.isArray(v) && Array.isArray(kv[k]) && k !== 'activity' && k !== 'commandLog') {
       const ids = new Set(kv[k].map(x => x?.id));
       kv[k] = [...kv[k], ...v.filter(x => !ids.has(x?.id))];
@@ -281,11 +315,16 @@ export async function importAll(data, mode = 'merge') {
     }
     tx('kv', 'readwrite', s => s.put(kv[k], k));
   }
+  const have = mode === 'merge' ? new Set((await allFiles()).map(([id]) => id)) : new Set();
   for (const f of Array.isArray(data.files) ? data.files : []) {
-    if (f?.id && f.data) { try { await putFile(f.id, b64ToBlob(f.data, f.type || 'application/pdf')); } catch {} }
+    if (typeof f?.id !== 'string' || typeof f.data !== 'string' || have.has(f.id)) continue;
+    // Never trust the type in the file: anything unexpected becomes a plain download.
+    const type = SAFE_FILE_TYPES.has(f.type) ? f.type : 'application/octet-stream';
+    try { await putFile(f.id, b64ToBlob(f.data, type)); } catch {}
   }
-  if (mode === 'replace' && data.prefs) {
-    prefsCache = { ...data.prefs };
+  const incoming = portablePrefs(data.prefs);
+  if (Object.keys(incoming).length) {
+    prefsCache = { ...prefs(), ...incoming };
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefsCache)); } catch {}
   }
   emit({ reason: 'import' });

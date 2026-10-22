@@ -99,16 +99,7 @@ const lang = () => {
   return { en: 'english', fr: 'french', de: 'german', es: 'spanish', it: 'italian', pt: 'portuguese', nl: 'dutch', he: 'hebrew', ja: 'japanese', zh: 'chinese', ko: 'korean', ru: 'russian' }[code] || 'english';
 };
 
-const WORKLET = `
-class Tap extends AudioWorkletProcessor {
-  constructor() { super(); this.buf = []; this.n = 0; }
-  process(inputs) {
-    const ch = inputs[0] && inputs[0][0];
-    if (ch) { this.buf.push(ch.slice(0)); this.n += ch.length; if (this.n >= 1024) { this.port.postMessage(this.buf); this.buf = []; this.n = 0; } }
-    return true;
-  }
-}
-registerProcessor('sedi-tap', Tap);`;
+// The microphone tap lives in js/mic-worklet.js.
 
 /** Simple decimating resampler to 16 kHz (averages each window, which also low-passes a little). */
 function toRate(chunk, from) {
@@ -159,9 +150,7 @@ export function captureUtterance({ onLevel, onSpeech, onStatus, onFinal, onEnd, 
       if (closed) { stream.getTracks().forEach(t => t.stop()); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       ctx = new AC();
-      const url = URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' }));
-      await ctx.audioWorklet.addModule(url);
-      URL.revokeObjectURL(url);
+      await ctx.audioWorklet.addModule(new URL('./mic-worklet.js', import.meta.url));
       const src = ctx.createMediaStreamSource(stream);
       node = new AudioWorkletNode(ctx, 'sedi-tap');
       node.port.onmessage = e => {

@@ -367,7 +367,8 @@ export function earsNow() {
 export function hearOnce(cb = {}) {
   const ears = earsNow();
   // While the browser's ears are in use, quietly get the private ones ready for next time.
-  if (hearingPref() !== 'browser' && canCapture && shouldPrepare()) prepareHearing().catch(() => {});
+  // Only after you've agreed to the download (Set up private voice); never silently.
+  if (hearingPref() !== 'browser' && canCapture && shouldPrepare() && (hearingDownloaded() || store.pref('voiceSetupOk') === hearingModel().id)) prepareHearing().catch(() => {});
   if (!ears) { cb.onError?.('Voice input isn’t supported in this browser.'); cb.onEnd?.({ heard: false }); return { stop() {}, cancel() {}, ears }; }
   if (ears === 'device') {
     let inner = null, cancelled = false;

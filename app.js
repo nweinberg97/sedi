@@ -96,13 +96,16 @@ function renderAll(force = false) {
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  // A new version installs in the background and waits; "Reload" switches over, so old and new code never mix.
+  const offer = w => toast('A new version of Sedi is ready.', { action: 'Reload', duration: 15000, onAction: () => w.postMessage('skipWaiting') });
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloading) { reloading = true; location.reload(); } });
   navigator.serviceWorker.register('./sw.js').then(reg => {
+    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
     reg.addEventListener('updatefound', () => {
       const w = reg.installing;
       w?.addEventListener('statechange', () => {
-        if (w.state === 'installed' && navigator.serviceWorker.controller) {
-          toast('A new version of Sedi is ready.', { action: 'Reload', onAction: () => location.reload() });
-        }
+        if (w.state === 'installed' && navigator.serviceWorker.controller) offer(w);
       });
     });
   }).catch(() => {});

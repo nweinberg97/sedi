@@ -16,7 +16,6 @@ export function h(tag, attrs = {}, ...children) {
       }
     }
     else if (k === 'dataset') Object.assign(el.dataset, v);
-    else if (k === 'html') el.innerHTML = v;
     else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
     else if (v === true) el.setAttribute(k, '');
     else el.setAttribute(k, v);
@@ -78,11 +77,20 @@ export function relTime(iso) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+// ---------- Links ----------
+const SAFE_SCHEMES = new Set(['https:', 'http:', 'mailto:', 'applenotes:', 'mobilenotes:']);
+/** Returns the URL only if it's a scheme we're happy to open (never javascript:, data:, blob:, file:…). */
+export function safeUrl(u) {
+  try { const x = new URL(String(u || '').trim()); return SAFE_SCHEMES.has(x.protocol) ? x.href : null; } catch { return null; }
+}
+
 // ---------- Text ----------
 export const firstLine = s => (s || '').split('\n')[0];
+// Parsed in an inert document: nothing loads and no handlers run, whatever the HTML contains.
+const inert = typeof DOMParser !== 'undefined' ? new DOMParser() : null;
 export function stripHtml(html) {
-  const d = document.createElement('div');
-  d.innerHTML = html || '';
+  const d = inert.parseFromString(`<body>${html || ''}</body>`, 'text/html').body;
+  d.querySelectorAll('script,style,template').forEach(n => n.remove());
   d.querySelectorAll('br,p,div,li,h1,h2,h3').forEach(n => n.append('\n'));
   return d.textContent.replace(/\n{3,}/g, '\n\n').trim();
 }

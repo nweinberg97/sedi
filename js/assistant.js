@@ -365,7 +365,7 @@ function showVoiceIntro() {
   const card = h('div', { class: 'voice-intro' },
     h('div', { class: 'vi-badge' }, icon('lock'), 'Private voice'),
     h('strong', { class: 'vi-title' }, 'Talk to Sedi'),
-    h('p', {}, `Your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. To do that, it needs a one-time download of open models (${downloadSize()}). After that, it works offline.`),
+    h('p', {}, `Once it's set up, your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. It needs a one-time download of open models (${downloadSize()}), then works offline. Until then, voice uses your browser's own speech recognition, which in some browsers (like Chrome) sends the audio to their servers.`),
     h('button', { class: 'vi-link', type: 'button', 'aria-expanded': 'false', onclick: e => { more.hidden = !more.hidden; e.currentTarget.setAttribute('aria-expanded', String(!more.hidden)); e.currentTarget.textContent = more.hidden ? 'What exactly happens?' : 'Hide details'; } }, 'What exactly happens?'),
     more,
     h('div', { class: 'vi-actions' },

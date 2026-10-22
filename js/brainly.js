@@ -4,7 +4,7 @@
 import * as store from './store.js';
 import {
   h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml, relTime,
-  colorFor, smartEmoji, mostCommonEmoji, prettyUrl, EMOJI_CHOICES, debounce, hashStr, listMode,
+  colorFor, smartEmoji, mostCommonEmoji, prettyUrl, EMOJI_CHOICES, debounce, hashStr, listMode, safeUrl,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, typeIcon, TOOL_NAMES, flatten, cardChrome, openMoveDialog, trashCard, landed, withMic } from './cards.js';
@@ -363,11 +363,15 @@ async function addUpload(file, lfid = null) {
     meta: { upload: { fileId, name: file.name, size: file.size, type: file.type || '' }, linkFolderId: lfid, order: links(lfid).length } });
   toast(`Added ${file.name}`);
 }
+// Files only open in a tab when they're a type the browser shows safely (PDF, images, plain text),
+// re-wrapped with that exact type. Anything else (HTML, SVG…) downloads instead, so it can never run as Sedi.
+const VIEWABLE = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'text/plain']);
 async function openUpload(up, download = false) {
   const blob = await store.getFile(up.fileId);
   if (!blob) return toast('That file isn’t on this device any more.');
-  const url = URL.createObjectURL(blob);
-  const a = h('a', { href: url, target: '_blank', rel: 'noopener', ...(download ? { download: up.name } : {}) });
+  const viewable = !download && VIEWABLE.has(blob.type);
+  const url = URL.createObjectURL(new Blob([blob], { type: viewable ? blob.type : 'application/octet-stream' }));
+  const a = h('a', { href: url, target: '_blank', rel: 'noopener', ...(viewable ? {} : { download: up.name || 'file' }) });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60e3);
 }
@@ -427,7 +431,7 @@ function previewItem(anchor, id) {
   if (kind === 'link') {
     rows.push(h('div', { class: 'peek-url' }, m.url),
       h('div', { class: 'peek-actions' },
-        h('a', { class: 'btn sm primary', href: m.url, target: '_blank', rel: 'noopener noreferrer' }, icon('external'), 'Open link'),
+        h('a', { class: 'btn sm primary', href: safeUrl(m.url), target: '_blank', rel: 'noopener noreferrer' }, icon('external'), 'Open link'),
         h('button', { class: 'chip', onclick: () => { closePopovers(); openMoveDialog(id); } }, icon('move'), 'Move to…')),
       h('p', { class: 'muted small' }, 'Sites don’t let a browser app fetch their preview image, so Sedi shows the site’s icon, its address and the title you choose.'));
   } else if (kind === 'pdf') {
@@ -439,7 +443,7 @@ function previewItem(anchor, id) {
       h('div', { class: 'peek-actions' },
         h('button', { class: 'btn sm primary', onclick: () => openPdf(m.pdf) }, icon('external'), 'Open PDF'),
         h('button', { class: 'chip', onclick: () => { closePopovers(); openMoveDialog(id); } }, icon('move'), 'Move to…'),
-        m.driveUrl ? h('a', { class: 'chip', href: m.driveUrl, target: '_blank', rel: 'noopener noreferrer' }, icon('external'), 'Open in Drive')
+        safeUrl(m.driveUrl) ? h('a', { class: 'chip', href: safeUrl(m.driveUrl), target: '_blank', rel: 'noopener noreferrer' }, icon('external'), 'Open in Drive')
           : h('button', { class: 'chip', onclick: async () => {
             status.textContent = 'Uploading to Google Drive…';
             try { const blob = await store.getFile(m.pdf.fileId); const url = await google.uploadToDrive(m.pdf.name, blob); store.updateCard(id, { meta: { driveUrl: url } }, { log: true, logLabel: 'Saved to Google Drive' }); status.textContent = 'Saved to Drive.'; }
@@ -483,7 +487,7 @@ function makeTaskFrom(c) {
 async function openPdf(pdf) {
   const blob = await store.getFile(pdf.fileId);
   if (!blob) return toast('That PDF isn’t on this device any more.');
-  const url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: 'application/pdf' }));
+  const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
   const w = window.open(url, '_blank', 'noopener');
   if (!w) {
     const a = h('a', { href: url, target: '_blank', rel: 'noopener' });
@@ -818,7 +822,7 @@ export function openNote(id, isNew = false) {
     const list = store.getCard(id)?.meta?.docLinks || [];
     docList.replaceChildren(...list.map((d, i) => h('div', { class: 'doc-link' },
       h('span', { class: `doc-kind kind-${d.kind}` }, (DOC_KINDS[d.kind]?.label || 'Link')),
-      h('a', { href: d.url, target: '_blank', rel: 'noopener noreferrer' }, d.title || d.url),
+      safeUrl(d.url) ? h('a', { href: safeUrl(d.url), target: '_blank', rel: 'noopener noreferrer' }, d.title || d.url) : h('span', {}, d.title || d.url),
       h('button', { class: 'icon-btn xs', 'aria-label': 'Remove link', onclick: () => { store.updateCard(id, { meta: { docLinks: list.filter((_, j) => j !== i) } }); paintDocs(); } }, icon('x')))));
   };
   paintDocs();

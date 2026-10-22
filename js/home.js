@@ -197,6 +197,8 @@ async function loadWeather(force) {
   if (!force && cached?.temp != null && Date.now() - new Date(cached.at).getTime() < 30 * 60e3) return renderWeather();
   if (!navigator.onLine) return renderWeather();
   let coords = store.pref('coords');
+  // Weather is opt-in: nothing is sent anywhere until you choose a city or your location.
+  if (!coords && !force) return renderWeather();
   if (!coords) {
     store.setPref('weatherState', 'loading'); renderWeather();
     // Use precise location only if it's already allowed; otherwise start from the device's time-zone city.
@@ -274,6 +276,12 @@ function openWeatherMenu(anchor) {
     },
   }, icon('send'), 'Use my location');
   const current = store.pref('coords');
+  if (!current) {
+    // Suggest the city from your device's time zone, so adding weather is one tap.
+    const tzCity = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').split('/').pop()?.replace(/_/g, ' ');
+    if (tzCity && !/^(UTC|GMT|Etc)/i.test(tzCity)) { input.value = tzCity; setTimeout(search, 0); }
+    note.textContent = 'Weather comes from Open-Meteo. Only the city you pick is sent.';
+  }
   popover(anchor, h('div', { class: 'wx-menu' },
     h('strong', {}, 'Weather location'),
     current?.name ? h('p', { class: 'muted small' }, `Showing ${current.name}`) : null,

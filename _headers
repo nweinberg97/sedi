@@ -1,0 +1,26 @@
+# Cloudflare Pages response headers for Sedi.
+# The app's Content-Security-Policy starts as Report-Only: check the browser console on launch day
+# (including the on-device AI and voice downloads), then rename it to Content-Security-Policy to enforce it.
+# Never add bare https://cdn.jsdelivr.net to script-src: it serves any npm package, which would defeat the policy.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Permissions-Policy: microphone=(self), geolocation=(self), camera=(), payment=(), usb=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+/
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/ https://cdn.jsdelivr.net/npm/onnxruntime-web@ https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/ https://accounts.google.com/gsi/client 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://openrouter.ai https://api.open-meteo.com https://geocoding-api.open-meteo.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://www.googleapis.com http://localhost:11434 http://127.0.0.1:11434; frame-src https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'self'
+
+/index.html
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/ https://cdn.jsdelivr.net/npm/onnxruntime-web@ https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/ https://accounts.google.com/gsi/client 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https:; font-src 'self'; media-src 'self' blob:; connect-src 'self' https://api.anthropic.com https://api.openai.com https://openrouter.ai https://api.open-meteo.com https://geocoding-api.open-meteo.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://www.googleapis.com http://localhost:11434 http://127.0.0.1:11434; frame-src https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'self'
+
+/welcome/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/sw.js
+  Cache-Control: no-cache
+/js/*
+  Cache-Control: no-cache
