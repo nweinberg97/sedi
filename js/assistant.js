@@ -54,6 +54,7 @@ export function buildAssistant() {
   setState('idle');
   document.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); toggle(true, { view: 'type' }); }
+    if (e.key === 'Escape' && !tray.hidden && !document.querySelector('.modal-backdrop, .popover')) toggle(false);
     if (e.key === ' ' && !tray.hidden && tray.dataset.view === 'voice' && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && !e.target.isContentEditable) { e.preventDefault(); onOrb(); }
   });
   document.addEventListener('pointerdown', e => { if (!tray.hidden && !tray.contains(e.target) && !token.contains(e.target) && !e.target.closest('.modal-backdrop, .toast, .popover')) toggle(false); });
@@ -210,10 +211,10 @@ function makeDraggable() {
   const sendHome = () => { token.removeAttribute('style'); store.setPref('assistantPos', null); if (!tray.hidden) positionTray(); };
   addEventListener('sedi:reset-positions', sendHome);
   const pinned = () => matchMedia('(max-width: 700px)').matches; // phones: the atom sits above the tab bar
-  let press = null;
+  let press = null, lastPress = 0;
   const finish = (e, cancelled) => {
     if (!press || (e && e.pointerId != null && e.pointerId !== press.id)) return;
-    const p = press; press = null;
+    const p = press; press = null; lastPress = Date.now();
     clearTimeout(p.timer);
     token.classList.remove('pressing', 'dragging', 'holding');
     try { token.releasePointerCapture(p.id); } catch {}
@@ -261,7 +262,8 @@ function makeDraggable() {
   token.addEventListener('pointerup', e => finish(e, false));
   token.addEventListener('pointercancel', e => finish(e, true));
   token.addEventListener('lostpointercapture', e => { if (press && e.pointerId === press.id) finish(e, press.mode === 'tap'); });
-  token.addEventListener('click', e => { if (e.detail === 0) toggle(undefined, { view: 'type' }); }); // keyboard: Enter or Space
+  // Keyboard: Enter or Space. Some touch browsers also send a detail-0 click right after a tap; that one is skipped.
+  token.addEventListener('click', e => { if (e.detail === 0 && Date.now() - lastPress > 600) toggle(undefined, { view: 'type' }); });
   token.addEventListener('contextmenu', e => e.preventDefault());           // long-press on touch screens
   addEventListener('resize', () => { placeToken(); if (!tray.hidden) positionTray(); });
 }
@@ -386,7 +388,7 @@ function startListening() {
   if (session) { session.cancel(); session = null; }
   if (output.querySelector('.as-hint')) output.replaceChildren();
   setState('listening');
-  let live = null, finalText = '';
+  let live = null, finalText = '', problem = '';
   const bubble = () => live || (live = say(h('span', { class: 'as-interim' }, '…'), 'me'));
   const me = session = hearOnce({
     idleMs: 10000,
@@ -396,14 +398,15 @@ function startListening() {
     onPrepare: (p, done) => { if (session === me) showPrep(p, done); },
     onStatus: t => { if (session === me) caption.textContent = t; if (/Transcribing/.test(t)) bubble().firstChild.textContent = '…'; },
     onFinal: t => { finalText += (finalText ? ' ' : '') + t; },
-    onError: msg => { if (!/Didn’t catch/.test(msg)) toast(msg); },
+    onError: msg => { if (!/Didn’t catch/.test(msg)) { problem = msg; toast(msg); } },
     onEnd: () => {
       if (session !== me) { live?.remove(); return; }
       session = null;
       live?.remove();
       paintStatus();
       if (finalText) return submit(fixVocabulary(finalText).trim(), { fromVoice: true });
-      setState('idle', 'Didn’t catch that. Tap to try again');
+      setState('idle', /blocked|not-allowed|permission/i.test(problem) ? 'Microphone blocked. Allow it, then tap' : problem ? 'Voice isn’t ready. Tap to try again, or type' : 'Didn’t catch that. Tap to try again');
+      if (problem && !/blocked|not-allowed|permission/i.test(problem)) say(h('p', { class: 'muted' }, problem));
     },
   });
 }
@@ -418,15 +421,16 @@ function search(q, n = 5) {
   const lower = q.toLowerCase();
   const kind = /\bnotes?\b/.test(lower) ? 'note' : /\blinks?\b|\bpdfs?\b/.test(lower) ? 'link' : /\bgoals?\b/.test(lower) ? 'goal' : /\breminders?\b/.test(lower) ? 'reminder' : /\b(?:tasks?|to ?dos?)\b/.test(lower) ? 'task' : /\b(?:events?|meetings?|calendar|appointments?)\b/.test(lower) ? 'event' : null;
   const terms = [...new Set((lower.match(/[a-z0-9']+/g) || []).filter(w => w.length > 2 && !SEARCH_STOP.has(w)).map(stem).filter(w => w.length > 1))];
-  if (!terms.length) return [];
+  const fits = c => !kind || (kind === 'note' ? c.tool === 'brainly' && c.type !== 'link' : kind === 'link' ? c.type === 'link'
+    : kind === 'goal' ? c.type === 'goal' : kind === 'reminder' ? c.meta?.kind === 'reminder' : kind === 'task' ? c.type === 'task' : c.tool === 'timely' && c.type === 'event');
+  // "Show my goals", "list my reminders": nothing to match, so list that kind, newest first.
+  if (!terms.length) return kind ? store.allCards().filter(c => !c.meta?.archivedAt && c.meta?.columnId !== 'completed' && fits(c)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, n) : [];
   const bf = store.get('brainFolders', []);
   const chain = f => { const names = []; let x = f, guard = 0; while (x && guard++ < 8) { names.push(x.name); x = bf.find(y => y.id === x.parentId); } return names.join(' '); };
   const folders = Object.fromEntries([...bf.map(f => [f.id, chain(f)]), ...store.get('linkFolders', []).map(f => [f.id, f.name])]);
   const tabs = Object.fromEntries(store.get('boardlyTabs', []).map(t => [t.id, t.name]));
   const plan = store.get('planContainers', { projects: [], goals: [] });
   const cts = Object.fromEntries([...(plan.projects || []), ...(plan.goals || [])].map(x => [x.id, x.name]));
-  const fits = c => !kind || (kind === 'note' ? c.tool === 'brainly' && c.type !== 'link' : kind === 'link' ? c.type === 'link'
-    : kind === 'goal' ? c.type === 'goal' : kind === 'reminder' ? c.meta?.kind === 'reminder' : kind === 'task' ? c.type === 'task' : c.tool === 'timely' && c.type === 'event');
   const wordsOf = s => (s.toLowerCase().match(/[a-z0-9']+/g) || []).map(stem);
   return store.allCards().filter(c => !c.meta?.archivedAt).map(c => {
     const title = wordsOf(c.title), body = wordsOf(flatten(c)), place = wordsOf([folders[c.meta?.folderId], folders[c.meta?.linkFolderId], tabs[c.meta?.tabId], cts[c.meta?.containerId]].filter(Boolean).join(' '));

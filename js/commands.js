@@ -47,9 +47,43 @@ export function fixVocabulary(raw) {
     .replace(/\b(called|named|titled|saying)\s*[,:;–—-]\s*/gi, '$1 ');
 }
 
+/**
+ * Speech comes out the way people talk: fillers, "nine a m", "seven in the morning", "twelve thirty".
+ * Rewrite it the way people type, so spoken commands are understood as well as typed ones.
+ * Number words only become times next to "at" or a part of the day, so "call two people" stays as is.
+ */
+const HOUR_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+const UNIT_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
+function minuteWords(w) {
+  const t = w.toLowerCase().replace(/-/g, ' ').trim();
+  if (/^oh /.test(t)) return UNIT_WORDS[t.slice(3)] || 0;
+  const [tens, unit] = t.split(/\s+/);
+  const base = { ten: 10, fifteen: 15, twenty: 20, thirty: 30, forty: 40, fifty: 50 }[tens] || 0;
+  return base + (unit ? UNIT_WORDS[unit] || 0 : 0);
+}
+export function spokenToTyped(raw) {
+  const H = Object.keys(HOUR_WORDS).join('|');
+  const M = `oh (?:${Object.keys(UNIT_WORDS).join('|')})|fifteen|(?:twenty|thirty|forty|fifty)(?:[ -](?:${Object.keys(UNIT_WORDS).join('|')}))?|ten|o'?clock`;
+  const PART = `a\\.?\\s?m\\.?|p\\.?\\s?m\\.?|in the morning|in the afternoon|in the evening|at night|tonight`;
+  return String(raw || '')
+    .replace(/\b(?:u+m+|u+h+|e+r+m*|h+m+)\b[,.]?\s*/gi, '')
+    .replace(/\b(?:you know|i mean)\b,?\s*/gi, '')
+    .replace(/^\s*(?:(?:okay|ok|alright|all right|so|well|right|yeah|and)[,.]?\s+)+/i, '')
+    .replace(/\b(\d{1,2}(?::\d{2})?)\s*([ap])\.?\s?m\b\.?/gi, '$1$2m')
+    .replace(new RegExp(`\\b(at\\s+)?(${H})(?:\\s+(${M}))?(?:\\s+(${PART}))?(?![a-z])`, 'gi'), (all, at, hw, mw, part) => {
+      if (!at && !part) return all;
+      const min = mw && !/clock/i.test(mw) ? minuteWords(mw) : 0;
+      const ampm = !part ? '' : /^a|morning/i.test(part) ? 'am' : 'pm';
+      return `${at || ''}${HOUR_WORDS[hw.toLowerCase()]}${min ? `:${String(min).padStart(2, '0')}` : ''}${ampm}${/tonight/i.test(part || '') ? ' tonight' : ''}`;
+    })
+    .replace(/\b(\d{1,2}(?::\d{2})?)\s+(in the morning)\b/gi, '$1am')
+    .replace(/\b(\d{1,2}(?::\d{2})?)\s+(in the (?:afternoon|evening)|at night)\b/gi, '$1pm')
+    .replace(/\bto[\s-]?do list\b/gi, 'to do');
+}
+
 /** Strip politeness and assistant-addressing so "hey sedi, could you please add milk" → "add milk". */
 export function normalize(raw) {
-  return fixVocabulary(raw)
+  return fixVocabulary(spokenToTyped(raw))
     .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
     .trim()
     .replace(/^(?:hey|hi|ok|okay)?\s*(?:sedi|cd)[,:]?\s+/i, '')
@@ -213,7 +247,7 @@ const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').rep
 export function findCard(phrase, cards) {
   const p = norm(phrase).replace(/^(?:the|my|a|an|that|this)\s+/, '').replace(/\s+(?:card|task|note|goal|event|reminder|item|one)$/, '').trim();
   if (!p) return null;
-  const words = p.split(' ').filter(w => w.length > 1 && !['the', 'my', 'to', 'a', 'an', 'and', 'of'].includes(w));
+  const words = p.split(' ').filter(w => w.length > 1 && !['the', 'my', 'to', 'a', 'an', 'and', 'of', 'thing', 'things', 'stuff', 'one', 'card', 'task', 'note', 'item'].includes(w)); // "the passport thing" → passport
   let best = null, bestScore = 0;
   for (const c of cards) {
     const t = norm(c.title);
