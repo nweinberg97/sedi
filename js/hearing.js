@@ -175,3 +175,64 @@ export function captureUtterance({ onLevel, onSpeech, onStatus, onFinal, onEnd, 
     cancel() { closeMic(); w.postMessage({ type: 'listen:cancel' }); },
   };
 }
+
+/**
+ * Unload: keep the microphone open and hand back each stretch of speech as it's written down, while you
+ * keep talking. Callbacks: onLevel, onSpeech, onQueued(id, waiting), onChunk(id, text), onEmpty(id),
+ * onWaiting(n), onEnd(), onError(msg). Returns { stop() (finish the last bit, then end), cancel() }.
+ */
+export function captureStream({ onLevel, onSpeech, onQueued, onChunk, onEmpty, onWaiting, onEnd, onError, endSilenceMs = 1100, maxMs = 30000 } = {}) {
+  let ctx = null, stream = null, node = null, closed = false, ended = false;
+  const w = voiceWorker();
+  const closeMic = () => {
+    if (closed) return; closed = true;
+    try { node?.port.close(); node?.disconnect(); } catch {}
+    stream?.getTracks().forEach(t => t.stop());
+    ctx?.close().catch(() => {});
+    onLevel?.(0);
+  };
+  const off = onWorker(msg => {
+    if (ended) return;
+    if (msg.type === 'speech') onSpeech?.();
+    else if (msg.type === 'seg:queued') onQueued?.(msg.id, msg.waiting);
+    else if (msg.type === 'seg:final') onChunk?.(msg.id, msg.text);
+    else if (msg.type === 'seg:empty') { onEmpty?.(msg.id); if (msg.message) onError?.(msg.message); }
+    else if (msg.type === 'seg:waiting') onWaiting?.(msg.waiting);
+    else if (msg.type === 'error') onError?.(msg.message);
+    else if (msg.type === 'end' || msg.type === 'worker:error') {
+      ended = true; off(); closeMic();
+      if (msg.type === 'worker:error') onError?.(msg.message);
+      onEnd?.();
+    }
+  });
+  w.postMessage({ type: 'listen:start', continuous: true, endSilenceMs, maxMs, idleMs: 3600000 });
+  (async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+      if (closed) { stream.getTracks().forEach(t => t.stop()); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      ctx = new AC();
+      await ctx.audioWorklet.addModule(new URL('./mic-worklet.js', import.meta.url));
+      const src = ctx.createMediaStreamSource(stream);
+      node = new AudioWorkletNode(ctx, 'sedi-tap');
+      node.port.onmessage = e => {
+        if (closed) return;
+        for (const c of e.data) {
+          const pcm = toRate(c, ctx.sampleRate);
+          let s = 0; for (let i = 0; i < pcm.length; i++) s += pcm[i] * pcm[i];
+          onLevel?.(Math.min(1, Math.sqrt(s / Math.max(1, pcm.length)) * 12));
+          w.postMessage({ type: 'audio', data: pcm }, [pcm.buffer]);
+        }
+      };
+      src.connect(node);
+    } catch (err) {
+      closeMic();
+      w.postMessage({ type: 'listen:cancel' });
+      onError?.(err?.name === 'NotAllowedError' ? 'Microphone access is blocked. Allow it in your browser’s site settings.' : `Couldn’t open the microphone: ${err.message || err}`);
+    }
+  })();
+  return {
+    stop() { closeMic(); w.postMessage({ type: 'listen:stop' }); },
+    cancel() { closeMic(); w.postMessage({ type: 'listen:cancel' }); },
+  };
+}

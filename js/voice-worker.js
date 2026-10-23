@@ -67,8 +67,9 @@ let vadState = null, vadSr = null;
 let L = null; // the utterance being listened to
 function startListening(o) {
   L = {
+    continuous: !!o.continuous, seq: 0,              // Unload: keep listening; each pause closes a chunk
     idleMs: o.idleMs || 8000, maxMs: o.maxMs || 25000,
-    endMs: vad ? (o.endSilenceMs || 700) : 900,      // Silero is trusted to end a turn a little sooner
+    endMs: o.endSilenceMs || (vad ? 700 : 900),      // Silero is trusted to end a turn a little sooner
     frames: [], preroll: [], carry: new Float32Array(0), speaking: false, speechMs: 0, silentMs: 0, waitedMs: 0,
     floor: 0.004, loud: 0, busy: Promise.resolve(), done: false,
   };
@@ -105,16 +106,48 @@ async function feed(chunk) {
       S.loud = voiced ? S.loud + 1 : 0;
       S.waitedMs += ms;
       if (S.loud >= (vad ? 2 : 3)) { S.speaking = true; S.frames.push(...S.preroll.splice(0)); S.speechMs = S.loud * ms; post({ type: 'speech' }); }
-      else if (S.waitedMs > S.idleMs) return finish(false);
+      else if (S.waitedMs > S.idleMs && !S.continuous) return finish(false);
     } else {
       S.frames.push(f);
       S.speechMs += ms;
       S.silentMs = voiced ? 0 : S.silentMs + ms;
-      if (S.silentMs >= S.endMs || S.speechMs >= S.maxMs) return finish(true);
+      if (S.silentMs >= S.endMs || S.speechMs >= S.maxMs) { if (S.continuous) cut(S); else return finish(true); }
     }
   }
   S.carry = data.slice(i);
 }
+// ---------- Unload: chunks are written down in the background while you keep talking ----------
+let writing = Promise.resolve(), queued = 0;
+/** Close the current stretch of speech, queue it for writing down, and go back to listening. */
+function cut(S) {
+  const enough = S.speaking && S.speechMs >= 400;
+  const keepFrames = Math.max(1, S.frames.length - Math.floor(Math.max(0, S.silentMs - 200) / (((S.frames[0]?.length || 512) / RATE) * 1000)));
+  const parts = enough ? S.frames.slice(0, keepFrames) : [];
+  S.frames = []; S.speaking = false; S.speechMs = 0; S.silentMs = 0; S.loud = 0; S.waitedMs = 0;
+  if (!parts.length) return;
+  let audio = new Float32Array(parts.reduce((n, f) => n + f.length, 0));
+  let o = 0; for (const f of parts) { audio.set(f, o); o += f.length; }
+  const id = ++S.seq, speechMs = audio.length / RATE * 1000;
+  queued++;
+  post({ type: 'seg:queued', id, waiting: queued });
+  writing = writing.then(async () => {
+    try {
+      if (!asr) throw new Error('The speech model isn’t loaded');
+      const r = await asr(audio, asrOpts);
+      const text = String(r?.text || '').replace(/\s+/g, ' ').trim();
+      if (text && !(PHANTOM.test(text) && speechMs < 1500)) post({ type: 'seg:final', id, text });
+      else post({ type: 'seg:empty', id });
+    } catch (err) { post({ type: 'seg:empty', id, message: `On-device transcription failed: ${err.message || err}` }); }
+    finally { audio.fill(0); audio = null; queued--; post({ type: 'seg:waiting', waiting: queued }); }
+  });
+}
+function stopContinuous(S) {
+  if (!S || S.done) return;
+  cut(S);
+  S.done = true; if (L === S) L = null;
+  writing.then(() => post({ type: 'end', heard: S.seq > 0 }));
+}
+
 async function finish(keep) {
   const S = L;
   if (!S || S.done) return;
@@ -146,8 +179,8 @@ self.onmessage = async e => {
       case 'asr:load': await loadAsr(m); break;
       case 'listen:start': startListening(m); break;
       case 'audio': if (L) L.busy = L.busy.then(() => feed(m.data)); break;
-      case 'listen:stop': if (L) { const S = L; S.busy.then(() => { if (L === S) finish(true); }); } break;
-      case 'listen:cancel': if (L) { L.frames.length = 0; finish(false); } break;
+      case 'listen:stop': if (L) { const S = L; S.busy.then(() => { if (L === S) (S.continuous ? stopContinuous(S) : finish(true)); }); } break;
+      case 'listen:cancel': if (L) { L.frames.length = 0; if (L.continuous) { L.done = true; L = null; post({ type: 'end', heard: false }); } else finish(false); } break;
       default: break;
     }
   } catch (err) {

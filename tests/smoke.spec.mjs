@@ -371,6 +371,28 @@ test.describe('assistant', () => {
     await expect(page.locator('.as-confirm')).toHaveCount(0);
   });
 
+  test('Unload: rambling speech becomes suggested cards you add with a tap, and the transcript is kept', async ({ page }) => {
+    await open(page, 'home');
+    await loadFixture(page);
+    await page.evaluate(async () => (await import('/js/store.js')).setPref('hearing', 'browser'));
+    await page.evaluate(() => window.__heard.push('um I need to call the plumber about the leak and remind me to pay rent tomorrow at nine. I want to learn Spanish'));
+    await page.locator('.assistant-token').click();
+    await page.locator('.unload-try').click();
+    await expect(page.locator('.ul-row')).toHaveCount(3);
+    await expect(page.locator('.ul-row').nth(1)).toContainText('tomorrow at 9am');
+    // Nothing is added until you tap.
+    expect(await cardByTitle(page, 'Call the plumber about the leak')).toBeFalsy();
+    await page.locator('.ul-row .ul-add').first().click();
+    expect((await cardByTitle(page, 'Call the plumber about the leak'))?.meta?.columnId).toBe('todo');
+    await page.locator('.ul-foot .btn.primary').click();
+    await expect(page.locator('.ul-summary')).toContainText('1 added, 2 still to sort');
+    await page.locator('.ul-sum-actions .btn.primary').click();
+    expect((await cardByTitle(page, 'Pay rent'))?.meta?.kind).toBe('reminder');
+    expect((await cardByTitle(page, 'Learn Spanish'))?.type).toBe('goal');
+    const notes = await page.evaluate(async () => (await import('/js/store.js')).allCards().filter(c => c.tool === 'brainly' && c.title.startsWith('Unload')).length);
+    expect(notes).toBe(1);
+  });
+
   test('voice is input only: Atom writes down what you said, answers on screen, and changes need a tap', async ({ page }) => {
     await open(page, 'home');
     await loadFixture(page);

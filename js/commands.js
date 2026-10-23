@@ -76,8 +76,8 @@ export function spokenToTyped(raw) {
       const ampm = !part ? '' : /^a|morning/i.test(part) ? 'am' : 'pm';
       return `${at || ''}${HOUR_WORDS[hw.toLowerCase()]}${min ? `:${String(min).padStart(2, '0')}` : ''}${ampm}${/tonight/i.test(part || '') ? ' tonight' : ''}`;
     })
-    .replace(/\b(\d{1,2}(?::\d{2})?)\s+(in the morning)\b/gi, '$1am')
-    .replace(/\b(\d{1,2}(?::\d{2})?)\s+(in the (?:afternoon|evening)|at night)\b/gi, '$1pm')
+    .replace(/\bat\s+(\d{1,2}(?::\d{2})?)\s+(in the morning)\b/gi, 'at $1am')
+    .replace(/\bat\s+(\d{1,2}(?::\d{2})?)\s+(in the (?:afternoon|evening)|at night)\b/gi, 'at $1pm')
     .replace(/\bto[\s-]?do list\b/gi, 'to do');
 }
 

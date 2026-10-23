@@ -134,7 +134,7 @@ export function askVoiceConsent() {
 }
 
 // ---------- Hearing one utterance (the assistant's ears) ----------
-import { captureUtterance, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange } from './hearing.js';
+import { captureUtterance, captureStream, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange } from './hearing.js';
 /** Which ears will be used right now: 'device' (private, on-device Whisper) or 'browser'. */
 export function earsNow() {
   const pref = hearingPref(), ready = hearingState().status === 'ready';
@@ -174,4 +174,35 @@ export function hearOnce(cb = {}) {
     onEnd: () => cb.onEnd?.({ heard }),
   });
   return { stop() { s.stop(); }, cancel() { cancelled = true; s.stop(); }, ears };
+}
+
+/**
+ * Unload's ears: listen continuously and hand back each chunk of speech as text while you keep talking.
+ * On-device ears queue each pause-separated stretch for writing down in the background; the browser's
+ * ears return a chunk each time they settle on a phrase. Callbacks as captureStream, plus onInterim and onPrepare.
+ * Returns { stop() (finish what's queued, then onEnd), cancel(), ears }.
+ */
+export function hearStream(cb = {}) {
+  const ears = earsNow();
+  if (!ears) { cb.onError?.('Voice input isn’t supported in this browser.'); cb.onEnd?.(); return { stop() {}, cancel() {}, ears }; }
+  if (ears === 'device') {
+    let inner = null, cancelled = false;
+    const go = () => { if (!cancelled) inner = captureStream(cb); };
+    if (hearingState().status === 'ready') go();
+    else {
+      setTimeout(() => cb.onPrepare?.(hearingState().progress || 0), 0);
+      const off = onHearingChange(st => { if (st.status === 'loading') cb.onPrepare?.(st.progress); });
+      prepareHearing().finally(off).then(() => { cb.onPrepare?.(1, true); go(); }, err => { cb.onError?.(/^Not enough browser storage/.test(err?.message) ? err.message : navigator.onLine ? 'Couldn’t set up the private voice just now. Try again in a moment.' : 'The private voice needs a connection the first time, to download. Try again once you’re online.'); cb.onEnd?.(); });
+    }
+    return { stop() { inner ? inner.stop() : (cancelled = true, cb.onEnd?.()); }, cancel() { cancelled = true; inner ? inner.cancel() : cb.onEnd?.(); }, ears };
+  }
+  let id = 0, done = false;
+  const s = listenBrowser({
+    continuous: true,
+    onInterim: t => { if (t) cb.onSpeech?.(); cb.onInterim?.(t); },
+    onFinal: t => { if (t && !done) { id++; cb.onQueued?.(id, 0); cb.onChunk?.(id, t); } },
+    onError: msg => cb.onError?.(msg),
+    onEnd: () => { if (!done) { done = true; cb.onEnd?.(); } },
+  });
+  return { stop() { s.stop(); }, cancel() { done = true; s.stop(); cb.onEnd?.(); }, ears };
 }

@@ -18,9 +18,11 @@ import * as brain from './brain.js';
 import { removeModelFiles } from './runtime.js';
 import { tick } from './sound.js';
 import { parseCommands, looksLikeCommand } from './commands.js';
+import { openUnload } from './unload.js';
 
 let token, tray, output, input, statusEl, orb, caption, earsChip;
 let session = null;
+let unloadCtl = null;   // the Unload session, while it's open
 let vstate = 'idle';    // idle | preparing | listening | hearing | thinking
 
 export function buildAssistant() {
@@ -39,7 +41,7 @@ export function buildAssistant() {
     h('div', { class: 'as-voice' },
       h('button', { class: 'icon-btn as-side', type: 'button', 'aria-label': 'Type instead', title: 'Type instead', onclick: () => setView('type') }, icon('keyboard')),
       h('div', { class: 'as-orb-wrap' }, orb, caption),
-      h('span', { class: 'as-side' })),
+      h('button', { class: 'as-side as-unload-btn', type: 'button', title: 'Unload: talk it all out, then sort it into cards', onclick: () => startUnload() }, icon('list'), h('span', {}, 'Unload'))),
     h('form', { class: 'as-form', onsubmit: e => { e.preventDefault(); submit(input.value); } },
       input,
       h('button', { class: 'icon-btn as-mic', type: 'button', 'aria-label': 'Talk instead', title: 'Talk instead', onclick: () => { setView('voice'); talk(); } }, icon('mic')),
@@ -57,7 +59,7 @@ export function buildAssistant() {
     if (e.key === 'Escape' && !tray.hidden && !document.querySelector('.modal-backdrop, .popover')) toggle(false);
     if (e.key === ' ' && !tray.hidden && tray.dataset.view === 'voice' && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && !e.target.isContentEditable) { e.preventDefault(); onOrb(); }
   });
-  document.addEventListener('pointerdown', e => { if (!tray.hidden && !tray.contains(e.target) && !token.contains(e.target) && !e.target.closest('.modal-backdrop, .toast, .popover')) toggle(false); });
+  document.addEventListener('pointerdown', e => { if (!tray.hidden && tray.dataset.view !== 'unload' && !tray.contains(e.target) && !token.contains(e.target) && !e.target.closest('.modal-backdrop, .toast, .popover')) toggle(false); });
   // First visit only: a quiet hint by the atom, so people discover they can just talk.
   // It's only a label (taps pass through to whatever is underneath), worded for the device in hand.
   const touch = matchMedia('(hover: none)').matches;
@@ -128,6 +130,7 @@ function setState(st, text) {
   if (st !== 'listening' && st !== 'hearing') orb.style.setProperty('--lvl', 0);
 }
 function setView(v) {
+  if (v !== 'unload') { unloadCtl?.stop(); unloadCtl = null; }
   tray.dataset.view = v;
   if (v === 'type') { session?.cancel(); session = null; setState('idle'); setTimeout(() => input.focus(), 30); }
 }
@@ -137,7 +140,8 @@ function greet() {
   output.replaceChildren(h('div', { class: 'as-hint' },
     h('strong', {}, 'Atom'),
     h('p', {}, 'Ask about anything you’ve saved, or tell it what to change. It shows you the change and waits for your OK.'),
-    h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t)))));
+    h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t)),
+      earsNow() ? h('button', { class: 'as-try unload-try', type: 'button', onclick: () => startUnload() }, icon('list'), 'Unload: talk it all out') : null)));
 }
 /** Clear conversation forgets everything said in it: the messages on screen, the last question kept
  *  for "Ask Claude", and the command history (which records the words of each command). Undo puts it back. */
@@ -172,12 +176,28 @@ function toggle(force, { view = 'voice' } = {}) {
     if (view === 'type' || !earsNow()) { setView('type'); return; }
     tray.dataset.view = 'voice';
     if (!wasOpen || vstate === 'idle') talk();
-  } else { session?.cancel(); session = null; setState('idle'); }
+  } else { unloadCtl?.stop(); unloadCtl = null; session?.cancel(); session = null; setState('idle'); }
+}
+
+// ---------- Unload: the guided brain dump ----------
+function startUnload() {
+  if (tray.hidden) toggle(true, { view: 'type' });
+  if (needsVoiceSetup()) { setView('voice'); showVoiceIntro(); return; }
+  session?.cancel(); session = null; setState('idle');
+  unloadCtl?.stop();
+  tray.dataset.view = 'unload';
+  positionTray();
+  unloadCtl = openUnload(tray, {
+    ctx: commandContext,
+    execute,
+    again: () => startUnload(),
+    onClose: () => { unloadCtl = null; if (tray.dataset.view === 'unload') { tray.dataset.view = 'voice'; positionTray(); } },
+  });
 }
 
 function positionTray() {
   const r = token.getBoundingClientRect();
-  const w = Math.min(400, innerWidth - 24);
+  const w = Math.min(tray.dataset.view === 'unload' ? 460 : 400, innerWidth - 24);
   tray.style.width = w + 'px';
   const left = clamp(r.left + r.width / 2 - w / 2, 12, innerWidth - w - 12);
   tray.style.left = left + 'px';
