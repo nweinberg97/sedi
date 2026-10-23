@@ -1,6 +1,6 @@
-// Sedi — the assistant: voice first. Tap the breathing atom and talk; it listens, answers out loud,
-// and keeps listening until you're done. Typing is one tap away (or ⌘K). It answers from your own cards
-// (and an AI engine when one is on), and turns plain language into changes you confirm first.
+// Sedi — Atom, the assistant. Tap the breathing atom to type, hold it to talk. Voice is input only:
+// Atom writes down what you said and answers on screen. It answers from your own cards (and an AI engine
+// when one is on), and turns plain language into changes you confirm with a tap.
 
 import * as store from './store.js';
 import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime, popover, closePopovers, homeSpot } from './util.js';
@@ -12,7 +12,7 @@ import { findCard, fixVocabulary } from './commands.js';
 import { nextUpItems } from './home.js';
 import { COLUMNS } from './taskly.js';
 import { occurrencesOn, weekPlanKey, monthPlanKey } from './timely.js';
-import { speak, speechStream, stopSpeaking, hearOnce, earsNow, replyVoice, prepareNaturalVoice, naturalVoiceState, onNaturalVoiceChange } from './speech.js';
+import { hearOnce, earsNow } from './speech.js';
 import { hearingState, onHearingChange, hearingPref, prepareHearing, canCapture, hearingDownloaded, hearingModel, hearingModelKey, HEARING_MODELS, resetHearing } from './hearing.js';
 import * as brain from './brain.js';
 import { removeModelFiles } from './runtime.js';
@@ -21,12 +21,10 @@ import { parseCommands, looksLikeCommand } from './commands.js';
 
 let token, tray, output, input, statusEl, orb, caption, earsChip;
 let session = null;
-let convo = false;      // keep the conversation going: listen → answer out loud → listen again
-let vstate = 'idle';    // idle | listening | hearing | thinking | speaking
-let spokeAlready = false;
+let vstate = 'idle';    // idle | preparing | listening | hearing | thinking
 
 export function buildAssistant() {
-  token = h('button', { class: 'assistant-token', 'aria-label': 'Talk to Sedi: tap, or hold to talk (⌘K to type)', title: 'Tap to talk · Hold to talk until you let go · Drag to move', 'aria-expanded': 'false' }, icon('atom'));
+  token = h('button', { class: 'assistant-token', 'aria-label': 'Atom (⌘K to type)', title: 'Atom · Tap to open · Hold to talk until you let go · Drag to move', 'aria-expanded': 'false' }, icon('atom'));
   output = h('div', { class: 'as-output', 'aria-live': 'polite' });
   input = h('input', { class: 'as-input', placeholder: 'Ask, or tell Sedi what to change', 'aria-label': 'Message the assistant' });
   statusEl = h('span', { class: 'as-status' });
@@ -34,7 +32,7 @@ export function buildAssistant() {
   orb = h('button', { class: 'as-orb', type: 'button', 'aria-label': 'Talk', onclick: onOrb }, h('span', { class: 'as-orb-ring' }), prepDots(), h('span', { class: 'as-orb-core' }, icon('mic')));
   caption = h('div', { class: 'as-caption', 'aria-live': 'polite' });
   const more = h('button', { class: 'icon-btn xs', 'aria-label': 'More', title: 'More', onclick: e => openMore(e.currentTarget) }, icon('more'));
-  tray = h('section', { class: 'assistant-tray', 'aria-label': 'Assistant', hidden: true, dataset: { view: 'voice', state: 'idle' } },
+  tray = h('section', { class: 'assistant-tray', 'aria-label': 'Atom', hidden: true, dataset: { view: 'voice', state: 'idle' } },
     h('div', { class: 'as-head' }, statusEl, earsChip, h('span', { class: 'head-spacer' }), more,
       h('button', { class: 'icon-btn xs', 'aria-label': 'Close assistant', title: 'Close', onclick: () => toggle(false) }, icon('x'))),
     output,
@@ -48,6 +46,8 @@ export function buildAssistant() {
       h('button', { class: 'icon-btn as-send', 'aria-label': 'Send', type: 'submit' }, icon('send'))));
   input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') toggle(false); });
   makeDraggable();
+  // Atom no longer speaks. Free the old natural-voice download (about 90 MB) for anyone who had it.
+  if (store.pref('naturalReady')) removeModelFiles(/kokoro/i).then(() => store.setPref('naturalReady', false)).catch(() => {});
   brain.onBrainChange(paintStatus);
   onHearingChange(paintStatus);
   paintStatus();
@@ -76,7 +76,7 @@ function paintStatus() {
   const active = engineConfig().active;
   if (active !== 'local') { statusEl.textContent = engineLabel(); statusEl.title = 'Answers come from the engine chosen in AI engines'; }
   else {
-    statusEl.textContent = !brain.isEnabled() ? 'Your Sedi' : s.status === 'ready' ? 'On-device AI' : s.status === 'loading' ? 'AI loading…' : s.status === 'error' ? 'AI offline' : 'On-device AI';
+    statusEl.textContent = !brain.isEnabled() ? 'Atom' : s.status === 'ready' ? 'On-device AI' : s.status === 'loading' ? 'AI loading…' : s.status === 'error' ? 'AI offline' : 'On-device AI';
     statusEl.title = brain.isEnabled() ? 'Answers come from the open model running on this device' : 'Answers come from your own cards. Turn on an AI engine for open questions.';
   }
   const ears = earsNow(), hs = hearingState();
@@ -103,7 +103,7 @@ let prepLine = 0, prepTimer = null;
 function showPrep(p, done) {
   const placed = done ? DOTS : Math.floor(Math.min(0.99, p) * DOTS);
   orb.querySelectorAll('.as-prep i').forEach((d, i) => d.classList.toggle('placed', i < placed));
-  if (done) { clearInterval(prepTimer); prepTimer = null; setState('listening', 'All in place. Listening…'); warmNaturalVoice(); setTimeout(() => orb.querySelectorAll('.as-prep i').forEach(d => d.classList.remove('placed')), 1200); return; }
+  if (done) { clearInterval(prepTimer); prepTimer = null; setState('listening', 'All in place. Listening…'); setTimeout(() => orb.querySelectorAll('.as-prep i').forEach(d => d.classList.remove('placed')), 1200); return; }
   if (vstate !== 'preparing') {
     setState('preparing');
     prepLine = 0; clearInterval(prepTimer);
@@ -117,32 +117,32 @@ function paintPrep() {
   caption.replaceChildren(h('span', { class: 'prep-line', key: prepLine }, PREP_LINES[prepLine]), h('b', { class: 'prep-pct' }, ` ${orb.dataset.pct || 0}%`));
 }
 
-const CAPTIONS = { preparing: 'Setting up your private voice', idle: 'Tap to talk', listening: 'Listening…', hearing: 'Listening…', thinking: 'Thinking…', speaking: 'Tap to interrupt' };
+const CAPTIONS = { preparing: 'Setting up your private voice', idle: 'Tap to talk', listening: 'Listening… tap when you’re done', hearing: 'Listening… tap when you’re done', thinking: 'Writing it down…' };
 function setState(st, text) {
   vstate = st;
   tray.dataset.state = st;
   token.classList.toggle('is-listening', st === 'listening' || st === 'hearing');
-  orb.setAttribute('aria-label', { preparing: 'Setting up the private voice', idle: 'Talk', listening: 'Done talking', hearing: 'Done talking', thinking: 'Thinking', speaking: 'Interrupt' }[st]);
+  orb.setAttribute('aria-label', { preparing: 'Setting up the private voice', idle: 'Talk', listening: 'Done talking', hearing: 'Done talking', thinking: 'Writing it down' }[st]);
   caption.textContent = text || CAPTIONS[st];
   if (st !== 'listening' && st !== 'hearing') orb.style.setProperty('--lvl', 0);
 }
 function setView(v) {
   tray.dataset.view = v;
-  if (v === 'type') { convo = false; session?.cancel(); stopSpeaking(); setState('idle'); setTimeout(() => input.focus(), 30); }
+  if (v === 'type') { session?.cancel(); session = null; setState('idle'); setTimeout(() => input.focus(), 30); }
 }
 
 function greet() {
   const tries = ['What’s next today?', 'What did I write about Lisbon?', 'Remind me to call mom tomorrow at 9am'];
   output.replaceChildren(h('div', { class: 'as-hint' },
-    h('strong', {}, 'Talk to Sedi'),
-    h('p', {}, 'Ask about anything you’ve saved, or tell it what to change. It answers out loud and checks with you before changing anything.'),
+    h('strong', {}, 'Atom'),
+    h('p', {}, 'Ask about anything you’ve saved, or tell it what to change. It shows you the change and waits for your OK.'),
     h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t)))));
 }
 /** Clear conversation forgets everything said in it: the messages on screen, the last question kept
  *  for "Ask Claude", and the command history (which records the words of each command). Undo puts it back. */
 function clearChat() {
   if (pending) cancelPending(true);
-  session?.cancel(); stopSpeaking(); convo = false; setState('idle');
+  session?.cancel(); session = null; setState('idle');
   const kept = [...output.childNodes], log = store.get('commandLog', []);
   output.replaceChildren();
   forgetAsk();
@@ -168,11 +168,10 @@ function toggle(force, { view = 'voice' } = {}) {
     paintStatus(); positionTray();
     if (!output.childElementCount) greet();
     if (hearingDownloaded() && hearingPref() !== 'browser' && canCapture && hearingState().status === 'off') prepareHearing().catch(() => {});
-    if (hearingDownloaded() || store.pref('naturalReady')) warmNaturalVoice();
     if (view === 'type' || !earsNow()) { setView('type'); return; }
     tray.dataset.view = 'voice';
     if (!wasOpen || vstate === 'idle') talk();
-  } else { convo = false; session?.cancel(); session = null; stopSpeaking(); setState('idle'); }
+  } else { session?.cancel(); session = null; setState('idle'); }
 }
 
 function positionTray() {
@@ -227,7 +226,7 @@ function makeDraggable() {
       return;
     }
     if (cancelled) return;
-    toggle();
+    toggle(undefined, { view: 'type' }); // a tap opens Atom ready to type; holding is how you talk
     token.classList.remove('spin'); void token.offsetWidth; token.classList.add('spin'); setTimeout(() => token.classList.remove('spin'), 1100);
   };
   token.addEventListener('pointerdown', e => {
@@ -262,7 +261,7 @@ function makeDraggable() {
   token.addEventListener('pointerup', e => finish(e, false));
   token.addEventListener('pointercancel', e => finish(e, true));
   token.addEventListener('lostpointercapture', e => { if (press && e.pointerId === press.id) finish(e, press.mode === 'tap'); });
-  token.addEventListener('click', e => { if (e.detail === 0) toggle(); }); // keyboard: Enter or Space
+  token.addEventListener('click', e => { if (e.detail === 0) toggle(undefined, { view: 'type' }); }); // keyboard: Enter or Space
   token.addEventListener('contextmenu', e => e.preventDefault());           // long-press on touch screens
   addEventListener('resize', () => { placeToken(); if (!tray.hidden) positionTray(); });
 }
@@ -282,7 +281,6 @@ const itemList = cards => h('div', { class: 'as-items' }, cards.map(c => h('butt
 const engineTag = label => h('span', { class: 'as-engine' }, label);
 
 // ---------- Submit ----------
-const ENDINGS = /^(?:stop|bye|goodbye|good bye|that'?s all|that'?s it|nothing|no thanks|thanks|thank you|we'?re done|end|i'?m done|done)\b[.!]*$/i;
 async function submit(text, { fromVoice = false } = {}) {
   text = (text || '').trim();
   if (!text) { if (pending) confirmPending(); return; }
@@ -292,11 +290,8 @@ async function submit(text, { fromVoice = false } = {}) {
   // A pending confirmation takes yes/no answers first.
   if (pending) {
     // Deleting is never done on a spoken "yes": it takes a tap or click on Confirm.
-    if (YES.test(text) && pending.voice && pending.actions.some(a => a.kind === 'delete')) {
-      say(h('p', {}, 'Deleting needs a tap on Confirm, so a misheard “yes” can’t remove anything.'));
-      if (fromVoice) talkBack('To delete, tap Confirm on the screen.');
-      return;
-    }
+    // Spoken answers never confirm anything: a misheard “yes” mustn't change your cards. Tap Confirm.
+    if (fromVoice && (YES.test(text) || NO.test(text))) { say(h('p', {}, 'Tap Confirm or Cancel above.')); return; }
     if (YES.test(text)) return confirmPending();
     if (NO.test(text)) return cancelPending();
     cancelPending(true);
@@ -307,7 +302,7 @@ async function submit(text, { fromVoice = false } = {}) {
   // With a real AI engine connected, it reads what you meant and restates it in Sedi's plain command form.
   // Sedi's own reader still turns that into actions, so the AI can only propose things Sedi already knows how
   // to do, and you still confirm before anything changes.
-  if (smartEngine() && (fromVoice || !isCommand) && !(fromVoice && ENDINGS.test(text))) {
+  if (smartEngine() && (fromVoice || !isCommand)) {
     if (fromVoice) setState('thinking');
     const restated = await restate(text, ctx).catch(() => null);
     if (restated?.commands?.length) {
@@ -315,37 +310,18 @@ async function submit(text, { fromVoice = false } = {}) {
       if (smart.length) { cmds = smart; isCommand = true; }
     } else if (restated?.question) isCommand = false;
   }
-  if (isCommand) return proposeCommands(text, cmds, fromVoice);
-  if (fromVoice && ENDINGS.test(text)) {
-    convo = false;
-    say(h('p', {}, 'Okay. Tap the atom whenever you want to talk again.'));
-    setState('speaking');
-    speak('Okay. Talk soon.', { onEnd: () => setState('idle') });
-    return;
-  }
-  if (fromVoice) setState('thinking');
-  spokeAlready = false;
-  const reply = await answer(text, { voice: fromVoice });
-  if (fromVoice && reply && !spokeAlready) talkBack(reply);
-  else if (fromVoice && !spokeAlready) afterSpeaking();
-}
-/** Answer out loud, then listen again while the conversation is going. */
-function talkBack(text) {
-  setState('speaking');
-  speak(text, { onEnd: afterSpeaking });
-}
-function afterSpeaking() {
-  if (convo && !tray.hidden && tray.dataset.view === 'voice' && !session) startListening({ followUp: true });
-  else if (!session) setState('idle');
+  if (isCommand) { proposeCommands(text, cmds, fromVoice); if (fromVoice) setState('idle', 'Tap to talk again'); return; }
+  if (fromVoice) setState('thinking', 'Looking…');
+  await answer(text);
+  if (fromVoice && !session) setState('idle', 'Tap to talk again');
 }
 
 function onOrb() {
   // The tips are showing: the orb is the way in, same as Start talking.
-  if (output.querySelector('.voice-tips')) { store.setPref('voiceTipsSeen', true); output.replaceChildren(); convo = true; startListening(); return; }
+  if (output.querySelector('.voice-tips')) { store.setPref('voiceTipsSeen', true); output.replaceChildren(); startListening(); return; }
   // The private-voice question is showing: point at the choices instead of doing nothing.
   const intro = output.querySelector('.voice-intro');
   if (intro) { const b = intro.querySelector('.btn.primary'); b?.classList.remove('nudge'); void b?.offsetWidth; b?.classList.add('nudge'); b?.focus(); return; }
-  if (vstate === 'speaking') { stopSpeaking(); convo = true; startListening(); return; }      // tap to interrupt
   if (vstate === 'listening' || vstate === 'hearing') { session?.stop(); return; }           // done talking
   if (vstate === 'thinking' || vstate === 'preparing') return;
   talk();
@@ -354,20 +330,20 @@ function onOrb() {
 function talk() {
   if (needsVoiceSetup()) { showVoiceIntro(); return; }
   if (!store.pref('voiceTipsSeen')) { showVoiceTips(); return; }
-  convo = true; startListening();
+  startListening();
 }
 
 // ---------- First time in voice mode: two small cards on how a voice chat goes ----------
 function showVoiceTips() {
   setState('idle', 'Tap the orb to start talking');
-  const go = () => { store.setPref('voiceTipsSeen', true); output.replaceChildren(); convo = true; startListening(); };
+  const go = () => { store.setPref('voiceTipsSeen', true); output.replaceChildren(); startListening(); };
   output.replaceChildren(h('div', { class: 'voice-tips' },
     h('div', { class: 'vt-card' }, h('span', { class: 'vt-num' }, '1'), h('div', {},
-      h('strong', {}, 'Talk, then pause'),
-      h('p', {}, 'Sedi listens until you stop, then answers out loud. Tap the orb to cut in. Say “bye” when you’re done.'))),
+      h('strong', {}, 'Talk, then tap'),
+      h('p', {}, 'Atom writes down what you say. Tap the orb when you’re done, or just pause. The answer appears here on screen.'))),
     h('div', { class: 'vt-card' }, h('span', { class: 'vt-num' }, '2'), h('div', {},
       h('strong', {}, 'Ask or tell'),
-      h('p', {}, 'Ask “what’s next today?”, or say “remind me to call mom at 9”. Before changing anything, Sedi reads it back and waits for your “yes”.'))),
+      h('p', {}, 'Ask “what’s next today?”, or say “remind me to call mom at 9”. Before changing anything, Atom shows the change and waits for you to tap Confirm.'))),
     h('div', { class: 'vi-actions' }, h('button', { class: 'btn primary sm', type: 'button', onclick: go }, 'Start talking'))));
 }
 
@@ -375,7 +351,7 @@ function showVoiceTips() {
 function dictationTip() {
   const ua = navigator.userAgent;
   const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  if (ios) return 'On the keyboard, tap the microphone on your keyboard and speak. Your iPhone or iPad does the listening; Sedi only gets the words.';
+  if (ios) return 'Tap the microphone on your keyboard and speak. Your iPhone or iPad does the listening; Sedi only gets the words.';
   if (/Android/.test(ua)) return 'Tap the microphone on your keyboard and speak. Your keyboard does the listening; Sedi only gets the words.';
   if (/Macintosh/.test(ua)) return 'Press the Globe or Fn key twice and speak (turn it on in System Settings → Keyboard → Dictation). Your Mac does the listening; Sedi only gets the words.';
   if (/Windows/.test(ua)) return 'Press Windows + H and speak. Windows does the listening; Sedi only gets the words.';
@@ -384,26 +360,19 @@ function dictationTip() {
 const needsVoiceSetup = () => earsNow() === 'device' && hearingState().status !== 'ready' && !hearingDownloaded() && store.pref('voiceSetupOk') !== hearingModel().id; // asks again if the download changes
 
 // ---------- First time: why there's a download, and what stays private ----------
-const downloadSize = () => {
-  const hear = hearingModel().size.replace(/^about /, '');
-  return replyVoice() === 'natural' ? `about ${hear} for hearing, plus about 90 MB for the natural voice` : `about ${hear}`;
-};
-/** The natural voice downloads quietly after hearing is ready, and loads from the cache after that. */
-function warmNaturalVoice() {
-  if (replyVoice() === 'natural' && naturalVoiceState().status === 'off') prepareNaturalVoice().catch(() => {});
-}
+const downloadSize = () => `about ${hearingModel().size.replace(/^about /, '')}`;
 function showVoiceIntro() {
   setState('idle', 'Set up private voice to talk');
   const more = h('div', { class: 'vi-more', hidden: true },
     h('ul', {},
-      h('li', {}, h('b', {}, 'What downloads: '), `Whisper, an open speech-to-text model${replyVoice() === 'natural' ? ', and Kokoro, an open voice model for natural-sounding replies' : ''}, plus the open software that runs them in your browser. ${downloadSize().replace(/^a/, 'A')}, once.`),
+      h('li', {}, h('b', {}, 'What downloads: '), `Whisper, an open speech-to-text model, plus the open software that runs them in your browser. ${downloadSize().replace(/^a/, 'A')}, once.`),
       h('li', {}, h('b', {}, 'Where it comes from: '), 'Hugging Face and jsDelivr, the public libraries where open models are shared. They only see that the files were downloaded, never what you say.'),
       h('li', {}, h('b', {}, 'What’s kept: '), 'Only the words, in the cards and messages they go into. Each recording lives briefly in memory and is wiped as soon as it’s turned into text.'),
       h('li', {}, h('b', {}, 'Where it’s stored: '), 'In your browser’s download cache, apart from your cards. You can remove it any time in Voice and hearing.'),
       h('li', {}, h('b', {}, 'Clearing: '), 'Clear conversation erases what you said in it, including the command history.')));
   const card = h('div', { class: 'voice-intro' },
     h('div', { class: 'vi-badge' }, icon('lock'), 'Private voice'),
-    h('strong', { class: 'vi-title' }, 'Talk to Sedi'),
+    h('strong', { class: 'vi-title' }, 'Talk to Atom'),
     h('p', {}, `Once it's set up, your voice stays on this device: Sedi turns your speech into text right here, so nothing you say is sent anywhere. It needs a one-time download of open models (${downloadSize()}), then works offline. Rather not download? Your keyboard's own dictation works too, with nothing extra to install.`),
     h('button', { class: 'vi-link', type: 'button', 'aria-expanded': 'false', onclick: e => { more.hidden = !more.hidden; e.currentTarget.setAttribute('aria-expanded', String(!more.hidden)); e.currentTarget.textContent = more.hidden ? 'What exactly happens?' : 'Hide details'; } }, 'What exactly happens?'),
     more,
@@ -413,15 +382,14 @@ function showVoiceIntro() {
   output.replaceChildren(card);
 }
 
-function startListening({ followUp = false } = {}) {
-  stopSpeaking();
+function startListening() {
   if (session) { session.cancel(); session = null; }
   if (output.querySelector('.as-hint')) output.replaceChildren();
-  setState('listening', followUp && !pending ? 'Listening… say “bye” to finish' : null);
+  setState('listening');
   let live = null, finalText = '';
   const bubble = () => live || (live = say(h('span', { class: 'as-interim' }, '…'), 'me'));
   const me = session = hearOnce({
-    idleMs: followUp ? 7000 : 10000,
+    idleMs: 10000,
     onSpeech: () => { if (session === me) setState('hearing'); },
     onInterim: t => { if (t) bubble().firstChild.textContent = t; },
     onLevel: l => orb.style.setProperty('--lvl', l.toFixed(2)),
@@ -435,8 +403,7 @@ function startListening({ followUp = false } = {}) {
       live?.remove();
       paintStatus();
       if (finalText) return submit(fixVocabulary(finalText).trim(), { fromVoice: true });
-      convo = false;
-      setState('idle');
+      setState('idle', 'Didn’t catch that. Tap to try again');
     },
   });
 }
@@ -494,7 +461,7 @@ const COACH = /stuck|overwhelm|procrastinat|motivat|focus|habit|anxious|stress|c
 // Hellos and mic checks get a friendly hello back, never a search of your cards.
 const SMALL_TALK = /^(?:(?:hello|hi|hey|heya|hiya|yo|howdy|good (?:morning|afternoon|evening)|testing|test|tests|one|two|three|1|2|3|mic check|check|can you hear me|do you hear me|are you there|is this (?:on|working)|sedi|hey sedi)[\s,.!?…-]*)+$/i;
 const THANKS = /^(?:(?:thanks|thank you|thx|cheers|cool|nice|great|awesome|ok|okay|perfect)[\s,.!?…-]*)+$/i;
-async function answer(q, { voice = false } = {}) {
+async function answer(q) {
   const lower = q.toLowerCase();
   let text;
   if (SMALL_TALK.test(q.trim())) {
@@ -545,7 +512,7 @@ async function answer(q, { voice = false } = {}) {
     try {
       const ctx = hits.slice(0, 6).map(c => `- ${c.title} (${TOOL_NAMES[c.tool]})${flatten(c) ? `: ${flatten(c).slice(0, 200)}` : ''}`).join('\n');
       const r = await engineChat({
-        system: `You are the assistant inside Sedi, the user's personal planner (Taskly tasks, Boardly goals, Timely calendar, Brainly notes). Be brief and practical.${voice ? ' Your reply will be spoken aloud: answer in one to three short, natural sentences, with no lists, headings or markdown.' : ''}${ctx ? `\n\nRelevant items from the user's Sedi:\n${ctx}` : ''}`,
+        system: `You are the assistant inside Sedi, the user's personal planner (Taskly tasks, Boardly goals, Timely calendar, Brainly notes). Be brief and practical.${ctx ? `\n\nRelevant items from the user's Sedi:\n${ctx}` : ''}`,
         messages: [{ role: 'user', content: q }],
       });
       bubble.firstChild.replaceChildren(renderText(r.text), engineTag(r.engine), hits.length ? itemList(hits.slice(0, 3)) : null);
@@ -570,16 +537,7 @@ async function answer(q, { voice = false } = {}) {
     const bubble = say(h('div', { class: 'as-stream' }, h('span', { class: 'muted' }, 'Thinking…')));
     try {
       const ctx = hits.slice(0, 4).map(c => ({ title: c.title, where: TOOL_NAMES[c.tool] }));
-      // Spoken replies start with the first finished sentence instead of waiting for the whole answer.
-      let voiceOut = null, sent = 0;
-      const res = await brain.ask(q, ctx, partial => {
-        bubble.firstChild.replaceChildren(renderText(partial)); output.scrollTop = output.scrollHeight;
-        if (voice && tray.dataset.view === 'voice') {
-          if (!voiceOut) { voiceOut = speechStream({ onEnd: afterSpeaking }); setState('speaking'); spokeAlready = true; }
-          voiceOut.push(partial.slice(sent)); sent = partial.length;
-        }
-      });
-      if (voiceOut) { voiceOut.push(res.text.slice(sent)); voiceOut.close(); }
+      const res = await brain.ask(q, ctx, partial => { bubble.firstChild.replaceChildren(renderText(partial)); output.scrollTop = output.scrollHeight; });
       bubble.firstChild.replaceChildren(renderText(res.text), h('small', { class: 'as-sources' }, `From: ${res.sources.join(', ')}`), engineTag(engineLabel('local')));
       return res.text;
     } catch (err) {
@@ -687,26 +645,21 @@ function proposeCommands(text, cmds, voice) {
   errors.forEach(e => say(h('p', {}, e.message)));
   if (!actions.length) {
     if (opens.length) { navigate(opens.at(-1).route); say(h('p', {}, `${describe(opens.at(-1))}.`)); store.appendCommandLog({ text, action: describe(opens.at(-1)), result: 'done' }); }
-    else if (errors.length && voice) talkBack(errors[0].message);
     return;
   }
   const labels = actions.map(describe);
   const box = say(h('div', { class: 'as-confirm' },
     actions.length === 1 ? h('p', {}, `${labels[0]}?`) : h('div', {}, h('p', {}, `Do these ${actions.length} things?`), h('ul', { class: 'as-plan' }, labels.map(l => h('li', {}, l)))),
     h('div', { class: 'as-confirm-actions' },
-      h('span', { class: 'as-confirm-hint' }, voice ? (actions.some(a => a.kind === 'delete') ? 'Tap Confirm to delete' : 'Say yes or no') : 'Enter to confirm'),
+      h('span', { class: 'as-confirm-hint' }, voice ? 'Check it, then tap' : 'Enter to confirm'),
       h('button', { class: 'btn ghost sm', type: 'button', onclick: () => cancelPending() }, 'Cancel'),
       h('button', { class: 'btn primary sm', type: 'button', onclick: () => confirmPending() }, actions.length > 1 ? 'Do all' : 'Confirm'))));
   pending = { text, actions, labels, opens, box, voice };
-  if (voice) {
-    setState('speaking');
-    speak(`${labels.join('. ')}. Should I go ahead?`, { onEnd: () => { if (pending && !session && !tray.hidden) { convo = true; startListening(); } else if (!session) setState('idle'); } });
-  }
 }
 
 function confirmPending() {
   if (!pending) return;
-  const { text, actions, labels, opens, box, voice } = pending;
+  const { text, actions, labels, opens, box } = pending;
   pending = null;
   const done = [];
   const removed = actions.filter(a => a.kind === 'delete').map(a => store.getCard(a.card.id)).filter(Boolean);
@@ -726,17 +679,15 @@ function confirmPending() {
     actions.length > 1 ? h('ul', { class: 'as-plan done' }, done.map(l => h('li', {}, l))) : null,
     removed.length ? h('button', { class: 'btn ghost sm', type: 'button', onclick: e => { removed.forEach(c => { if (!store.getCard(c.id)) store.restoreCard(c); }); e.currentTarget.replaceWith(h('span', { class: 'muted' }, 'Restored.')); } }, removed.length === 1 ? 'Undo delete' : 'Undo deletes') : null));
   if (opens.length) navigate(opens.at(-1).route);
-  if (voice) talkBack(done.length === 1 ? `Done. ${done[0]}.` : `Done. ${done.length} changes made.`);
-  else if (!session) setState('idle');
+  if (!session) setState('idle');
 }
 
 function cancelPending(silent = false) {
   if (!pending) return;
-  const { text, labels, box, voice: pendingVoice } = pending;
+  const { text, labels, box } = pending;
   pending = null;
   store.appendCommandLog({ text, action: labels.join('; '), result: 'cancelled' });
   box.replaceChildren(h('p', { class: 'muted' }, silent ? 'Not done, since you moved on. Say it again if you still want it.' : 'Cancelled.'));
-  if (!silent && pendingVoice) talkBack('Okay, I won’t.');
 }
 
 function placement(tool, type, cmd = {}) {
@@ -839,20 +790,14 @@ function openVoiceSettings() {
     h('input', { type: 'radio', name, value, checked: value === current }),
     h('span', { class: 'vs-text' }, h('b', {}, title), h('small', {}, note), extra));
   const hearStatus = h('small', { class: 'vs-status' });
-  const voiceStatus = h('small', { class: 'vs-status' });
   const paintHear = () => {
     const s = hearingState();
     hearStatus.textContent = !canCapture ? 'Not available in this browser.' : s.status === 'ready' ? `Ready on this device${s.device === 'webgpu' ? ' (using your GPU)' : ''}.`
       : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now (are you offline?). It tries again later.' : `Downloads once, the first time you talk (${hearingModel().size}).`;
     hearStatus.dataset.tone = s.status === 'error' ? 'warn' : s.status === 'ready' ? 'ok' : '';
   };
-  const paintVoice = () => {
-    const s = naturalVoiceState();
-    voiceStatus.textContent = s.status === 'ready' ? 'Ready.' : s.status === 'loading' ? `Downloading… ${Math.round(s.progress * 100)}%` : s.status === 'error' ? 'Couldn’t download it just now, so your device’s voice is used.' : 'Downloads once when you choose it (about 90 MB).';
-    voiceStatus.dataset.tone = s.status === 'error' ? 'warn' : s.status === 'ready' ? 'ok' : '';
-  };
-  const offH = onHearingChange(paintHear), offV = onNaturalVoiceChange(paintVoice);
-  paintHear(); paintVoice();
+  const offH = onHearingChange(paintHear);
+  paintHear();
   const hear = h('div', { class: 'vs-group', role: 'radiogroup', 'aria-label': 'Hearing' },
     choice('hearing', 'device', hearingPref(), 'Private, on this device', 'Your voice is turned into text on your computer and never leaves it. Only the words are kept; the recording is wiped as soon as it’s transcribed.', hearStatus),
     choice('hearing', 'auto', hearingPref(), 'Private, with a quick start', 'Uses your browser’s speech recognition until the private model has downloaded. In Chrome, that audio goes to Google.'),
@@ -865,20 +810,11 @@ function openVoiceSettings() {
     resetHearing(); paintHear();
     if (hearingPref() !== 'browser' && canCapture) prepareHearing().catch(() => {});
   });
-  const sample = h('button', { class: 'btn ghost sm', type: 'button', onclick: () => speak('Hi. This is how I’ll sound when I answer you.') }, icon('play'), 'Hear it');
-  const voice = h('div', { class: 'vs-group', role: 'radiogroup', 'aria-label': 'Reply voice' },
-    choice('replyVoice', 'device', replyVoice(), 'Your device’s voice', 'Instant and offline. How natural it sounds depends on your device.'),
-    choice('replyVoice', 'natural', replyVoice(), 'Natural voice', 'Sounds like a person. An open voice model (Kokoro) that runs on your device, so nothing is sent anywhere. Your device’s voice fills in while it downloads.', voiceStatus));
   hear.addEventListener('change', e => {
     store.setPref('hearing', e.target.value);
     hear.querySelectorAll('.vs-choice').forEach(l => l.classList.toggle('on', l.contains(e.target)));
     if (e.target.value !== 'browser' && canCapture) prepareHearing().catch(() => {});
     paintStatus();
-  });
-  voice.addEventListener('change', e => {
-    store.setPref('replyVoice', e.target.value);
-    voice.querySelectorAll('.vs-choice').forEach(l => l.classList.toggle('on', l.contains(e.target)));
-    if (e.target.value === 'natural') prepareNaturalVoice().catch(err => toast(`The natural voice couldn’t load, so your device’s voice will be used: ${err.message || err}`));
   });
   // Voice files live in the browser's cache, apart from your cards (which are in IndexedDB).
   const storageNote = h('small', { class: 'muted' }, 'Voice files are stored in your browser’s cache, apart from your cards.');
@@ -893,10 +829,9 @@ function openVoiceSettings() {
     body: h('div', { class: 'vs' },
       h('h3', { class: 'vs-h' }, 'Hearing you'), hear,
       h('h3', { class: 'vs-h' }, 'Accuracy'), size,
-      h('div', { class: 'vs-h-row' }, h('h3', { class: 'vs-h' }, 'Answering you'), sample), voice,
-      h('p', { class: 'muted small' }, 'Tap the atom and talk. Tap the circle to interrupt while it’s speaking, or say “bye” to finish. Space bar works too.'),
+      h('p', { class: 'muted small' }, 'Hold the atom and talk, or open Atom and tap the circle. Atom writes down what you said and answers on screen. Space bar works too.'),
       h('div', { class: 'vs-foot' }, storageNote, removeBtn)),
     actions: [{ label: 'Done', kind: 'primary' }],
-    onClose: () => { offH(); offV(); },
+    onClose: () => offH(),
   });
 }

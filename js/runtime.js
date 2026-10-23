@@ -7,8 +7,6 @@
 const PUBLIC_TRANSFORMERS = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0';
 const OWN_TRANSFORMERS = new URL('../vendor/transformers/transformers.web.min.js', import.meta.url).href;
 const OWN_MODELS = new URL('../models/', import.meta.url).href;
-const PUBLIC_KOKORO = 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/dist/kokoro.web.js';
-const OWN_KOKORO = new URL('../vendor/kokoro/kokoro.web.js', import.meta.url).href;
 
 const exists = url => fetch(url, { method: 'HEAD', cache: 'no-store' }).then(r => r.ok, () => false);
 let manifest = null;
@@ -31,10 +29,6 @@ export async function loadTransformers(modelId) {
   if (local) tf.env.localModelPath = OWN_MODELS;
   if (m.runtime && m.wasm) tf.env.backends.onnx.wasm.wasmPaths = new URL('../vendor/transformers/', import.meta.url).href;
   return tf;
-}
-export async function loadKokoro() {
-  const m = await own();
-  return import(/* @vite-ignore */ m.kokoro && await exists(OWN_KOKORO) ? OWN_KOKORO : PUBLIC_KOKORO);
 }
 /** Where a model's files come from, in words, for settings. */
 export async function modelSource(modelId) {

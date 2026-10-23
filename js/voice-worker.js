@@ -2,10 +2,9 @@
 // interface and the audio never stutter while a model is thinking:
 //   1. Silero VAD decides, frame by frame, whether you're speaking (an energy detector fills in if it can't load).
 //   2. Only the stretch of speech reaches the speech model (Whisper or Moonshine), never the silence around it.
-//   3. Kokoro turns Sedi's replies into a natural voice, one phrase at a time.
 // Audio arrives as 16 kHz samples and lives only in memory here. It's wiped as soon as it's transcribed.
 
-import { loadTransformers, loadKokoro } from './runtime.js';
+import { loadTransformers } from './runtime.js';
 
 const RATE = 16000;
 const post = (msg, transfer) => self.postMessage(msg, transfer || []);
@@ -139,26 +138,6 @@ async function finish(keep) {
   } catch (err) { post({ type: 'error', message: `On-device transcription failed: ${err.message || err}` }); post({ type: 'end', heard: false }); }
 }
 
-// ---------- Speaking: Kokoro ----------
-let tts = null;
-async function loadTts() {
-  if (tts) return post({ type: 'tts:ready' });
-  const { KokoroTTS } = await loadKokoro();
-  tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm', progress_callback: progressReporter('tts') });
-  post({ type: 'tts:ready' });
-}
-let ttsQueue = Promise.resolve();
-function speakText({ id, text, voice, speed }) {
-  // One at a time, in order; each phrase comes back as soon as it's ready.
-  ttsQueue = ttsQueue.then(async () => {
-    try {
-      const out = await tts.generate(text, { voice: voice || 'af_heart', speed: speed || 1 });
-      const audio = out.audio instanceof Float32Array ? out.audio : new Float32Array(out.audio);
-      post({ type: 'tts:audio', id, audio, rate: out.sampling_rate }, [audio.buffer]);
-    } catch (err) { post({ type: 'tts:error', id, message: err.message || String(err) }); }
-  });
-}
-
 // ---------- Messages ----------
 self.onmessage = async e => {
   const m = e.data || {};
@@ -169,9 +148,6 @@ self.onmessage = async e => {
       case 'audio': if (L) L.busy = L.busy.then(() => feed(m.data)); break;
       case 'listen:stop': if (L) { const S = L; S.busy.then(() => { if (L === S) finish(true); }); } break;
       case 'listen:cancel': if (L) { L.frames.length = 0; finish(false); } break;
-      case 'tts:load': await loadTts(); break;
-      case 'tts:speak': speakText(m); break;
-      case 'tts:cancel': ttsQueue = Promise.resolve(); break;
       default: break;
     }
   } catch (err) {

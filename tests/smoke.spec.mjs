@@ -371,28 +371,35 @@ test.describe('assistant', () => {
     await expect(page.locator('.as-confirm')).toHaveCount(0);
   });
 
-  test('voice chat answers out loud; voice command confirms by voice', async ({ page }) => {
+  test('voice is input only: Atom writes down what you said, answers on screen, and changes need a tap', async ({ page }) => {
     await open(page, 'home');
     await loadFixture(page);
     // These tests stand in for the browser's ears (the private model can't download here).
     await page.evaluate(async () => (await import('/js/store.js')).setPref('hearing', 'browser'));
-    // Voice first: tapping the atom opens the assistant already listening.
-    await page.evaluate(() => window.__heard.push('summary'));
+    // Tapping the atom opens Atom ready to type; the mic switches to voice.
     await page.locator('.assistant-token').click();
-    await expect(page.locator('.assistant-tray')).toHaveAttribute('data-view', 'voice');
-    // The first time, two tip cards explain how a voice chat goes; Start talking begins listening.
+    await expect(page.locator('.assistant-tray')).toHaveAttribute('data-view', 'type');
+    await page.evaluate(() => window.__heard.push('summary'));
+    await page.locator('.as-mic').click();
+    // The first time, two tip cards explain how voice works; Start talking begins listening.
     await expect(page.locator('.vt-card')).toHaveCount(2);
     await page.getByRole('button', { name: 'Start talking' }).click();
     await expect(page.locator('.as-msg.bot').last()).toContainText('Taskly');
-    await expect.poll(() => page.evaluate(() => window.__spoken.length)).toBeGreaterThan(0);
-    // After answering it listens again; hearing nothing, it goes quiet.
+    // Nothing is spoken back, and it doesn't start listening again on its own.
+    expect(await page.evaluate(() => window.__spoken.length)).toBe(0);
     await expect(page.locator('.assistant-tray')).toHaveAttribute('data-state', 'idle');
-    // Voice command: speak it, hear the confirmation, answer "yes" by voice.
-    await page.evaluate(() => window.__heard.push('remind me to smoke stretch tomorrow at 9am', 'yes'));
+    // A spoken command shows the change; a spoken "yes" doesn't confirm it, a tap does.
+    await page.evaluate(() => window.__heard.push('remind me to smoke stretch tomorrow at 9am'));
     await page.locator('.as-orb').click();
-    await expect.poll(() => page.evaluate(() => window.__spoken.join(' | '))).toMatch(/Should I go ahead.*Done/);
+    await expect(page.locator('.as-confirm')).toContainText('Smoke stretch');
+    await page.evaluate(() => window.__heard.push('yes'));
+    await page.locator('.as-orb').click();
+    await expect(page.locator('.as-msg.bot').last()).toContainText('Tap Confirm');
+    expect(await cardByTitle(page, 'Smoke stretch')).toBeFalsy();
+    await page.locator('.as-confirm .btn.primary').click();
     const card = await cardByTitle(page, 'Smoke stretch');
     expect(card?.meta?.kind).toBe('reminder');
+    expect(await page.evaluate(() => window.__spoken.length)).toBe(0);
     // Typing is one tap away.
     await page.getByRole('button', { name: 'Type instead' }).click();
     await expect(page.locator('.as-input')).toBeFocused();

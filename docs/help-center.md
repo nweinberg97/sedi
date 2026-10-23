@@ -141,7 +141,7 @@ Prerequisites: The card is in the Review column.
 
 Prerequisites: On a computer. On phones the assistant stays above the tab bar.
 
-1. Drag **Talk to Sedi (⌘K to type)**, the atom, anywhere on the screen.
+1. Drag **Atom (⌘K to type)**, the atom, anywhere on the screen.
 2. To put it back, drag it to the dashed circle at the bottom centre.
 
 ## How to put moved buttons back
@@ -389,10 +389,10 @@ Prerequisites: A Mac, iPhone or iPad with the Shortcuts app.
 2. Open the note.
 3. Click **Open as Google Doc**. If your Google account isn't connected, the note is copied so you can paste it into the new doc.
 
-## How to talk to Sedi
+## How to talk to Atom
 
-1. Click **Talk to Sedi (⌘K to type)**, the atom at the bottom of the screen.
-2. Speak. Sedi answers out loud and listens again. Say "bye" to finish, or tap the circle to interrupt.
+1. Click **Atom (⌘K to type)**, the atom at the bottom of the screen.
+2. Speak, then tap the circle or just pause. Atom writes down what you said and answers on screen. Or hold the atom, talk, and let go when you're done.
 
 ## How to type to the assistant
 
@@ -401,36 +401,36 @@ Prerequisites: A Mac, iPhone or iPad with the Shortcuts app.
 
 ## How to change things with the assistant
 
-1. Click **Talk to Sedi (⌘K to type)**.
+1. Click **Atom (⌘K to type)**.
 2. Say or type a change, like "move passport to in progress", "rename gym to morning run" or "remind me to call mom tomorrow at 9am".
-3. Check what it plans to do, then click **Confirm**, or say yes.
+3. Check what it plans to do, then click **Confirm**.
 
 ## How to see the assistant's command history
 
-1. Click **Talk to Sedi (⌘K to type)**.
+1. Click **Atom (⌘K to type)**.
 2. Click **More** in the assistant's header.
 3. Click **Command history**.
 
 ## How to clear the assistant conversation
 
-1. Click **Talk to Sedi (⌘K to type)**.
+1. Click **Atom (⌘K to type)**.
 2. Click **More** in the assistant's header.
 3. Click **Clear conversation**. This also erases the command history. Click Undo in the message if you change your mind.
 
 ## How to set up the private voice
 
-1. Click **Talk to Sedi (⌘K to type)**.
+1. Click **Atom (⌘K to type)**.
 2. Click **Set up private voice**. A one-time download lets Sedi hear you on this device.
 
 ## How to change voice settings
 
-1. Click **Talk to Sedi (⌘K to type)**.
+1. Click **Atom (⌘K to type)**.
 2. Click **More**, then **Voice and hearing…**.
-3. Choose how Sedi hears you (on this device, or browser recognition), the accuracy, and the voice it answers with.
+3. Choose how Sedi hears you (on this device, or browser recognition), and the accuracy.
 
 ## How to remove voice downloads
 
-1. Click **Talk to Sedi (⌘K to type)**.
+1. Click **Atom (⌘K to type)**.
 2. Click **More**, then **Voice and hearing…**.
 3. Click **Remove voice downloads**.
 
