@@ -3,6 +3,7 @@
 // Routines (SD-T4) are cards with meta.recurrence; ticking one day adds that date to meta.doneDates.
 
 import * as store from './store.js';
+import { builderOn, toggleBuilder, sendButton, openSendMenu, taskPrompt, listPrompt } from './builder.js';
 import {
   h, icon, uuid, clamp, toast, modal, editInline, download, popover, closePopovers, hashStr, listMode,
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
@@ -195,6 +196,7 @@ export function render() {
       tbRight));
   if (mode() === 'plan') tbRight.append(...[
     planBoard() === 'goals' ? h('button', { class: 'chip ghost', onclick: openGoalGuide }, icon('sparkle'), 'How to set a good goal') : null,
+    planBoard() === 'projects' ? h('button', { class: `chip ghost builder-chip ${builderOn() ? 'on' : ''}`, 'aria-pressed': String(builderOn()), title: 'Builder mode: repo names and Send to… buttons for software projects', onclick: () => toggleBuilder(render) }, icon('send'), builderOn() ? 'Builder mode on' : 'Builder mode') : null,
     h('button', { class: 'btn sm primary', onclick: () => (planBoard() === 'goals' ? openGoalWizard(null) : addContainer('projects')) }, icon('plus'), planBoard() === 'goals' ? 'New goal' : 'Add project')].filter(Boolean));
   if (mode() === 'plan') return renderPlan();
   ({ day: renderDay, week: renderWeek, month: renderMonth, reminders: renderReminders })[view()]();
@@ -1397,6 +1399,7 @@ function addInput(b, ct, placeholder, onAdd) {
 const addRow = (ct, label) => h('button', { class: 'col-add ct-add-row', 'aria-label': `${label} to ${ct.name}`, onclick: () => { planAdding = ct.id; render(); } }, icon('plus'), label);
 
 function containerEl(b, ct) {
+  const builder = b === 'projects' && builderOn();
   const cards = planCards(b, ct.id);
   const adding = planAdding === ct.id;
   const listEl = h('div', { class: 'ct-list', dataset: { drop: 'plan-container', accept: 'card', container: ct.id, board: b }, 'data-list': '', 'data-autoscroll': '' },
@@ -1412,12 +1415,20 @@ function containerEl(b, ct) {
         onclick: e => { e.stopPropagation(); togglePlanCard(c, check, el); },
       }, icon('check'));
       const el = h('div', { class: `plan-card ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } }, check, h('div', { class: 'pc-main' }, t, notesSnippet(c)));
-      return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }));
+      const actions = builder ? [sendButton(() => taskPrompt(store.getCard(c.id) || c, ct), `Send “${c.title}” to an AI app`)] : [];
+      return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }), { actions });
     }));
   if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, 'No tasks yet.'));
   const done = cards.filter(c => c.meta.done).length;
-  return h('section', { class: `ct ${cards.length > 1 && done === cards.length ? 'all-done' : ''}`, dataset: { drag: 'ctcol', id: ct.id } },
+  // Builder mode: the project's repo, and one button that sends every open task.
+  const repo = builder ? h('input', { class: 'ct-repo', value: ct.repo || '', placeholder: 'Repo, like yourname/app', 'aria-label': `Repo for ${ct.name}`, spellcheck: false }) : null;
+  repo?.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') repo.blur(); });
+  repo?.addEventListener('change', () => saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, repo: repo.value.trim() || undefined } : x))));
+  const open = cards.filter(c => !c.meta.done).length;
+  const sendAll = builder && open ? h('button', { class: 'chip ghost xs ct-send-all', type: 'button', title: `Send all ${open} open tasks to an AI app`, onclick: e => openSendMenu(e.currentTarget, () => listPrompt({ ...ct, repo: repo?.value.trim() || ct.repo }, planCards(b, ct.id)), { title: `Send ${open} task${open === 1 ? '' : 's'} to` }) }, icon('send'), 'Send all') : null;
+  return h('section', { class: `ct ${cards.length > 1 && done === cards.length ? 'all-done' : ''} ${builder ? 'builder' : ''}`, dataset: { drag: 'ctcol', id: ct.id } },
     listHead(b, ct, [h('span', { class: 'col-count' }, cards.length ? `${done}/${cards.length}` : '')]),
+    builder ? h('div', { class: 'ct-builder' }, repo, sendAll) : null,
     cards.length ? h('div', { class: 'ct-progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': cards.length, 'aria-valuenow': done, 'aria-label': `${done} of ${cards.length} done` },
       h('span', { style: { width: `${(done / cards.length) * 100}%` } })) : null,
     listEl);

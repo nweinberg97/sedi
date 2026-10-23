@@ -275,6 +275,29 @@ test('export, clear storage, import: counts match', async ({ page }) => {
   expect(recs).toEqual(Object.keys(exported.records).sort());
 });
 
+// ---------- Builder mode: send project tasks to an AI app ----------
+test('Builder mode: repo per project and Send to… / Send all build the right message', async ({ page }) => {
+  await open(page, 'home');
+  await page.evaluate(async () => { const s = await import('/js/store.js'); s.setPref('timelyMode', 'plan'); s.setPref('timelyPlan', 'projects'); });
+  await page.goto('/#/timely');
+  await page.locator('.builder-chip').click();
+  await page.locator('.modal .btn.primary').click();
+  await expect(page.locator('.ct-repo').first()).toBeVisible();
+  await page.locator('.ct-repo').first().fill('me/app');
+  await page.locator('.ct-repo').first().press('Enter');
+  const msg = await page.evaluate(async () => {
+    const s = await import('/js/store.js'); const b = await import('/js/builder.js');
+    const ct = s.get('planContainers').projects[0];
+    const cards = s.allCards().filter(c => c.meta?.containerId === ct.id);
+    return { one: b.taskPrompt(cards[0], ct), all: b.listPrompt(ct, cards) };
+  });
+  expect(msg.one).toContain('(repo: me/app)');
+  expect(msg.all).toMatch(/1\. /);
+  await page.locator('.plan-card').first().hover();
+  await page.locator('.plan-card .card-send').first().click();
+  await expect(page.locator('.send-item')).toHaveCount(5);
+});
+
 // ---------- 5. Assistant: chat, voice, commands ----------
 test.describe('assistant', () => {
   test.beforeEach(async ({ page }) => {
