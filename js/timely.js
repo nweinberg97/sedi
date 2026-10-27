@@ -199,7 +199,7 @@ export function render() {
       tbRight));
   if (mode() === 'plan') tbRight.append(...[
     planBoard() === 'goals' ? h('button', { class: 'chip ghost', onclick: openGoalGuide }, icon('sparkle'), 'How to set a good goal') : null,
-    planBoard() === 'projects' ? h('button', { class: `chip ghost builder-chip ${builderOn() ? 'on' : ''}`, 'aria-pressed': String(builderOn()), title: 'Builder mode: repo names and Send to… buttons for software projects', onclick: () => toggleBuilder(render) }, icon('send'), builderOn() ? 'Builder mode on' : 'Builder mode') : null,
+    planBoard() === 'projects' ? h('button', { class: `chip ghost builder-chip ${builderOn() ? 'on' : ''}`, 'aria-pressed': String(builderOn()), title: 'Builder mode: repo names and Hand off buttons for software projects', onclick: () => toggleBuilder(render) }, icon('send'), builderOn() ? 'Builder mode on' : 'Builder mode') : null,
     h('button', { class: 'btn sm primary', onclick: () => (planBoard() === 'goals' ? openGoalWizard(null) : addContainer('projects')) }, icon('plus'), planBoard() === 'goals' ? 'New goal' : 'Add project')].filter(Boolean));
   if (mode() === 'plan') return renderPlan();
   ({ day: renderDay, week: renderWeek, month: renderMonth, reminders: renderReminders })[view()]();
@@ -1489,7 +1489,7 @@ function containerEl(b, ct) {
         onclick: e => { e.stopPropagation(); togglePlanCard(c, check, el); },
       }, icon('check'));
       const el = h('div', { class: `plan-card ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } }, check, h('div', { class: 'pc-main' }, t, notesSnippet(c)));
-      const actions = builder ? [sendButton(() => taskPrompt(store.getCard(c.id) || c, ct), `Send “${c.title}” to an AI app`)] : [];
+      const actions = builder ? [sendButton(() => taskPrompt(store.getCard(c.id) || c, ct), `Hand off “${c.title}” to an AI app`)] : [];
       return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }), { actions });
     }));
   if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, 'No tasks yet.'));
@@ -1499,7 +1499,7 @@ function containerEl(b, ct) {
   repo?.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') repo.blur(); });
   repo?.addEventListener('change', () => saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, repo: repo.value.trim() || undefined } : x))));
   const open = cards.filter(c => !c.meta.done).length;
-  const sendAll = builder && open ? h('button', { class: 'chip ghost xs ct-send-all', type: 'button', title: `Send all ${open} open tasks to an AI app`, onclick: e => openSendMenu(e.currentTarget, () => listPrompt({ ...ct, repo: repo?.value.trim() || ct.repo }, planCards(b, ct.id)), { title: `Send ${open} task${open === 1 ? '' : 's'} to` }) }, icon('send'), 'Send all') : null;
+  const sendAll = builder && open ? h('button', { class: 'chip ghost xs ct-send-all', type: 'button', title: `Hand off all ${open} open tasks to an AI app`, onclick: e => openSendMenu(e.currentTarget, () => listPrompt({ ...ct, repo: repo?.value.trim() || ct.repo }, planCards(b, ct.id)), { title: `Hand off ${open} task${open === 1 ? '' : 's'} to` }) }, icon('send'), 'Hand off all') : null;
   return h('section', { class: `ct ${cards.length > 1 && done === cards.length ? 'all-done' : ''} ${builder ? 'builder' : ''}`, dataset: { drag: 'ctcol', id: ct.id } },
     listHead(b, ct, [h('span', { class: 'col-count' }, cards.length ? `${done}/${cards.length}` : '')]),
     builder ? h('div', { class: 'ct-builder' }, repo, sendAll) : null,

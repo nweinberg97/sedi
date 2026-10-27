@@ -399,14 +399,20 @@ Prerequisites: A Mac, iPhone or iPad with the Shortcuts app.
 1. Click **Atom (⌘K to type)**, then click **Unload**.
 2. Talk. Pause between thoughts; Atom writes each one down while you keep going.
 3. Each thought shows the cards Atom suggests and where they'd go. Click **Add**, change the type, or dismiss it, any time.
-4. Click **Done**. Add or dismiss what's left. The full transcript is saved as a note in Brainly.
+4. Click **Done**. Add or dismiss what's left. To keep what you said, click **Save transcript to Brainly**.
 
-## How to send project tasks to an AI app (Builder mode)
+## How to hand off a list to Claude, ChatGPT or another app
+
+1. In Taskly, click the small arrow at the top of a column. In Boardly, click the arrow at the end of the tabs.
+2. Pick Claude, ChatGPT, Perplexity or Gemini, or **Just copy it**.
+3. The app opens in your own account with the list typed in as a checklist. Check it, add what you'd like help with, then press send there. Sedi never sends anything itself, and nothing uses an API key.
+
+## How to hand off project tasks to an AI app (Builder mode)
 
 1. Choose **Timely**, click **Planning**, then **Projects**.
 2. Click **Builder mode** and turn it on.
 3. Type the project's repo under its name, like yourname/app.
-4. Hover a task and click **Send to an AI app**, or click **Send all** on the project. Pick Claude, ChatGPT, Perplexity, Gemini, or just copy it.
+4. Hover a task and click **Hand off**, or click **Hand off all** on the project. Pick Claude, ChatGPT, Perplexity, Gemini, or just copy it.
 5. The app opens with the task typed in. Check it, then press send there. Sedi doesn't send anything itself.
 
 ## How to type to the assistant

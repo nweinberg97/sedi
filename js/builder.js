@@ -50,8 +50,8 @@ function sendTo(target, text) {
   toast(fits ? `Opened ${target.label} with it typed in. Check it, then press send there.` : `Copied. Paste it into ${target.label}, check it, then press send.`, { duration: 6000 });
 }
 
-/** The "Send to…" menu. The last choice comes first, so it's one tap next time. */
-export function openSendMenu(anchor, getText, { title = 'Send to' } = {}) {
+/** The "Hand off to…" menu. The last choice comes first, so it's one tap next time. */
+export function openSendMenu(anchor, getText, { title = 'Hand off to' } = {}) {
   const last = store.pref('builderTarget', 'claude');
   const order = [...TARGETS].sort((a, b) => (b.id === last) - (a.id === last));
   popover(anchor, h('div', { class: 'send-menu' },
@@ -61,7 +61,7 @@ export function openSendMenu(anchor, getText, { title = 'Send to' } = {}) {
     h('p', { class: 'send-note' }, 'Opens the app with this typed in. You press send there; Sedi sends nothing itself.')), { className: 'send-pop' });
 }
 
-export const sendButton = (getText, label = 'Send to an AI app') => h('button', {
+export const sendButton = (getText, label = 'Hand off to an AI app') => h('button', {
   class: 'card-tool card-send', type: 'button', 'aria-label': label, title: label,
   onpointerdown: e => e.stopPropagation(),
   onclick: e => { e.stopPropagation(); openSendMenu(e.currentTarget, getText); },
@@ -76,8 +76,8 @@ export function toggleBuilder(onChange) {
       h('p', {}, 'For people who build software. Plan in Sedi, build anywhere.'),
       h('ul', {},
         h('li', {}, 'Each project can name its repo, like ', h('code', {}, 'yourname/app'), '.'),
-        h('li', {}, h('b', {}, 'Send to…'), ' on a task opens Claude, ChatGPT or another AI app with the task, its notes and the repo typed in.'),
-        h('li', {}, h('b', {}, 'Send all'), ' does the same for every open task in a project.')),
+        h('li', {}, h('b', {}, 'Hand off'), ' on a task opens Claude, ChatGPT or another AI app with the task, its notes and the repo typed in.'),
+        h('li', {}, h('b', {}, 'Hand off all'), ' does the same for every open task in a project.')),
       h('p', { class: 'muted small' }, 'You read the message and press send yourself. Sedi doesn’t connect to those apps, store any keys, or send anything on its own. The work happens in your own account there.')),
     actions: [{ label: 'Not now', kind: 'ghost' }, { label: 'Turn on', kind: 'primary', onClick: () => { store.setPref('builderMode', true); onChange?.(); } }],
   });
@@ -93,12 +93,12 @@ export function listMarkdown(name, cards) {
 }
 /** A quiet "Send list" button: opens Claude, ChatGPT or another app with the list typed in, or copies it. */
 export const sendListButton = (name, getCards, cls = '') => h('button', {
-  class: `icon-btn xs send-list ${cls}`, type: 'button', 'aria-label': `Send “${name}” to an AI app or copy it`, title: 'Send this list to Claude, ChatGPT… or copy it as Markdown',
+  class: `icon-btn xs send-list ${cls}`, type: 'button', 'aria-label': `Hand off “${name}” to an AI app, or copy it`, title: 'Hand off: open this list in Claude, ChatGPT… or copy it',
   onpointerdown: e => e.stopPropagation(),
   onclick: e => {
     e.stopPropagation();
     const cards = getCards();
     if (!cards.length) { toast('Nothing in this list yet.'); return; }
-    openSendMenu(e.currentTarget, () => listMarkdown(name, getCards()), { title: `Send “${name}” (${cards.length}) to` });
+    openSendMenu(e.currentTarget, () => listMarkdown(name, getCards()), { title: `Hand off “${name}” (${cards.length}) to` });
   },
 }, icon('send'));

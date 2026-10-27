@@ -17,7 +17,7 @@ const FEATURES = [
   { id: '2026-10-day-side', where: 'timely', target: '.side-switch', title: 'Plan from your week', body: 'Switch to Week or Month here, then drag something onto a time.' },
   { id: '2026-10-categories', where: 'timely', target: '.event-block', title: 'Color by part of life', body: 'Open any block and pick a category, like Health or Work, to color it.' },
   { id: '2026-10-stretch', where: 'boardly', target: '.board-canvas > .tile:not(.note-card)', title: 'Stretch a card', body: 'Drag a card’s right edge to make it wider, so a long goal reads in full.' },
-  { id: '2026-10-send-list', where: 'taskly', target: '.col-head .send-list', title: 'Send a list', body: 'Send any column to Claude or ChatGPT with everything typed in, or copy it.' },
+  { id: '2026-10-send-list', where: 'taskly', target: '.col-head .send-list', title: 'Hand off a list', body: 'Open any column in Claude or ChatGPT with everything typed in, or copy it. You press send there.' },
 ];
 
 const seen = () => new Set(store.pref('seenFeatures', []));

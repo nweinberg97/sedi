@@ -156,7 +156,8 @@ test('v1 fixture loads into a fresh profile and renders everywhere', async ({ pa
   await VIEWS(page, 'fixture');
   // Survives a reload.
   await page.reload();
-  expect((await counts(page)).total).toBe(fixture.cards.length);
+  // Wait for the app to finish loading from the device before counting (the store fills in asynchronously).
+  await expect.poll(async () => (await counts(page)).total, { timeout: 8000 }).toBe(fixture.cards.length);
   expect(errors).toEqual([]);
 });
 
