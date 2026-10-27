@@ -3794,9 +3794,21 @@ body:not([data-route="home"]) .sky-fx { display: none; }
 .universal-trigger::before { animation: uniDrift 120s linear infinite; }
 @keyframes uniDrift { to { background-position: 46px 6px, 46px 6px, 46px 6px, 46px 6px, 46px 6px; } }
 /* Cards waiting: the moon glows a touch brighter (no badge) */
-.universal[data-waiting] .uni-moon { fill: #fff; filter: drop-shadow(0 0 1.2px #dbe6ff); }
-.uni-glint { filter: drop-shadow(0 0 1px #fff); }
-@media (prefers-reduced-motion: reduce) { .uni-tw, .universal-trigger::before { animation: none !important; } .uni-glint { display: none; } .universal-trigger svg.uni-mark { transition: none; } }
+.universal[data-waiting] .uni-card.front rect { filter: drop-shadow(0 0 1.1px #e3ebff); }
+@media (prefers-reduced-motion: reduce) { .uni-tw, .universal-trigger::before { animation: none !important; } .universal-trigger svg.uni-mark { transition: none; } }
+
+/* Its name slides out on hover, and while you drag a card (that's when it's useful), then tucks away */
+.uni-tag { position: absolute; top: 23px; right: calc(100% + 10px); translate: 6px -50%; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; padding: 6px 12px; border-radius: 12px; white-space: nowrap; pointer-events: none;
+  background: color-mix(in srgb, var(--paper, #fff) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: 0 6px 18px -8px rgba(16, 24, 70, 0.35), 0 0 0 1px rgba(17, 17, 17, 0.05);
+  opacity: 0; transition: opacity 0.2s, translate 0.25s var(--ease); }
+.uni-tag b { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+.uni-tag small { font-size: var(--fs-2xs); color: var(--muted); }
+.universal.uni-left .uni-tag { right: auto; left: calc(100% + 10px); align-items: flex-start; translate: -6px -50%; }
+.universal-trigger:hover + .uni-tag { opacity: 1; translate: 0 -50%; transition-delay: 0.35s; }
+body.is-dragging .uni-tag { opacity: 1; translate: 0 -50%; }
+.universal.open .uni-tag, .universal.moving .uni-tag { opacity: 0 !important; }
+body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
+@media (hover: none) { .universal-trigger:hover + .uni-tag { opacity: 0; } }
 
 /* Unload: fix a misheard word right in the transcript */
 .ul-said-row { display: flex; align-items: flex-start; gap: 4px; flex: 1; min-width: 0; }

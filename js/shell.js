@@ -192,35 +192,39 @@ export function markActiveRoute(route) {
   document.querySelectorAll('.nav-pill').forEach(p => p.classList.toggle('active', p.dataset.route === route));
 }
 
-// Sedi's own little universe: a ringed planet, a moon on its orbit, stars that twinkle now and then, and a
-// glint of light that slides along the ring every few seconds. A slow, quiet invitation (Atom breathes colour;
-// this catches the light), never a badge or a bounce.
-// The moon passes in front of the planet, then behind it (two copies take turns), so it reads as space, not a sticker.
-const ORBIT = 'M11.2 0A11.2 3.3 0 1 1-11.2 0A11.2 3.3 0 1 1 11.2 0';
+// The Universal Board's mark says what it's for: cards in orbit around a planet. Cards you park here circle
+// between your tools until you drag them where they belong. Two small cards orbit slowly, passing in front of
+// the planet and behind it; the stars twinkle in turn. A quiet invitation (Atom breathes colour; this one
+// moves cards), never a badge or a bounce.
+const ORBIT = 'M11 0A11 3.4 0 1 1-11 0A11 3.4 0 1 1 11 0';
+const orbitCard = (layer, begin) => `<g class="uni-card ${layer}">
+      <rect x="-2.3" y="-1.65" width="4.6" height="3.3" rx=".75" fill="${layer === 'front' ? '#ffffff' : '#dfe5ff'}"/>
+      <path d="M-1.35-.45h2.4M-1.35.55h1.5" stroke="#6f7fd6" stroke-width=".45" stroke-linecap="round"/>
+      <animateMotion dur="14s" begin="${begin}" repeatCount="indefinite" path="${ORBIT}"/>
+      <animate attributeName="opacity" dur="14s" begin="${begin}" repeatCount="indefinite" calcMode="discrete" keyTimes="0;.5" values="${layer === 'front' ? '1;0' : '0;1'}"/>
+    </g>`;
 const UNIVERSE_SVG = `<svg class="uni-mark" viewBox="0 0 24 24" aria-hidden="true">
   <defs>
     <radialGradient id="uniPlanet" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#d9e0ff"/><stop offset="1" stop-color="#7f8fe6"/></radialGradient>
-    <clipPath id="uniBall"><circle cx="12" cy="12" r="6.5"/></clipPath>
+    <clipPath id="uniBall"><circle cx="12" cy="12" r="5.4"/></clipPath>
   </defs>
   <g class="uni-stars" fill="#fff">
-    <path class="uni-tw t1" d="M5 3.1l.42 1.18 1.18.42-1.18.42L5 6.3l-.42-1.18-1.18-.42 1.18-.42z"/>
-    <path class="uni-tw t2" d="M19.6 17.4l.32.9.9.32-.9.32-.32.9-.32-.9-.9-.32.9-.32z"/>
-    <circle class="uni-tw t3" cx="18.8" cy="4.4" r=".55"/>
-    <circle class="uni-tw t4" cx="3.6" cy="16.9" r=".45"/>
+    <path class="uni-tw t1" d="M5 2.6l.42 1.18 1.18.42-1.18.42L5 5.8l-.42-1.18-1.18-.42 1.18-.42z"/>
+    <path class="uni-tw t2" d="M19.4 18.2l.32.9.9.32-.9.32-.32.9-.32-.9-.9-.32.9-.32z"/>
+    <circle class="uni-tw t3" cx="19.2" cy="3.9" r=".55"/>
+    <circle class="uni-tw t4" cx="3.4" cy="18.4" r=".45"/>
   </g>
-  <g transform="translate(12 12) rotate(16)">
-    <path class="uni-ring back" d="M-11.2 0A11.2 3.3 0 0 1 11.2 0" fill="none" stroke="#c9d3ff" stroke-width="1.15" stroke-linecap="round" opacity=".55"/>
-    <circle class="uni-moon back" r="1.05" fill="#e9edff"><animateMotion dur="11s" repeatCount="indefinite" path="${ORBIT}"/><animate attributeName="opacity" dur="11s" repeatCount="indefinite" calcMode="discrete" keyTimes="0;.5" values="0;1"/></circle>
+  <g transform="translate(12 12) rotate(-14)">
+    <path class="uni-ring back" d="M-11 0A11 3.4 0 0 1 11 0" fill="none" stroke="#c9d3ff" stroke-width=".8" stroke-dasharray="1.4 1.3" stroke-linecap="round" opacity=".6"/>
+    ${orbitCard('back', '0s')}${orbitCard('back', '-7s')}
   </g>
-  <circle cx="12" cy="12" r="6.5" fill="url(#uniPlanet)"/>
-  <g clip-path="url(#uniBall)" fill="none" stroke="#7d8de0" stroke-width=".75" opacity=".5">
-    <path d="M5.2 10.1c3.9 1.4 9 1.1 13.7-.7"/><path d="M5.6 14.4c3.7 1 8.2.7 12.4-1"/>
+  <circle cx="12" cy="12" r="5.4" fill="url(#uniPlanet)"/>
+  <g clip-path="url(#uniBall)" fill="none" stroke="#7d8de0" stroke-width=".7" opacity=".45">
+    <path d="M6.2 10.6c3.4 1.1 7.7.9 11.7-.6"/><path d="M6.6 13.9c3.1.8 6.9.5 10.5-.9"/>
   </g>
-  <g transform="translate(12 12) rotate(16)">
-    <path d="M11.2 0A11.2 3.3 0 0 1-11.2 0" fill="none" stroke="#1b2450" stroke-width="2.4" stroke-linecap="round" opacity=".9" class="uni-gap"/>
-    <path class="uni-ring front" d="M11.2 0A11.2 3.3 0 0 1-11.2 0" fill="none" stroke="#fff" stroke-width="1.05" stroke-linecap="round"/>
-    <path class="uni-glint" d="M11.2 0A11.2 3.3 0 0 1-11.2 0" fill="none" stroke="#eaf0ff" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="2.6 60" stroke-dashoffset="6"><animate attributeName="stroke-dashoffset" dur="9s" begin="2s" repeatCount="indefinite" values="6;-27;-27" keyTimes="0;.28;1" calcMode="spline" keySplines=".45 0 .25 1;0 0 1 1"/></path>
-    <circle class="uni-moon front" r="1.05" fill="#fff"><animateMotion dur="11s" repeatCount="indefinite" path="${ORBIT}"/><animate attributeName="opacity" dur="11s" repeatCount="indefinite" calcMode="discrete" keyTimes="0;.5" values="1;0"/></circle>
+  <g transform="translate(12 12) rotate(-14)">
+    <path class="uni-ring front" d="M11 0A11 3.4 0 0 1-11 0" fill="none" stroke="#fff" stroke-width=".8" stroke-dasharray="1.4 1.3" stroke-linecap="round" opacity=".85"/>
+    ${orbitCard('front', '0s')}${orbitCard('front', '-7s')}
   </g>
 </svg>`;
 function universeMark() {
@@ -260,7 +264,11 @@ export function buildUniversal() {
     h('div', { class: 'uni-head' }, h('h2', {}, 'Universal Board'), uniCount),
     withMic(quick, { label: 'Dictate to the Universal Board' }), uniList,
     h('p', { class: 'uni-hint' }, 'Drop cards here, switch tools, then drag them out.'));
-  const wrap = h('div', { class: 'universal' }, trigger, uniPanel);
+  // A name that slides out on hover (and while you drag a card) says what it's for, without any prompt on screen.
+  const tag = h('span', { class: 'uni-tag', 'aria-hidden': 'true' }, h('b', {}, 'Universal Board'), h('small', { class: 'uni-tag-sub' }, 'Park cards here between tools'));
+  const wrap = h('div', { class: 'universal' }, trigger, tag, uniPanel);
+  trigger.addEventListener('pointerenter', () => placeUniversalPanel(wrap)); // so the name slides out on the side with room
+  onDragStart(() => placeUniversalPanel(wrap));
   makeUniversalDraggable(wrap, trigger);
   document.addEventListener('pointerdown', e => {
     if (!wrap.classList.contains('open') || wrap.contains(e.target) || e.target.closest('.modal-backdrop, .popover, .toast, [data-drag]')) return;
