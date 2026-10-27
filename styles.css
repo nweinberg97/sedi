@@ -3343,7 +3343,7 @@ body[data-tone="light"][data-sky="day"] .home.calm .clock-glass::before, body[da
 @media (max-width: 700px) {
   /* Timely: the plan for the day / week / month comes first, then the calendar */
   .day-layout, .period-layout { display: flex !important; flex-direction: column !important; gap: 12px !important; }
-  .day-layout > .day-plan, .period-layout > .day-plan { order: -1; width: auto !important; max-height: none !important; position: static !important; }
+  .day-layout > .day-plan, .period-layout > .day-plan, .day-layout > .side-plan { order: -1; width: auto !important; max-height: none !important; position: static !important; }
   .day-plan .day-plan-list { max-height: none !important; }
   /* The day opens at the current hour inside its own box, so the plan and the tabs stay in view above it */
   .day-col { height: auto !important; min-height: 0 !important; }
@@ -3447,7 +3447,7 @@ body[data-tone="light"][data-sky="day"] .home.calm .clock-glass::before, body[da
 }
 /* Tablet portrait: today's plan first, like on phones */
 @media (min-width: 701px) and (max-width: 900px) {
-  .day-layout > .day-plan, .period-layout > .day-plan { order: -1; }
+  .day-layout > .day-plan, .period-layout > .day-plan, .day-layout > .side-plan { order: -1; }
   .day-scroll { height: min(60dvh, 620px); flex: none; }
 }
 
@@ -3655,3 +3655,120 @@ body:not([data-route="home"]) .sky-fx { display: none; }
 .sky-lab-field { display: inline-flex; align-items: center; gap: 4px; }
 .sky-lab select { height: 26px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.12); background: #fff; font: inherit; padding: 0 4px; }
 @media (max-width: 700px) { .sky-lab { bottom: calc(var(--tabbar-h, 64px) + 84px + env(safe-area-inset-bottom, 0px)); } }
+
+/* ======================================================================
+   Tickets, round 4 (sandbox)
+   ====================================================================== */
+
+/* Hover tools: only for the card you're actually pointing at, after a beat, so passing over a card
+   (or having clicked it a moment ago) never pops buttons over it. Keyboard focus still shows them. */
+.has-chrome:focus-within:not(:hover) > .card-tools { opacity: 0; pointer-events: none; }
+.has-chrome:focus-within:not(:hover) > .card-tools .card-tool { opacity: 0; transform: scale(0.6); }
+.has-chrome:has(:focus-visible) > .card-tools, .has-chrome:has(:focus-visible) > .card-tools .card-tool { opacity: 1 !important; pointer-events: auto; transform: none; }
+.has-chrome:hover > .card-tools { transition-delay: 0.35s; }
+.has-chrome:hover > .card-tools .card-tool { transition-delay: 0.35s; }
+.has-chrome:hover > .card-tools .card-tool:nth-last-child(2) { transition-delay: 0.38s; }
+.has-chrome:hover > .card-tools .card-tool:nth-last-child(3) { transition-delay: 0.41s; }
+.card-tool { box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.06); color: var(--muted); }
+
+/* Short blocks in the day are all handle: no buttons on them. A click opens Details. */
+.event-block.bare { padding-right: 10px; cursor: grab; }
+.event-block.tiny { gap: 6px; padding-left: 8px; border-radius: 6px; }
+.event-block.tiny .ev-title { font-size: var(--fs-xs); line-height: 1.1; }
+.event-block.tiny .ev-time { font-size: var(--fs-2xs); }
+.event-block.tiny .routine-tag { display: none; }
+.event-block.short .resize-handle { height: 5px; }
+.event-block.in-lane.short .ev-time { display: none; }
+.event-block.bare:hover { box-shadow: 0 1px 4px rgba(17, 17, 17, 0.12); }
+
+/* Categories: one color per part of life. When set, it colors the block; the type shows as a small icon. */
+.cat-health { --cat: #2e9e6a; --cat-bg: #e7f5ed; }
+.cat-work { --cat: #4a6fd1; --cat-bg: #ecf0fb; }
+.cat-chores { --cat: #c9822b; --cat-bg: #fbf1e2; }
+.cat-social { --cat: #d0567f; --cat-bg: #fbebf1; }
+.cat-learning { --cat: #7a5cc7; --cat-bg: #f1ecfb; }
+.cat-personal { --cat: #2f97b0; --cat-bg: #e5f4f8; }
+.event-block.cat, .t-chip.cat { background: var(--cat-bg); border-color: color-mix(in srgb, var(--cat) 30%, transparent); border-left-color: var(--cat); }
+.cd.cat { background: var(--cat) !important; }
+.ev-type { width: 12px; height: 12px; margin-right: 4px; vertical-align: -1px; color: var(--cat, var(--muted)); flex: none; }
+
+/* Editor: type and category as one-tap choices */
+.type-pick, .cat-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.type-opt, .cat-opt { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: var(--r-pill); border: 1px solid var(--line-2); background: var(--paper); font-size: var(--fs-sm); color: var(--ink-2); }
+.type-opt svg { width: 14px; height: 14px; color: var(--muted); }
+.type-opt:hover, .cat-opt:hover { border-color: var(--ink-2); }
+.type-opt.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.type-opt.on svg { color: #fff; }
+.cat-opt i { width: 10px; height: 10px; border-radius: 50%; background: var(--cat, transparent); box-shadow: inset 0 0 0 1.5px var(--cat, var(--line-2)); }
+.cat-opt.on { border-color: var(--cat, var(--ink)); background: var(--cat-bg, var(--well)); color: var(--ink); box-shadow: 0 0 0 1px var(--cat, var(--ink)); }
+
+/* Titles wrap to two lines instead of being cut off, and editing one never scrolls sideways. */
+.pc-title, .tile-title, .plan-text {
+  white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.3;
+}
+.pc-title.editing, .tile-title.editing, .ev-title.editing, .t-chip-title.editing { -webkit-line-clamp: unset; display: block; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+
+/* Boardly: tiles grow to fit a two-line title, and can be stretched sideways from the right edge. */
+.board-canvas > .tile:not(.note-card) { height: auto; min-height: 60px; padding-top: 8px; padding-bottom: 8px; }
+.resize-handle.tile-w { left: auto; top: 8px; bottom: 8px; right: -3px; width: 8px; height: auto; cursor: ew-resize; z-index: 3; }
+.resize-handle.tile-w::after { left: 50%; top: 50%; bottom: auto; width: 3px; height: 18px; margin: -9px 0 0 -1.5px; }
+.tile:hover > .resize-handle.tile-w::after, .tile.resizing > .resize-handle.tile-w::after { opacity: 1; }
+.tile.resizing { transition: none; }
+@media (max-width: 700px), (hover: none) { .resize-handle.tile-w { display: none; } }
+
+/* The day's side panel: Today / Week / Month */
+.side-plan { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.side-plan > .day-plan { flex: 1; min-height: 0; }
+.side-switch { display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--well); align-self: stretch; }
+.side-switch button { flex: 1; height: 28px; border-radius: var(--r-pill); font-size: var(--fs-sm); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.side-switch button small { font-size: var(--fs-2xs); font-weight: 600; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: rgba(17, 17, 17, 0.07); display: inline-grid; place-items: center; }
+.side-switch button.on { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(17, 17, 17, 0.12); font-weight: 500; }
+.side-switch button:hover:not(.on) { color: var(--ink-2); }
+.event-block.tiny { align-items: center; padding-top: 0; padding-bottom: 0; }
+.event-block.tiny .ev-title, .event-block.tiny .ev-time { line-height: 1; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-block.tiny .ev-title { flex: 0 1 auto; min-width: 0; }
+.event-block.tiny .ev-type { width: 10px; height: 10px; vertical-align: -1px; }
+.ev-type { display: inline-block; }
+.event-block.tiny .ev-title { font-size: 11px; line-height: 12px; }
+.event-block.tiny .ev-time { font-size: 10px; line-height: 12px; }
+.event-block.tiny .routine-tick { width: 12px; height: 12px; }
+.event-block.tiny .routine-tick svg { width: 8px; height: 8px; }
+
+/* Atom: two modes at the top, Ask and Unload */
+.as-modes { display: inline-flex; padding: 2px; border-radius: var(--r-pill); background: var(--well); gap: 2px; }
+.as-mode { height: 26px; padding: 0 12px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 500; color: var(--muted); }
+.as-mode.on { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(17, 17, 17, 0.14); }
+.as-mode[data-mode="unload"].on { color: #c2383d; }
+.as-mode:hover:not(.on) { color: var(--ink-2); }
+.assistant-tray[data-view="unload"] .as-status, .assistant-tray[data-view="unload"] .as-ears { display: none; }
+.as-mode-tip { margin: 10px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+.assistant-tray:not([data-view="unload"]) > .unload { display: none; }
+
+/* Unload: newest on top, unfiled talk shrinks to one quiet line */
+.ul-head strong { display: none; }
+.ul-bar { display: flex; align-items: center; gap: 8px; min-height: 0; }
+.ul-bar:has(> :not([hidden]):not(.head-spacer)) { min-height: 24px; }
+.ul-tosort { height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: color-mix(in srgb, #e5484d 10%, var(--paper)); color: #b8383d; font-size: var(--fs-xs); font-weight: 600; }
+.ul-tosort:hover { background: color-mix(in srgb, #e5484d 16%, var(--paper)); }
+.ul-clear { font-size: var(--fs-xs); color: var(--muted); }
+.ul-clear:hover { color: var(--danger); }
+.ul-feed { overscroll-behavior: contain; scroll-behavior: auto; }
+.ul-chunk { transition: opacity .18s, transform .18s; }
+.ul-chunk.gone { opacity: 0; transform: translateX(8px); }
+.ul-said { cursor: pointer; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.ul-said.open { -webkit-line-clamp: unset; display: block; }
+.ul-chunk.unfiled { flex-direction: row; align-items: center; gap: 6px; padding: 4px 4px 4px 0; border-radius: 8px; }
+.ul-chunk.unfiled .ul-said { flex: 1; min-width: 0; -webkit-line-clamp: 1; opacity: 0.6; border-left-style: dashed; }
+.ul-chunk.unfiled .ul-said.open { opacity: 0.85; }
+.ul-chunk.unfiled:hover { background: var(--well); }
+.ul-chunk.unfiled:hover .ul-said { opacity: 0.9; }
+.ul-line-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+.ul-make { font-size: var(--fs-2xs); color: var(--muted); padding: 2px 6px; border-radius: 6px; opacity: 0; }
+.ul-chunk.unfiled:hover .ul-make, .ul-make:focus-visible { opacity: 1; }
+.ul-make:hover { color: var(--ink); background: var(--paper); }
+.ul-del { color: var(--faint, var(--muted)); }
+.ul-del:hover { color: var(--danger); background: #fde8e8; }
+@media (hover: none) { .ul-make { opacity: 1; } }
+.ul-save { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--muted); }
+.ul-save svg { width: 14px; height: 14px; }
+.ul-summary { order: -1; }

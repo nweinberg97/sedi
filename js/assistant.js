@@ -22,7 +22,7 @@ import { openUnload } from './unload.js';
 
 let token, tray, output, input, statusEl, orb, caption, earsChip;
 let session = null;
-let unloadCtl = null;   // the Unload session, while it's open
+let unloadCtl = null, modes = null;   // the Unload session, while it's open
 let vstate = 'idle';    // idle | preparing | listening | hearing | thinking
 
 export function buildAssistant() {
@@ -34,14 +34,18 @@ export function buildAssistant() {
   orb = h('button', { class: 'as-orb', type: 'button', 'aria-label': 'Talk', onclick: onOrb }, h('span', { class: 'as-orb-ring' }), prepDots(), h('span', { class: 'as-orb-core' }, icon('mic')));
   caption = h('div', { class: 'as-caption', 'aria-live': 'polite' });
   const more = h('button', { class: 'icon-btn xs', 'aria-label': 'More', title: 'More', onclick: e => openMore(e.currentTarget) }, icon('more'));
+  // Two modes, side by side at the top: Ask (a question or a change) and Unload (talk it all out).
+  modes = h('div', { class: 'as-modes', role: 'tablist', 'aria-label': 'Atom mode' },
+    h('button', { class: 'as-mode', type: 'button', role: 'tab', dataset: { mode: 'ask' }, title: 'Ask a question, or tell Sedi what to change', onclick: () => setMode('ask') }, 'Ask'),
+    h('button', { class: 'as-mode', type: 'button', role: 'tab', dataset: { mode: 'unload' }, title: 'Talk it all out; Atom pulls out the cards', onclick: () => setMode('unload') }, 'Unload'));
   tray = h('section', { class: 'assistant-tray', 'aria-label': 'Atom', hidden: true, dataset: { view: 'voice', state: 'idle' } },
-    h('div', { class: 'as-head' }, statusEl, earsChip, h('span', { class: 'head-spacer' }), more,
+    h('div', { class: 'as-head' }, modes, statusEl, earsChip, h('span', { class: 'head-spacer' }), more,
       h('button', { class: 'icon-btn xs', 'aria-label': 'Close assistant', title: 'Close', onclick: () => toggle(false) }, icon('x'))),
     output,
     h('div', { class: 'as-voice' },
       h('button', { class: 'icon-btn as-side', type: 'button', 'aria-label': 'Type instead', title: 'Type instead', onclick: () => setView('type') }, icon('keyboard')),
       h('div', { class: 'as-orb-wrap' }, orb, caption),
-      h('button', { class: 'as-side as-unload-btn', type: 'button', title: 'Unload: talk it all out, then sort it into cards', onclick: () => startUnload() }, icon('list'), h('span', {}, 'Unload'))),
+      h('span', { class: 'as-side', 'aria-hidden': 'true' })),
     h('form', { class: 'as-form', onsubmit: e => { e.preventDefault(); submit(input.value); } },
       input,
       h('button', { class: 'icon-btn as-mic', type: 'button', 'aria-label': 'Talk instead', title: 'Talk instead', onclick: () => { setView('voice'); talk(); } }, icon('mic')),
@@ -130,8 +134,9 @@ function setState(st, text) {
   if (st !== 'listening' && st !== 'hearing') orb.style.setProperty('--lvl', 0);
 }
 function setView(v) {
-  if (v !== 'unload') { unloadCtl?.stop(); unloadCtl = null; }
+  if (v !== 'unload') parkUnload();
   tray.dataset.view = v;
+  paintModes();
   if (v === 'type') { session?.cancel(); session = null; setState('idle'); setTimeout(() => input.focus(), 30); }
 }
 
@@ -140,8 +145,8 @@ function greet() {
   output.replaceChildren(h('div', { class: 'as-hint' },
     h('strong', {}, 'Atom'),
     h('p', {}, 'Ask about anything you’ve saved, or tell it what to change. It shows you the change and waits for your OK.'),
-    h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t)),
-      earsNow() ? h('button', { class: 'as-try unload-try', type: 'button', onclick: () => startUnload() }, icon('list'), 'Unload: talk it all out') : null)));
+    h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t))),
+    earsNow() ? h('p', { class: 'as-mode-tip' }, 'Have a lot on your mind? Switch to ', h('button', { class: 'linkish', type: 'button', onclick: () => setMode('unload') }, 'Unload'), ' and just talk.') : null));
 }
 /** Clear conversation forgets everything said in it: the messages on screen, the last question kept
  *  for "Ask Claude", and the command history (which records the words of each command). Undo puts it back. */
@@ -173,10 +178,32 @@ function toggle(force, { view = 'voice' } = {}) {
     paintStatus(); positionTray();
     if (!output.childElementCount) greet();
     if (hearingDownloaded() && hearingPref() !== 'browser' && canCapture && hearingState().status === 'off') prepareHearing().catch(() => {});
+    if (unloadCtl && view !== 'type') { tray.dataset.view = 'unload'; paintModes(); positionTray(); return; }
     if (view === 'type' || !earsNow()) { setView('type'); return; }
     tray.dataset.view = 'voice';
+    paintModes();
     if (!wasOpen || vstate === 'idle') talk();
-  } else { unloadCtl?.stop(); unloadCtl = null; session?.cancel(); session = null; setState('idle'); }
+  } else { parkUnload(); session?.cancel(); session = null; setState('idle'); }
+}
+
+// ---------- Modes: Ask and Unload ----------
+function paintModes() {
+  const m = tray.dataset.view === 'unload' ? 'unload' : 'ask';
+  modes.querySelectorAll('.as-mode').forEach(b => { const on = b.dataset.mode === m; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  modes.querySelector('[data-mode="unload"]').hidden = !earsNow() && !unloadCtl;
+}
+function setMode(m) {
+  if (m === 'unload') return startUnload();
+  if (tray.dataset.view !== 'unload') return;
+  setView(earsNow() ? 'voice' : 'type');
+  setState('idle');
+  positionTray();
+}
+/** Leaving Unload (for Ask, or closing Atom) pauses it. It's only thrown away if nothing was said. */
+function parkUnload() {
+  if (!unloadCtl) return;
+  if (unloadCtl.busy()) unloadCtl.pause();
+  else { unloadCtl.stop(); unloadCtl = null; }
 }
 
 // ---------- Unload: the guided brain dump ----------
@@ -184,14 +211,15 @@ function startUnload() {
   if (tray.hidden) toggle(true, { view: 'type' });
   if (needsVoiceSetup()) { setView('voice'); showVoiceIntro(); return; }
   session?.cancel(); session = null; setState('idle');
-  unloadCtl?.stop();
   tray.dataset.view = 'unload';
+  paintModes();
   positionTray();
+  if (unloadCtl) { unloadCtl.resume(); return; } // back to the one in progress
   unloadCtl = openUnload(tray, {
     ctx: commandContext,
     execute,
     again: () => startUnload(),
-    onClose: () => { unloadCtl = null; if (tray.dataset.view === 'unload') { tray.dataset.view = 'voice'; positionTray(); } },
+    onClose: () => { unloadCtl = null; if (tray.dataset.view === 'unload') { tray.dataset.view = earsNow() ? 'voice' : 'type'; paintModes(); positionTray(); } },
   });
 }
 

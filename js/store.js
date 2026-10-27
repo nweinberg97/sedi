@@ -98,6 +98,42 @@ export const getCard = id => cards.get(id);
 export const allCards = () => [...cards.values()];
 export const cardsWhere = fn => allCards().filter(fn);
 
+// Long titles: a card's title is what you scan, so it stays short enough to read in full. When one runs long,
+// the rest moves to the top of its notes (the card then shows a notes line under the title). Brainly keeps
+// whatever it's given: its titles are names of notes and documents.
+const TITLE_MAX = 64;
+export function splitLongTitle(title) {
+  const t = String(title || '').replace(/\s+/g, ' ').trim();
+  if (t.length <= TITLE_MAX) return null;
+  let cut = -1;
+  for (const re of [/[.!?]\s/g, /[:;]\s/g, /\s[-–—]\s/g, /,\s/g, /\s\(/g]) {
+    let m; while ((m = re.exec(t))) if (m.index >= 12 && m.index <= TITLE_MAX) cut = Math.max(cut, m.index + (/^[.!?:;,]/.test(m[0]) ? 1 : 0));
+    if (cut > 0) break;
+  }
+  const wordCut = cut < 0;
+  if (wordCut) {
+    cut = t.lastIndexOf(' ', TITLE_MAX - 8);
+    // never end on a little joining word ("…and the")
+    while (cut > 20 && /\s(?:and|or|but|the|a|an|to|of|for|with|in|on|at|is|are|my|so|that)$/i.test(t.slice(0, cut))) cut = t.lastIndexOf(' ', cut - 1);
+    if (cut < 20) cut = TITLE_MAX - 8;
+  }
+  const head = t.slice(0, cut).trim().replace(/[\s,:;\-–—(]+$/, '');
+  let tail = t.slice(cut).trim().replace(/^[\s,:;.\-–—]+/, '');
+  if (!tail) return null;
+  if (wordCut) tail = `…${tail}`; // mid-sentence: show it continues
+  else tail = tail[0].toUpperCase() + tail.slice(1);
+  return { title: wordCut ? `${head}…` : head, rest: tail };
+}
+const escHtml = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+function withShortTitle(card, title) {
+  if (card.tool === 'brainly' || card.type === 'link' || card.type === 'doc') return null;
+  const sp = splitLongTitle(title);
+  if (!sp) return null;
+  const d = card.description || '';
+  const description = /<\/?[a-z][\s\S]*>/i.test(d) ? `<div>${escHtml(sp.rest)}</div>${d}` : (d.trim() ? `${sp.rest}\n${d}` : sp.rest);
+  return { title: sp.title, description };
+}
+
 export function createCard(partial, { silent = false, log = true } = {}) {
   const t = now();
   const card = {
@@ -111,6 +147,7 @@ export function createCard(partial, { silent = false, log = true } = {}) {
     ...partial,
     meta: { ...(partial.meta || {}) },
   };
+  Object.assign(card, withShortTitle(card, card.title));
   cards.set(card.id, card);
   tx('cards', 'readwrite', s => s.put(card));
   if (log) logActivity('Created', card);
@@ -124,6 +161,7 @@ export function updateCard(id, patch, { silent = false, replaceMeta = false, log
   const meta = patch.meta ? (replaceMeta ? { ...patch.meta } : { ...card.meta, ...patch.meta }) : card.meta;
   // touch:false is for background bookkeeping (cached summaries) that shouldn't count as an edit.
   const next = { ...card, ...patch, meta, updatedAt: touch ? now() : card.updatedAt };
+  if (patch.title != null && patch.title !== card.title) Object.assign(next, withShortTitle(next, next.title));
   cards.set(id, next);
   tx('cards', 'readwrite', s => s.put(next));
   if (log) logActivity(logLabel || 'Edited', next);

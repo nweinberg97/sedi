@@ -53,6 +53,13 @@ export function mount(el) {
   canvas.addEventListener('pointerenter', () => (hoverCanvas = true));
   canvas.addEventListener('pointerleave', () => (hoverCanvas = false));
   canvas.addEventListener('pointerdown', startMarquee);
+  // The board never scrolls; it's the size of the window. But the browser quietly scrolls a clipped box to
+  // show whatever has focus (typing in a note near the bottom edge, say). Left that way, every card sits
+  // offset from where it's saved, and jumps on the next redraw. So it always snaps back.
+  canvas.addEventListener('scroll', () => {
+    if (listMode() || getComputedStyle(canvas).overflowY !== 'hidden') return;
+    if (canvas.scrollTop || canvas.scrollLeft) { canvas.scrollTop = 0; canvas.scrollLeft = 0; }
+  });
   canvas.addEventListener('click', e => {
     const tile = e.target.closest('.tile');
     if (tile && e.shiftKey) { e.preventDefault(); toggleSel(tile.dataset.id); return; }
@@ -138,7 +145,8 @@ registerDrop('boardly-canvas', ({ id, left, top, zone }) => {
   const tab = activeTab();
   if (!card || !tab) return false;
   const type = ['goal', 'task', 'note'].includes(card.type) ? card.type : 'note';
-  const [w, hgt] = SIZES[type];
+  const [w0, hgt] = SIZES[type];
+  const w = cardW(card) || w0;
   const x = clamp(Math.round(left), LEFT, zone.clientWidth - w - 8);
   const y = clamp(Math.round(top), 8, zone.clientHeight - hgt - 8);
   const wasHere = card.tool === 'boardly' && card.meta?.tabId === tab.id;
@@ -152,7 +160,8 @@ registerDrop('boardly-canvas', ({ id, left, top, zone }) => {
     for (const oid of group.ids) {
       const o = store.getCard(oid);
       if (!o) continue;
-      const [ow, oh] = SIZES[o.type] || SIZES.note;
+      const [ow0, oh] = SIZES[o.type] || SIZES.note;
+      const ow = cardW(o) || ow0;
       store.updateCard(oid, { meta: { x: clamp((o.meta?.x ?? 24) + dx, LEFT, zone.clientWidth - ow - 8), y: clamp((o.meta?.y ?? 24) + dy, 8, zone.clientHeight - oh - 8) } }, { silent: true });
     }
     store.notify({ reason: 'group-move' });
@@ -202,11 +211,17 @@ onDragStart(d => {
     if (group) group.els.forEach(o => { o.style.transform = `translate(${x - live.base.left}px, ${y - live.base.top}px)`; });
   };
   addEventListener('pointermove', live.move);
+  // The board can scroll under a resting pointer (dragging near its edge scrolls it). Follow along, or the
+  // card drifts away from the pointer until the next move.
+  canvas.addEventListener('scroll', live.move, { passive: true });
+  document.querySelector('.view-host')?.addEventListener('scroll', live.move, { passive: true });
   live.move();
 });
 onDragEnd(snap => {
   if (!live) return;
   removeEventListener('pointermove', live.move);
+  canvas?.removeEventListener('scroll', live.move);
+  document.querySelector('.view-host')?.removeEventListener('scroll', live.move);
   // Land where it was dropped: fold the drag offset into left/top before clearing it,
   // so the card never flashes back to its old spot for a frame before the board redraws.
   const m = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(live.el.style.transform);
@@ -271,8 +286,11 @@ function renderCanvas() {
   const cards = tab ? tabCards(tab.id) : [];
   const cw = canvas.clientWidth || 1000, ch = canvas.clientHeight || 600;
   canvas.replaceChildren(dots.el, ...cards.map(c => {
-    const [w, hh] = SIZES[c.type] || SIZES.note;
+    const [w0, hh] = SIZES[c.type] || SIZES.note;
+    const w = cardW(c) || w0;
     const el = c.type === 'note' ? noteEl(c) : tileEl(c);
+    if (cardW(c)) el.style.width = w + 'px';
+    el.append(widthHandle(el, c));
     el.style.left = clamp(c.meta?.x ?? 24, LEFT, Math.max(LEFT, cw - w - 8)) + 'px';
     el.style.top = clamp(c.meta?.y ?? 24, 8, Math.max(8, ch - hh - 8)) + 'px';
     return el;
@@ -280,6 +298,30 @@ function renderCanvas() {
   [...sel].forEach(id => { if (!cards.some(c => c.id === id)) sel.delete(id); });
   paintSel();
   if (!cards.length) canvas.append(h('div', { class: 'canvas-empty' }, `Add a goal, task or note to ${tab?.name || 'this category'}. Shortcut: G, T or N.`));
+}
+
+// Cards can be stretched sideways (within limits) so a longer title reads in full.
+const MIN_W = 180, MAX_W = 440;
+const cardW = c => (c.meta?.w ? clamp(c.meta.w, MIN_W, MAX_W) : 0);
+function widthHandle(el, c) {
+  const hd = h('div', { class: 'resize-handle tile-w', title: 'Drag to make wider', 'aria-hidden': 'true' });
+  hd.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.stopPropagation(); e.preventDefault();
+    const sx = e.clientX, sw = el.getBoundingClientRect().width, left = parseFloat(el.style.left) || 0;
+    const maxHere = Math.min(MAX_W, canvas.clientWidth - left - 8);
+    el.classList.add('resizing');
+    const move = ev => { el.style.width = clamp(Math.round(sw + ev.clientX - sx), MIN_W, Math.max(MIN_W, maxHere)) + 'px'; };
+    const up = () => {
+      removeEventListener('pointermove', move); removeEventListener('pointerup', up);
+      el.classList.remove('resizing');
+      const w = Math.round(parseFloat(el.style.width));
+      if (Math.abs(w - sw) > 2) store.updateCard(c.id, { meta: { w } });
+    };
+    addEventListener('pointermove', move); addEventListener('pointerup', up);
+  });
+  hd.addEventListener('dblclick', e => { e.stopPropagation(); store.updateCard(c.id, { meta: { w: null } }); }); // back to the usual width
+  return hd;
 }
 
 function titleSpan(c) {

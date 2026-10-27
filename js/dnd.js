@@ -95,6 +95,13 @@ export function initDnd(navigate) {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && drag?.active) { end(true); drag = null; } });
 
   function begin() {
+    // The view may have redrawn between the press and the first move (a queued update lands when a note
+    // loses focus, for one). Then the card pressed is gone from the page: pick up its fresh copy instead,
+    // so the drag starts from what's on screen rather than from an empty, detached element.
+    if (!drag.el.isConnected) {
+      const fresh = document.querySelector(`[data-drag="${CSS.escape(drag.kind)}"][data-id="${CSS.escape(drag.id || '')}"]`);
+      if (fresh) drag.el = fresh;
+    }
     drag.active = true;
     // Keep edge-scrolling while the pointer rests near an edge, not only while it moves.
     drag.scrollTimer = setInterval(() => { if (drag?.active) { autoScroll(); hitTest(); } }, 40);
