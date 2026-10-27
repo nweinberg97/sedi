@@ -91,13 +91,19 @@ export function openUnload(host, api) {
       onQueued: (_, n) => { waiting = Math.max(waiting, n || 0); paintStatus(); },
       onWaiting: n => { waiting = n; paintStatus(); },
       onChunk: (_, text) => { live.textContent = ''; addChunk(text); },
-      onError: msg => { if (!/Didn’t catch/.test(msg)) { live.textContent = msg; toast(msg); } },
+      onError: msg => {
+        if (/Didn’t catch/.test(msg)) return;
+        live.textContent = msg;
+        // A blocked microphone won't fix itself: pause once and say so, instead of retrying into it.
+        if (!earsNow()) { pause(); live.textContent = 'Voice isn’t available here: the microphone is blocked. Allow it in your browser, then tap Resume.'; return; }
+        toast(msg);
+      },
       onEnd: () => {
         if (mine !== run) return;
         session = null; waiting = 0;
         if (finished) return wrapUp();
         // The browser's ears can end on their own after a long silence: carry on unless paused.
-        if (!paused) setTimeout(() => { if (!paused && !finished && !session) listen(); }, 300);
+        if (!paused) setTimeout(() => { if (!paused && !finished && !session && earsNow()) listen(); }, 300);
         paintStatus();
       },
     });

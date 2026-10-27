@@ -8,7 +8,20 @@ export const canListen = !!SR || canCapture;
 import * as store from './store.js';
 import { fixHeard } from './vocab.js';
 // Every transcript passes through the words Sedi knows (its own name, your names, your fixes) before anyone sees it.
+// When the microphone is blocked (the browser said no, or this is the in-chat sandbox, which has no mic),
+// voice steps aside quietly: Atom opens for typing and nothing keeps retrying into the same error.
+// Allowing the mic again in the browser's settings brings voice back without a reload.
+let micBlocked = !!window.SEDI_SANDBOX;
+export const isMicBlocked = () => micBlocked;
+try {
+  navigator.permissions?.query({ name: 'microphone' }).then(p => {
+    if (p.state === 'denied') micBlocked = true;
+    p.onchange = () => { if (p.state === 'granted' && !window.SEDI_SANDBOX) micBlocked = false; else if (p.state === 'denied') micBlocked = true; };
+  }).catch(() => {});
+} catch {}
+const BLOCKED = /blocked|not-allowed|permission|turned off in this browser/i;
 const withVocab = cb => ({ ...cb,
+  onError: cb.onError && (msg => { if (BLOCKED.test(msg || '')) micBlocked = true; cb.onError(msg); }),
   onFinal: cb.onFinal && (t => cb.onFinal(fixHeard(t))),
   onChunk: cb.onChunk && ((id, t) => cb.onChunk(id, fixHeard(t))),
   onInterim: cb.onInterim && (t => cb.onInterim(fixHeard(t))) });
@@ -144,6 +157,7 @@ export function askVoiceConsent() {
 import { captureUtterance, captureStream, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange } from './hearing.js';
 /** Which ears will be used right now: 'device' (private, on-device Whisper) or 'browser'. */
 export function earsNow() {
+  if (micBlocked) return null;
   const pref = hearingPref(), ready = hearingState().status === 'ready';
   if (pref === 'browser') return SR ? 'browser' : (canCapture ? 'device' : null);
   if (ready && canCapture) return 'device';

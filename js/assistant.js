@@ -194,6 +194,9 @@ function paintModes() {
   const m = tray.dataset.view === 'unload' ? 'unload' : 'ask';
   modes.querySelectorAll('.as-mode').forEach(b => { const on = b.dataset.mode === m; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
   modes.querySelector('[data-mode="unload"]').hidden = !earsNow() && !unloadCtl;
+  // No microphone here (blocked, or the sandbox): typing only, with no buttons that would just error.
+  const mic = tray.querySelector('.as-mic');
+  if (mic) mic.hidden = !earsNow();
 }
 function setMode(m) {
   if (m === 'unload') return startUnload();
