@@ -209,10 +209,12 @@ const UNIVERSE_SVG = `<svg class="uni-mark" viewBox="0 0 24 24" aria-hidden="tru
     <clipPath id="uniBall"><circle cx="12" cy="12" r="5.4"/></clipPath>
   </defs>
   <g class="uni-stars" fill="#fff">
-    <path class="uni-tw t1" d="M5 2.6l.42 1.18 1.18.42-1.18.42L5 5.8l-.42-1.18-1.18-.42 1.18-.42z"/>
-    <path class="uni-tw t2" d="M19.4 18.2l.32.9.9.32-.9.32-.32.9-.32-.9-.9-.32.9-.32z"/>
-    <circle class="uni-tw t3" cx="19.2" cy="3.9" r=".55"/>
-    <circle class="uni-tw t4" cx="3.4" cy="18.4" r=".45"/>
+    <circle class="uni-tw t1" cx="4.6" cy="4.4" r=".42"/>
+    <circle class="uni-tw t2" cx="19.6" cy="18.8" r=".36"/>
+    <circle class="uni-tw t3" cx="19.2" cy="3.9" r=".3"/>
+    <circle class="uni-tw t4" cx="3.4" cy="18.4" r=".28"/>
+    <circle cx="12.6" cy="2.2" r=".2" opacity=".5"/>
+    <circle cx="21.4" cy="11.4" r=".18" opacity=".45"/>
   </g>
   <g transform="translate(12 12) rotate(-14)">
     <path class="uni-ring back" d="M-11 0A11 3.4 0 0 1 11 0" fill="none" stroke="#c9d3ff" stroke-width=".8" stroke-dasharray="1.4 1.3" stroke-linecap="round" opacity=".6"/>

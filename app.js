@@ -68,7 +68,7 @@ async function boot() {
   initWhatsNew({ fresh });
   dataNudges({ onBackup: exportData, onOpen: showDataInfo });
   // The in-chat preview can't reach the microphone, the weather service or model downloads.
-  if (window.SEDI_SANDBOX) setTimeout(() => toast('Sandbox preview with its own data. Voice, weather and offline mode need the real app.', { duration: 8000 }), 900);
+  if (window.SEDI_SANDBOX) setTimeout(() => toast('Sandbox preview. Voice and weather need the real app.', { duration: 5000 }), 900);
 }
 
 function mountRoute() {

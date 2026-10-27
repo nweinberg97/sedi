@@ -24,6 +24,20 @@ const RECUR_SHORT = { daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly', mo
 // Category = which part of life (a color). Type = what kind of thing (task, meeting…). Kept apart on purpose.
 export const CATS = { health: 'Health', work: 'Work', chores: 'Chores', social: 'Social', learning: 'Learning', personal: 'Personal' };
 const catClass = c => (CATS[c?.meta?.cat] ? `cat cat-${c.meta.cat}` : '');
+/** Each color can carry your own name ("Family" instead of Social). The colors stay the same. */
+export const catName = k => (store.pref('catNames', {})[k] || '').trim() || CATS[k];
+function openCatNames(anchorEl, onChange) {
+  const names = { ...store.pref('catNames', {}) };
+  popover(anchorEl, h('div', { class: 'cat-names' },
+    h('strong', {}, 'Name your colors'),
+    h('p', { class: 'muted small' }, 'Call them whatever fits your life. The colors stay put.'),
+    ...Object.keys(CATS).map(k => {
+      const input = h('input', { class: 'field-input sm', value: catName(k), maxlength: 18, 'aria-label': `Name for the ${CATS[k]} color` });
+      input.addEventListener('input', () => { names[k] = input.value.trim() === CATS[k] ? '' : input.value.trim(); store.setPref('catNames', names); onChange?.(); });
+      input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') closePopovers(); });
+      return h('label', { class: `cat-name-row cat-${k}` }, h('i'), input);
+    })), { className: 'cat-names-pop' });
+}
 export const ITEM_TYPES = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Focus', icon: 'target' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
 const ARCHIVE_DAYS = 30;
 
@@ -1148,7 +1162,7 @@ export function openEventEditor(id) {
       // Category: a color for a part of life, so all your health things read as one at a glance.
       let catVal = CATS[m.cat] ? m.cat : '';
       f.cat = { get value() { return catVal; } };
-      const catRow = h('div', { class: 'cat-pick', role: 'radiogroup', 'aria-label': 'Category' }, [['', 'None'], ...Object.entries(CATS)].map(([v, l]) => {
+      const catRow = h('div', { class: 'cat-pick', role: 'radiogroup', 'aria-label': 'Category' }, [['', 'None'], ...Object.keys(CATS).map(k => [k, catName(k)])].map(([v, l]) => {
         const b = h('button', { class: `cat-opt ${v ? `cat-${v}` : 'cat-none'} ${v === catVal ? 'on' : ''}`, type: 'button', role: 'radio', 'aria-checked': String(v === catVal), title: l,
           onclick: () => { catVal = v; catRow.querySelectorAll('.cat-opt').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); }); } }, h('i'), h('span', {}, l));
         return b;
@@ -1158,7 +1172,10 @@ export function openEventEditor(id) {
       return h('div', { class: 'ical' },
         h('div', { class: 'ical-row' }, field(m.endDate || ITEM_TYPES[m.itemType]?.span ? 'From' : 'Date', f.date), m.endDate || ITEM_TYPES[m.itemType]?.span ? field('Until', f.end) : null, field('Time', f.time), field('Length', f.dur)),
         typeRow ? h('div', { class: 'mini-field' }, h('span', { class: 'field-label' }, 'Type'), typeRow) : null,
-        h('div', { class: 'mini-field' }, h('span', { class: 'field-label' }, 'Category'), catRow),
+        h('div', { class: 'mini-field' }, h('span', { class: 'field-label cat-label' }, 'Category',
+          h('button', { class: 'linkish small', type: 'button', onclick: e => openCatNames(e.currentTarget, () => {
+            catRow.querySelectorAll('.cat-opt').forEach(b => { const k = [...b.classList].find(x => x.startsWith('cat-') && x !== 'cat-opt' && x !== 'cat-none')?.slice(4); if (k) { b.title = catName(k); b.querySelector('span').textContent = catName(k); } });
+          }) }, 'Rename')), catRow),
         h('div', { class: 'ical-row' }, field('Part of day', f.slot), field('Repeat', f.rec)),
         f.custom.el,
         isRoutine(card) ? h('p', { class: 'muted small' }, 'Changes apply from today on. Days you already ticked stay ticked.') : null,

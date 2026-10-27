@@ -71,7 +71,8 @@ export function buildAssistant() {
   const hint = store.pref('voiceHintSeen') ? null : h('div', { class: 'atom-hint', 'aria-hidden': 'true' },
     h('b', {}, touch ? 'Tap to type, hold to talk' : 'Click to type, hold to talk'), h('span', {}, '“Add a task to call mom”'), h('i'));
   if (hint) {
-    token.addEventListener('pointerdown', () => { hint.remove(); store.setPref('voiceHintSeen', true); }, { once: true });
+    store.setPref('voiceHintSeen', true); // shown once, ever
+    token.addEventListener('pointerdown', () => hint.remove(), { once: true });
     setTimeout(() => hint.classList.add('in'), 1800);
     // It fades after a while; it shows again next visit until you've used the atom.
     setTimeout(() => { hint.classList.remove('in'); setTimeout(() => hint.remove(), 400); }, touch ? 9000 : 15000);
@@ -142,12 +143,13 @@ function setView(v) {
 }
 
 function greet() {
-  const tries = ['What’s next today?', 'What did I write about Lisbon?', 'Remind me to call mom tomorrow at 9am'];
+  // Calm by default: one quiet line. The very first time, two examples show what it can do; never again.
+  const first = !store.pref('atomGreeted');
+  store.setPref('atomGreeted', true);
+  const tries = ['What’s next today?', 'Remind me to call mom tomorrow at 9am'];
   output.replaceChildren(h('div', { class: 'as-hint' },
-    h('strong', {}, 'Atom'),
-    h('p', {}, 'Ask about anything you’ve saved, or tell it what to change. It shows you the change and waits for your OK.'),
-    h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t))),
-    earsNow() ? h('p', { class: 'as-mode-tip' }, 'Have a lot on your mind? Switch to ', h('button', { class: 'linkish', type: 'button', onclick: () => setMode('unload') }, 'Unload'), ' and just talk.') : null));
+    h('p', {}, 'Ask about anything you’ve saved, or tell Sedi what to change. You confirm every change.'),
+    first ? h('div', { class: 'as-tries' }, tries.map(t => h('button', { class: 'as-try', type: 'button', onclick: () => submit(t, { fromVoice: tray.dataset.view === 'voice' }) }, t))) : null));
 }
 /** Clear conversation forgets everything said in it: the messages on screen, the last question kept
  *  for "Ask Claude", and the command history (which records the words of each command). Undo puts it back. */

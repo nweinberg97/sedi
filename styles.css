@@ -3857,3 +3857,18 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .wn-layer.out .wn-ring, .wn-layer.out .wn-card { opacity: 0; transition-duration: 0.25s; transition-delay: 0s; }
 .wn-layer.out .wn-ring { box-shadow: 0 0 0 200vmax rgba(8, 12, 28, 0); }
 @media (prefers-reduced-motion: reduce) { .wn-ring, .wn-card { transition-duration: 0.01s !important; scale: 1; translate: 0 0; } .wn-ring::after { animation: none; } }
+
+/* Universal Board: pin-prick stars that brighten and dim slowly (no sparkle shapes, no scaling) */
+.uni-tw { animation: uniGlimmer 8s ease-in-out infinite !important; transform: none !important; }
+.uni-tw.t2 { animation-delay: 2s !important; } .uni-tw.t3 { animation-delay: 4.1s !important; } .uni-tw.t4 { animation-delay: 6.2s !important; }
+@keyframes uniGlimmer { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .uni-tw { animation: none !important; opacity: 0.7; } }
+
+/* Name your category colors */
+.cat-label { display: flex; align-items: baseline; gap: 8px; }
+.cat-label .linkish { font-weight: 400; color: var(--muted); }
+.cat-names { display: flex; flex-direction: column; gap: 6px; width: 240px; }
+.cat-names p { margin: 0 0 4px; }
+.cat-name-row { display: flex; align-items: center; gap: 8px; }
+.cat-name-row i { width: 12px; height: 12px; border-radius: 50%; background: var(--cat); flex: none; }
+.cat-name-row .field-input { flex: 1; }
