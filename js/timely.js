@@ -22,23 +22,81 @@ const RECUR = { '': 'Does not repeat', daily: 'Every day (daily routine)', weekd
 const RECUR_SHORT = { daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly', monthly: 'Monthly' };
 // SD-T14: one-off item kinds. Stored as meta.itemType so it never collides with meta.kind ('reminder').
 // Category = which part of life (a color). Type = what kind of thing (task, meeting…). Kept apart on purpose.
-export const CATS = { health: 'Health', work: 'Work', chores: 'Chores', social: 'Social', learning: 'Learning', personal: 'Personal' };
-const catClass = c => (CATS[c?.meta?.cat] ? `cat cat-${c.meta.cat}` : '');
-/** Each color can carry your own name ("Family" instead of Social). The colors stay the same. */
-export const catName = k => (store.pref('catNames', {})[k] || '').trim() || CATS[k];
-function openCatNames(anchorEl, onChange) {
-  const names = { ...store.pref('catNames', {}) };
-  popover(anchorEl, h('div', { class: 'cat-names' },
-    h('strong', {}, 'Name your colors'),
-    h('p', { class: 'muted small' }, 'Call them whatever fits your life. The colors stay put.'),
-    ...Object.keys(CATS).map(k => {
-      const input = h('input', { class: 'field-input sm', value: catName(k), maxlength: 18, 'aria-label': `Name for the ${CATS[k]} color` });
-      input.addEventListener('input', () => { names[k] = input.value.trim() === CATS[k] ? '' : input.value.trim(); store.setPref('catNames', names); onChange?.(); });
-      input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') closePopovers(); });
-      return h('label', { class: `cat-name-row cat-${k}` }, h('i'), input);
-    })), { className: 'cat-names-pop' });
+// Categories are yours: rename them, recolor them, add your own, remove the ones you don't use.
+export const CAT_PALETTE = ['#2e9e6a', '#4a6fd1', '#c9822b', '#d0567f', '#7a5cc7', '#2f97b0', '#d9534f', '#8a9a2b', '#b5651d', '#5b6b82', '#e08ab6', '#3cb4a6'];
+const DEFAULT_CATS = [['health', 'Health', 0], ['work', 'Work', 1], ['chores', 'Chores', 2], ['social', 'Social', 3], ['learning', 'Learning', 4], ['personal', 'Personal', 5]]
+  .map(([id, name, i]) => ({ id, name, color: CAT_PALETTE[i] }));
+/** Your categories, in order. Earlier renames (catNames) carry over. */
+export function cats() {
+  const saved = store.pref('cats');
+  if (Array.isArray(saved)) return saved.filter(x => x && x.id && x.color);
+  const old = store.pref('catNames', {});
+  return DEFAULT_CATS.map(c => ({ ...c, name: (old[c.id] || '').trim() || c.name }));
 }
-export const ITEM_TYPES = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Focus', icon: 'target' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
+const saveCats = list => store.setPref('cats', list);
+export const catOf = c => (c?.meta?.cat ? cats().find(x => x.id === c.meta.cat) : null);
+export const catName = id => cats().find(x => x.id === id)?.name || '';
+const catVars = color => ({ '--cat': color, '--cat-bg': `color-mix(in srgb, ${color} 13%, white)` });
+const catClass = c => (catOf(c) ? 'cat' : '');
+/** Paint a block, chip or dot in its category's color. */
+function paintCat(el, c) { const k = catOf(c); if (k) Object.entries(catVars(k.color)).forEach(([p, v]) => el.style.setProperty(p, v)); return el; }
+
+/** One small place to shape both lists: your types (names) and your categories (names, colors, add, remove). */
+function openCatNames(anchorEl, onChange) {
+  const tnames = { ...store.pref('typeNames', {}) };
+  const box = h('div', { class: 'cat-names' });
+  // Colors open right under the row (not a second pop-up, which would close this one).
+  const swatchPicker = (anchor, current, onPick) => {
+    const row = anchor.closest('.cat-name-row');
+    const open = row.nextElementSibling?.classList.contains('cat-swatches');
+    box.querySelectorAll('.cat-swatches').forEach(x => x.remove());
+    if (open) return;
+    row.after(h('div', { class: 'cat-swatches' }, CAT_PALETTE.map(col => h('button', { class: `cat-sw ${col === current ? 'on' : ''}`, type: 'button', style: { background: col }, 'aria-label': `Color ${col}`,
+      onclick: e => { e.preventDefault(); box.querySelectorAll('.cat-swatches').forEach(x => x.remove()); onPick(col); } }))));
+  };
+  const paint = () => {
+    const list = cats();
+    const typeRows = Object.keys(TYPE_DEFAULTS).filter(k => !TYPE_DEFAULTS[k].span).map(k => {
+      const input = h('input', { class: 'field-input sm', value: ITEM_TYPES[k].label, maxlength: 18, 'aria-label': `Name for ${TYPE_DEFAULTS[k].label}` });
+      input.addEventListener('input', () => { tnames[k] = input.value.trim() === TYPE_DEFAULTS[k].label ? '' : input.value.trim(); store.setPref('typeNames', tnames); onChange?.(); });
+      input.addEventListener('keydown', e => e.stopPropagation());
+      return h('label', { class: 'cat-name-row' }, icon(TYPE_DEFAULTS[k].icon, 'type-row-ic'), input);
+    });
+    const catRows = list.map((c, i) => {
+      const input = h('input', { class: 'field-input sm', value: c.name, maxlength: 18, 'aria-label': `Name for category ${c.name}` });
+      input.addEventListener('input', () => { const l = cats(); l[i] = { ...l[i], name: input.value.trim() || c.name }; saveCats(l); onChange?.(); });
+      input.addEventListener('keydown', e => e.stopPropagation());
+      const dot = h('button', { class: 'cat-dot', type: 'button', style: { background: c.color }, title: 'Change color', 'aria-label': `Change the color of ${c.name}`,
+        onclick: e => { e.preventDefault(); swatchPicker(e.currentTarget, c.color, col => { const l = cats(); l[i] = { ...l[i], color: col }; saveCats(l); onChange?.(); paint(); }); } });
+      const del = h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': `Remove ${c.name}`, title: 'Remove (blocks keep their place, just uncolored)',
+        onclick: e => { e.preventDefault(); const l = cats().filter(x => x.id !== c.id); saveCats(l); onChange?.(); paint(); } }, icon('x'));
+      return h('div', { class: 'cat-name-row' }, dot, input, del);
+    });
+    const newName = h('input', { class: 'field-input sm', placeholder: 'New category', maxlength: 18, 'aria-label': 'New category name' });
+    let newColor = CAT_PALETTE.find(col => !list.some(c => c.color === col)) || CAT_PALETTE[list.length % CAT_PALETTE.length];
+    const newDot = h('button', { class: 'cat-dot', type: 'button', style: { background: newColor }, 'aria-label': 'Pick a color', onclick: e => swatchPicker(e.currentTarget, newColor, col => { newColor = col; newDot.style.background = col; }) });
+    const add = () => {
+      const name = newName.value.trim();
+      if (!name) { newName.focus(); return; }
+      saveCats([...cats(), { id: `c${Date.now().toString(36)}`, name, color: newColor }]);
+      onChange?.(); paint();
+      box.querySelector('.cat-new input')?.focus();
+    };
+    newName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') add(); });
+    box.replaceChildren(
+      h('strong', {}, 'Types and categories'),
+      h('span', { class: 'cat-names-h' }, 'Types'), ...typeRows,
+      h('span', { class: 'cat-names-h' }, 'Categories'), ...catRows,
+      h('div', { class: 'cat-name-row cat-new' }, newDot, newName, h('button', { class: 'btn ghost xs', type: 'button', onclick: add }, 'Add')));
+  };
+  paint();
+  popover(anchorEl, box, { className: 'cat-names-pop' });
+}
+const TYPE_DEFAULTS = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Focus', icon: 'target' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
+// Types can carry your own names too ("Class" instead of Appointment). The label is read fresh each time.
+export const ITEM_TYPES = Object.fromEntries(Object.entries(TYPE_DEFAULTS).map(([k, t]) => [k, {
+  ...t, get label() { return (store.pref('typeNames', {})[k] || '').trim() || t.label; },
+}]));
 const ARCHIVE_DAYS = 30;
 
 let root, body, tbRight, planAdding = null;
@@ -375,6 +433,7 @@ function eventBlock(c, hourH, key, done) {
     el.title = `${c.title} · ${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)}`;
     el.addEventListener('click', e => { if (!e.target.closest('button, .resize-handle, [contenteditable="true"]')) openEventEditor(c.id); });
   } else cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
+  paintCat(el, c);
   el.querySelector('.ev-title').addEventListener('dblclick', e => { e.stopPropagation(); editInline(e.currentTarget, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
   // Resize in 15-minute steps.
   el.querySelector('.resize-handle')?.addEventListener('pointerdown', e => {
@@ -406,7 +465,7 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
     isRoutine(c) && !date ? icon('repeat', 'ev-repeat') : null);
   el.addEventListener('dblclick', () => openEventEditor(c.id));
   el.addEventListener('click', e => { if (!e.target.closest('button')) openEventEditor(c.id); });
-  return el;
+  return paintCat(el, c);
 }
 
 /** Hover actions for Timely cards: add to calendar, and repeat (turn it into a routine). */
@@ -579,7 +638,7 @@ function cellDots(list, { compact = false } = {}) {
   return h('div', { class: `cell-dots ${compact ? 'compact' : ''}` },
     compact ? null : h('b', { class: 'cell-n' }, list.length),
     h('span', { class: 'cd-row' },
-      list.slice(0, MAX).map(o => h('i', { class: `cd ${catClass(o.card)} it-${itemTypeOf(o.card)} ${isRoutine(o.card) ? 'is-r' : ''} ${o.done ? 'is-done' : ''}` })),
+      list.slice(0, MAX).map(o => paintCat(h('i', { class: `cd ${catClass(o.card)} it-${itemTypeOf(o.card)} ${isRoutine(o.card) ? 'is-r' : ''} ${o.done ? 'is-done' : ''}` }), o.card)),
       list.length > MAX ? h('em', {}, `+${list.length - MAX}`) : null));
 }
 /** Trips and conferences read as one thin bar across the days they cover. */
@@ -1160,22 +1219,26 @@ export function openEventEditor(id) {
         return b;
       }));
       // Category: a color for a part of life, so all your health things read as one at a glance.
-      let catVal = CATS[m.cat] ? m.cat : '';
+      let catVal = cats().some(x => x.id === m.cat) ? m.cat : '';
       f.cat = { get value() { return catVal; } };
-      const catRow = h('div', { class: 'cat-pick', role: 'radiogroup', 'aria-label': 'Category' }, [['', 'None'], ...Object.keys(CATS).map(k => [k, catName(k)])].map(([v, l]) => {
-        const b = h('button', { class: `cat-opt ${v ? `cat-${v}` : 'cat-none'} ${v === catVal ? 'on' : ''}`, type: 'button', role: 'radio', 'aria-checked': String(v === catVal), title: l,
-          onclick: () => { catVal = v; catRow.querySelectorAll('.cat-opt').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); }); } }, h('i'), h('span', {}, l));
+      const catRow = h('div', { class: 'cat-pick', role: 'radiogroup', 'aria-label': 'Category' });
+      const paintCatRow = () => catRow.replaceChildren(...[{ id: '', name: 'None' }, ...cats()].map(k => {
+        const b = h('button', { class: `cat-opt ${k.id ? '' : 'cat-none'} ${k.id === catVal ? 'on' : ''}`, type: 'button', role: 'radio', 'aria-checked': String(k.id === catVal), title: k.name, style: k.id ? catVars(k.color) : {},
+          onclick: () => { catVal = k.id; catRow.querySelectorAll('.cat-opt').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); }); } }, h('i'), h('span', {}, k.name));
         return b;
       }));
+      paintCatRow();
       const sync = () => { f.dur.disabled = !f.time.value; f.slot.disabled = !!f.time.value; };
       f.time.addEventListener('input', sync); sync();
+      const repaintNames = () => {
+            paintCatRow();
+            typeRow?.querySelectorAll('.type-opt').forEach(b => { const k = [...b.classList].find(x => x.startsWith('it-'))?.slice(3); if (k && ITEM_TYPES[k]) b.lastChild.textContent = ITEM_TYPES[k].label; });
+          };
       return h('div', { class: 'ical' },
         h('div', { class: 'ical-row' }, field(m.endDate || ITEM_TYPES[m.itemType]?.span ? 'From' : 'Date', f.date), m.endDate || ITEM_TYPES[m.itemType]?.span ? field('Until', f.end) : null, field('Time', f.time), field('Length', f.dur)),
         typeRow ? h('div', { class: 'mini-field' }, h('span', { class: 'field-label' }, 'Type'), typeRow) : null,
         h('div', { class: 'mini-field' }, h('span', { class: 'field-label cat-label' }, 'Category',
-          h('button', { class: 'linkish small', type: 'button', onclick: e => openCatNames(e.currentTarget, () => {
-            catRow.querySelectorAll('.cat-opt').forEach(b => { const k = [...b.classList].find(x => x.startsWith('cat-') && x !== 'cat-opt' && x !== 'cat-none')?.slice(4); if (k) { b.title = catName(k); b.querySelector('span').textContent = catName(k); } });
-          }) }, 'Rename')), catRow),
+          h('button', { class: 'linkish small', type: 'button', title: 'Rename types, and add, rename or recolor categories', onclick: e => openCatNames(e.currentTarget, repaintNames) }, 'Edit types and categories')), catRow),
         h('div', { class: 'ical-row' }, field('Part of day', f.slot), field('Repeat', f.rec)),
         f.custom.el,
         isRoutine(card) ? h('p', { class: 'muted small' }, 'Changes apply from today on. Days you already ticked stay ticked.') : null,

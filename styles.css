@@ -3872,3 +3872,16 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .cat-name-row { display: flex; align-items: center; gap: 8px; }
 .cat-name-row i { width: 12px; height: 12px; border-radius: 50%; background: var(--cat); flex: none; }
 .cat-name-row .field-input { flex: 1; }
+.cat-names-h { font-size: var(--fs-2xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.type-row-ic { width: 14px; height: 14px; color: var(--muted); flex: none; }
+.cat-names { width: 260px; max-height: min(70vh, 520px); overflow-y: auto; }
+.cat-dot { width: 16px; height: 16px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px rgba(17, 17, 17, 0.12); }
+.cat-dot:hover { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--ink-2); }
+.cat-name-row .icon-btn { flex: none; color: var(--faint, var(--muted)); }
+.cat-new { margin-top: 2px; }
+.cat-swatches { display: grid; grid-template-columns: repeat(6, 22px); gap: 8px; padding: 2px; }
+.cat-sw { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px transparent; }
+.cat-sw.on, .cat-sw:hover { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--ink); }
+.cat-names { gap: 4px; max-height: min(78vh, 600px); }
+.cat-names .field-input.sm { height: 30px; }
+.cat-swatches { padding: 2px 0 6px 26px; }
