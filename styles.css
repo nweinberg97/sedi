@@ -3816,3 +3816,4 @@ body:not([data-route="home"]) .sky-fx { display: none; }
 .vw-chip s { color: var(--muted); }
 .vw-add { display: flex; align-items: center; gap: 6px; }
 .vw-add .field-input { flex: 1; min-width: 0; }
+.sky-lab[hidden] { display: none; }

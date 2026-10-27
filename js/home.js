@@ -29,7 +29,8 @@ export function mount(el) {
   setMotionMode(store.pref('skyMotion', 'moments'));
   tickClock();
   timer = setInterval(tickClock, 1000);
-  if (window.SEDI_SANDBOX) root.append(skyLab());
+  // Sandbox only, and hidden until asked for: Shift+S shows or hides the sky preview.
+  if (window.SEDI_SANDBOX) { const lab = skyLab(); lab.hidden = !window.__skyLab; root.append(lab); }
   renderWeather();
   loadWeather(false);
   weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
@@ -316,6 +317,11 @@ function openWeatherMenu(anchor) {
 }
 
 /** Sandbox only: flip through every sky and weather, and replay the moment, for reviewing the look. */
+if (window.SEDI_SANDBOX) document.addEventListener('keydown', e => {
+  if (!(e.shiftKey && e.code === 'KeyS') || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  window.__skyLab = !window.__skyLab;
+  document.querySelectorAll('.sky-lab').forEach(l => { l.hidden = !window.__skyLab; });
+});
 function skyLab() {
   const sel = (label, opts, get, set) => h('label', { class: 'sky-lab-field' }, h('span', {}, label),
     h('select', { onchange: e => { set(e.target.value || undefined); tickClock(); } }, opts.map(([v, l]) => h('option', { value: v, selected: (get() || '') === v }, l))));
