@@ -3,6 +3,7 @@
 import * as store from './store.js';
 import { h, icon, fmtLongDate, pad, popover, closePopovers, modal, relTime, todayKey, fmtMinutes, debounce } from './util.js';
 import { mountLiquidGlass } from './glass.js';
+import { setSky, clearSky, weatherKind, setMotionMode, playMoment } from './skyfx.js';
 import { typeIcon, peekBody, byOrder, TOOL_NAMES, notesSnippet } from './cards.js';
 import { navigate, revealCard } from './shell.js';
 import { occurrencesOn, SLOT_LABELS } from './timely.js';
@@ -25,15 +26,17 @@ export function mount(el) {
   root.replaceChildren(h('div', { class: 'home calm' }, h('div', { class: 'home-col' },
     h('section', { class: 'hero' }, clockGlass, h('div', { class: 'hero-line' }, clockDate, h('span', { class: 'hero-dot', 'aria-hidden': 'true' }, '·'), weatherEl)),
     h('section', { class: 'home-panel' }, h('div', { class: 'home-panel-head' }, tabBar, seeAll), listEl))));
+  setMotionMode(store.pref('skyMotion', 'moments'));
   tickClock();
   timer = setInterval(tickClock, 1000);
+  if (window.SEDI_SANDBOX) root.append(skyLab());
   renderWeather();
   loadWeather(false);
   weatherTimer = setInterval(() => loadWeather(false), 10 * 60e3);
   render();
   glassCleanup = mountLiquidGlass(clockGlass, { refract: false });
 }
-export function unmount() { delete document.body.dataset.sky; clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
+export function unmount() { delete document.body.dataset.sky; delete document.body.dataset.tone; clearSky(); tickClock.kind = tickClock.sky = undefined; clearInterval(timer); clearInterval(weatherTimer); glassCleanup?.(); }
 
 function tickClock() {
   const d = new Date();
@@ -46,7 +49,20 @@ function tickClock() {
   }
   // a living sky: it follows the real time of day (the preview can pin one with window.__sky)
   const hr = d.getHours();
-  document.body.dataset.sky = window.__sky || (hr >= 5 && hr < 8 ? 'dawn' : hr >= 8 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night');
+  const sky = window.__sky || (hr >= 5 && hr < 8 ? 'dawn' : hr >= 8 && hr < 17 ? 'day' : hr >= 17 && hr < 20 ? 'dusk' : 'night');
+  document.body.dataset.sky = sky;
+  // the weather sky (js/skyfx.js): the real conditions from the weather Home already fetches; a preview can pin one with window.__wx
+  const w = store.pref('weather');
+  // Weather is opt-in: with no weather set, the sky is just the time of day.
+  const kind = window.__wx || (w?.code != null ? weatherKind(w.code) : null);
+  document.body.dataset.tone = sky === 'night' || sky === 'dusk' || kind === 'storm' ? 'dark' : 'light';
+  if (kind !== tickClock.kind || sky !== tickClock.sky) {
+    // The weather moves for a moment when Home opens or the weather changes; a new time of day just redraws it still.
+    const opening = tickClock.kind === undefined, weatherChanged = !opening && kind !== tickClock.kind;
+    tickClock.kind = kind; tickClock.sky = sky;
+    if (!kind) clearSky();
+    else setSky({ kind, sky, temp: w?.temp }, { moment: opening || weatherChanged });
+  }
   clockTime.dataset.ampm = d.getHours() < 12 ? 'am' : 'pm';
   clockDate.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }
@@ -282,9 +298,30 @@ function openWeatherMenu(anchor) {
     if (tzCity && !/^(UTC|GMT|Etc)/i.test(tzCity)) { input.value = tzCity; setTimeout(search, 0); }
     note.textContent = 'Weather comes from Open-Meteo. Only the city you pick is sent.';
   }
+  // How much the weather moves on the sky: a short moment (default), all the time, or never.
+  const motion = store.pref('skyMotion', 'moments');
+  const motionSeg = h('div', { class: 'segmented small wx-motion', role: 'radiogroup', 'aria-label': 'Weather motion' },
+    [['moments', 'Moments'], ['always', 'Always'], ['off', 'Off']].map(([v, l]) => h('button', {
+      type: 'button', role: 'radio', 'aria-checked': String(v === motion), class: v === motion ? 'on' : '',
+      onclick: e => { store.setPref('skyMotion', v); setMotionMode(v); e.currentTarget.parentElement.querySelectorAll('button').forEach(b => { const on = b === e.currentTarget; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); }); },
+    }, l)));
   popover(anchor, h('div', { class: 'wx-menu' },
     h('strong', {}, 'Weather location'),
     current?.name ? h('p', { class: 'muted small' }, `Showing ${current.name}`) : null,
-    input, list, useLoc, note), { className: 'wx-pop' });
+    input, list, useLoc, note,
+    h('div', { class: 'wx-motion-row' }, h('strong', {}, 'Weather motion'),
+      h('p', { class: 'muted small' }, 'Moments: rain, snow or clouds move for a few seconds when you open Home or the weather changes, then rest.'),
+      motionSeg)), { className: 'wx-pop' });
   setTimeout(() => input.focus(), 30);
+}
+
+/** Sandbox only: flip through every sky and weather, and replay the moment, for reviewing the look. */
+function skyLab() {
+  const sel = (label, opts, get, set) => h('label', { class: 'sky-lab-field' }, h('span', {}, label),
+    h('select', { onchange: e => { set(e.target.value || undefined); tickClock(); } }, opts.map(([v, l]) => h('option', { value: v, selected: (get() || '') === v }, l))));
+  return h('div', { class: 'sky-lab', role: 'group', 'aria-label': 'Sky preview' },
+    h('b', {}, 'Sky preview'),
+    sel('Time', [['', 'Real'], ['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']], () => window.__sky, v => { window.__sky = v; }),
+    sel('Weather', [['', 'Real'], ['clear', 'Clear'], ['partly', 'Partly cloudy'], ['cloudy', 'Cloudy'], ['fog', 'Fog'], ['rain', 'Rain'], ['storm', 'Storm'], ['snow', 'Snow']], () => window.__wx, v => { window.__wx = v; }),
+    h('button', { class: 'btn ghost xs', type: 'button', onclick: () => playMoment() }, 'Replay moment'));
 }

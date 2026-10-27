@@ -3147,7 +3147,7 @@ body[data-route="home"][data-sky="dusk"] .topbar .icon-btn, body[data-route="hom
 body[data-sky="night"] .home.calm .clock-glass, body[data-sky="dusk"] .home.calm .clock-glass { background: rgba(255, 255, 255, 0.06); }
 /* glass on a bright sky: white light can't show against white, so the glass is read through a faintly darker rim,
    one crisp highlight and a firmer shadow, with no white haze inside */
-body[data-sky="day"] .home.calm .clock-glass, body[data-sky="dawn"] .home.calm .clock-glass {
+body[data-tone="light"][data-sky="day"] .home.calm .clock-glass, body[data-tone="light"][data-sky="dawn"] .home.calm .clock-glass {
   /* a faint smoky body, a touch darker than the sky, so the white light on its edges reads crisply, as it does at night */
   background: linear-gradient(180deg, rgba(12, 42, 92, 0.13) 0%, rgba(12, 42, 92, 0.06) 55%, rgba(12, 42, 92, 0.10) 100%);
   -webkit-backdrop-filter: blur(6px) saturate(115%); backdrop-filter: blur(6px) saturate(115%);
@@ -3161,7 +3161,7 @@ body[data-sky="day"] .home.calm .clock-glass, body[data-sky="dawn"] .home.calm .
     0 1px 2px rgba(10, 40, 90, 0.10),
     0 20px 44px -22px rgba(10, 40, 90, 0.40);
 }
-body[data-sky="day"] .home.calm .clock-glass::before, body[data-sky="dawn"] .home.calm .clock-glass::before {
+body[data-tone="light"][data-sky="day"] .home.calm .clock-glass::before, body[data-tone="light"][data-sky="dawn"] .home.calm .clock-glass::before {
   background: radial-gradient(240px 110px at var(--mx, 20%) var(--my, 0%), rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0) 70%);
 }
 
@@ -3613,3 +3613,45 @@ body.is-dragging .taskly-board, body.is-dragging .plan-track { scroll-snap-type:
 .send-note { margin: 6px 8px 4px; font-size: var(--fs-2xs, 11px); line-height: 1.4; color: var(--muted); max-width: 230px; }
 .builder-intro ul { margin: 8px 0; padding-left: 18px; display: grid; gap: 6px; }
 .builder-intro code { font: 500 0.92em ui-monospace, "SF Mono", Menlo, monospace; background: var(--well); padding: 1px 5px; border-radius: 5px; }
+
+/* =====================================================================
+   Home v3: the weather sky (js/skyfx.js), a quiet canvas layer between the sky gradient and the page.
+   data-tone="dark" whenever the sky is dark (dusk, night, or a daytime storm) so text and glass stay readable.
+   ===================================================================== */
+.sky-fx { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+body:not([data-route="home"]) .sky-fx { display: none; }
+/* light text on the darker skies */
+  body[data-tone="dark"] .home.calm { --hx: 255, 255, 255; }
+  body[data-tone="dark"] .home.calm .clock-time { color: rgba(255, 255, 255, 0.95); text-shadow: 0 1px 18px rgba(0, 0, 30, 0.25); }
+  body[data-tone="dark"] .home.calm .clock-time::after { color: rgba(255, 255, 255, 0.6); }
+  body[data-tone="dark"] .home.calm .hero-line { color: rgba(255, 255, 255, 0.75); }
+  body[data-tone="dark"] .quiet-tabs button { color: rgba(255, 255, 255, 0.45); }
+  body[data-tone="dark"] .quiet-tabs button.on, body[data-tone="dark"] .quiet-tabs button:hover { color: rgba(255, 255, 255, 0.92); }
+  body[data-tone="dark"] .home.calm .see-all-btn { color: rgba(255, 255, 255, 0.6); }
+  body[data-tone="dark"] .home.calm .home-stack { border-color: rgba(255, 255, 255, 0.16); }
+  body[data-tone="dark"] .home.calm .home-card { border-bottom-color: rgba(255, 255, 255, 0.08); }
+  body[data-tone="dark"] .home.calm .home-card:hover { background: rgba(255, 255, 255, 0.08); }
+  body[data-tone="dark"] .home.calm .home-card-title { color: rgba(255, 255, 255, 0.92); }
+  body[data-tone="dark"] .home.calm .home-card .card-snippet, body[data-tone="dark"] .home.calm .home-card-label, body[data-tone="dark"] .home.calm .home-card .type-icon, body[data-tone="dark"] .home.calm .home-card > .icon-btn { color: rgba(255, 255, 255, 0.55); }
+  body[data-route="home"][data-tone="dark"] .topbar { background: transparent; border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; color: #fff; }
+  body[data-route="home"][data-tone="dark"] .topbar svg, body[data-route="home"][data-tone="dark"] .topbar .icon-btn { color: #fff; }
+/* glass on a dark sky: same lens, a touch more presence at the rim */
+  body[data-tone="dark"] .home.calm .clock-glass { background: rgba(255, 255, 255, 0.06); }
+/* phones: the tab bar turns to dark glass on the darker skies */
+@media (max-width: 700px), (max-width: 1180px) and (hover: none) {
+  body[data-route="home"][data-tone="dark"] .navigator-panel { background: rgba(10, 18, 40, 0.55); border-color: rgba(255, 255, 255, 0.08); -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%); }
+  body[data-route="home"][data-tone="dark"] .navigator .nav-pill:not(.active) { color: rgba(255, 255, 255, 0.45) !important; }
+  body[data-route="home"][data-tone="dark"] .navigator .nav-pill:not(.active) * { color: rgba(255, 255, 255, 0.45) !important; }
+  body[data-route="home"][data-tone="dark"] .navigator .nav-pill.active { color: #fff !important; }
+  body[data-route="home"][data-tone="dark"] .navigator .nav-pill.active * { color: #fff !important; }
+}
+
+/* Weather motion setting, in the weather menu */
+.wx-motion-row { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.wx-motion-row p { margin: 0; }
+.wx-motion { align-self: flex-start; }
+/* Sandbox only: the sky preview switcher */
+.sky-lab { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.86); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid rgba(0, 0, 0, 0.08); font-size: var(--fs-xs); color: #111; max-width: calc(100vw - 32px); }
+.sky-lab-field { display: inline-flex; align-items: center; gap: 4px; }
+.sky-lab select { height: 26px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.12); background: #fff; font: inherit; padding: 0 4px; }
+@media (max-width: 700px) { .sky-lab { bottom: calc(var(--tabbar-h, 64px) + 84px + env(safe-area-inset-bottom, 0px)); } }
