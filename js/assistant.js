@@ -3,7 +3,7 @@
 // when one is on), and turns plain language into changes you confirm with a tap.
 
 import * as store from './store.js';
-import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime, popover, closePopovers, homeSpot } from './util.js';
+import { h, icon, clamp, toast, modal, renderText, todayKey, fmtMinutes, relTime, popover, closePopovers, homeSpot, flyHome } from './util.js';
 import { TOOL_NAMES, typeIcon, byOrder, routeCard, flatten, trashCard } from './cards.js';
 import { navigate, revealCard } from './shell.js';
 import { available as engineAvailable, chat as engineChat, engineLabel, engineConfig, rememberAsk, forgetAsk, openEnginesPanel } from './engines.js';
@@ -270,7 +270,7 @@ function makeDraggable() {
     if (p.mode === 'hold') { if (session && (vstate === 'listening' || vstate === 'hearing')) session.stop(); return; }
     if (p.mode === 'drag') {
       const r = token.getBoundingClientRect();
-      if (spot.near(r)) sendHome(); else store.setPref('assistantPos', { fx: r.left / innerWidth, fy: r.top / innerHeight });
+      if (spot.near(r)) flyHome(token, sendHome); else store.setPref('assistantPos', { fx: r.left / innerWidth, fy: r.top / innerHeight });
       spot.hide();
       if (!tray.hidden) positionTray();
       return;
@@ -303,7 +303,8 @@ function makeDraggable() {
       token.classList.add('dragging');
       spot.show();
     }
-    const x = clamp(e.clientX - press.ox, 8, innerWidth - 62), y = clamp(e.clientY - press.oy, 64, innerHeight - 62);
+    const p0 = spot.pull(e.clientX - press.ox, e.clientY - press.oy, token.offsetWidth, token.offsetHeight); // the dock's magnet
+    const x = clamp(p0.x, 8, innerWidth - 62), y = clamp(p0.y, 64, innerHeight - 62);
     Object.assign(token.style, { left: x + 'px', top: y + 'px', transform: 'none', bottom: 'auto' });
     spot.near(token.getBoundingClientRect());
     if (!tray.hidden) positionTray();

@@ -411,15 +411,18 @@ export const ICONS = {
 /** Phones show free-form canvases (Boardly, Brainly notes) as a tidy list, so positions are left alone there. */
 export const listMode = () => matchMedia('(max-width: 700px)').matches;
 
-// ---------- Movable controls: a way home ----------
-// While a movable control (the assistant's atom, the Universal Board) is dragged, a dashed
-// circle marks where it normally lives. Dropping it near there snaps it back exactly, so a
-// control that's "put back" never ends up a few pixels off. 'sedi:reset-positions' (Menu →
-// Reset button positions) sends every movable control home at once.
-export const SNAP_HOME_PX = 56;
+// ---------- Movable controls: a way home, with a magnet ----------
+// While a movable control (the assistant's atom, the Universal Board) is dragged, a dashed circle marks where
+// it normally lives. Near it, the control is pulled in, gently at first and firmly at the end, like a magnet.
+// Let go anywhere in that pull and it glides the rest of the way and clicks into its dock, so nobody has to
+// aim. 'sedi:reset-positions' (Menu → Reset button positions) sends every movable control home at once.
+export const SNAP_HOME_PX = 110;  // let go within this distance and it docks
+const PULL_PX = 130;              // the magnet starts pulling from here
+const LOCK_PX = 18;               // this close, it sits exactly in place
 export function homeSpot(measureHome) {
   let ghost = null, home = null;
   const centre = r => [r.left + r.width / 2, r.top + r.height / 2];
+  const distTo = rect => { const [ax, ay] = centre(rect), [bx, by] = centre(home); return Math.hypot(ax - bx, ay - by); };
   return {
     show() {
       home = measureHome();
@@ -429,14 +432,44 @@ export function homeSpot(measureHome) {
       document.body.append(ghost);
       requestAnimationFrame(() => ghost?.classList.add('show'));
     },
+    /** Where a control at (x, y) should be drawn, with the dock's pull applied. */
+    pull(x, y, w, hgt) {
+      if (!home || !home.width) return { x, y };
+      const cx = x + w / 2, cy = y + hgt / 2, [hx, hy] = centre(home);
+      const d = Math.hypot(cx - hx, cy - hy);
+      ghost?.style.setProperty('--near', Math.max(0, 1 - d / PULL_PX).toFixed(2));
+      if (d >= PULL_PX) return { x, y };
+      const k = d < LOCK_PX ? 1 : Math.pow(1 - d / PULL_PX, 2) * 0.6;
+      return { x: x + (hx - cx) * k, y: y + (hy - cy) * k };
+    },
     near(rect) {
       if (!home || !home.width) return false;
-      const [ax, ay] = centre(rect), [bx, by] = centre(home);
-      const hot = Math.hypot(ax - bx, ay - by) < SNAP_HOME_PX;
+      const hot = distTo(rect) < SNAP_HOME_PX;
       ghost?.classList.toggle('hot', hot);
       return hot;
     },
     hide() { ghost?.classList.remove('show', 'hot'); ghost?.remove(); home = null; },
   };
+}
+/** Glide a control from where it was let go into its dock, with a little overshoot, then a soft click. */
+export function flyHome(el, goHome) {
+  const a = el.getBoundingClientRect();
+  goHome();
+  const b = el.getBoundingClientRect();
+  const dx = a.left - b.left, dy = a.top - b.top;
+  const click = () => {
+    const ring = h('div', { class: 'dock-click', 'aria-hidden': 'true', style: { left: b.left + 'px', top: b.top + 'px', width: b.width + 'px', height: b.height + 'px' } });
+    document.body.append(ring);
+    setTimeout(() => ring.remove(), 600);
+    try { navigator.vibrate?.(8); } catch {}
+    import('./sound.js').then(m => m.tick?.()).catch(() => {});
+  };
+  if (Math.hypot(dx, dy) < 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) { click(); return; }
+  el.style.transition = 'none';
+  el.style.translate = `${dx}px ${dy}px`;
+  void el.offsetWidth;
+  el.style.transition = 'translate 0.42s cubic-bezier(.34, 1.56, .64, 1)';
+  el.style.translate = '0px 0px';
+  setTimeout(() => { el.style.translate = ''; el.style.transition = ''; click(); }, 380);
 }
 

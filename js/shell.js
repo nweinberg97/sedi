@@ -3,7 +3,7 @@
 import { openDataInfo, markBackedUp } from './datainfo.js';
 import { IS_BETA } from './env.js';
 import * as store from './store.js';
-import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp, homeSpot } from './util.js';
+import { h, icon, svg, $, toast, modal, confirmModal, download, todayKey, clamp, homeSpot, flyHome } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, reorder, byOrder, trashCard, typeIcon, openEditor, truncate, cardChrome, withMic } from './cards.js';
 import { openBrainPanel } from './brain.js';
@@ -354,7 +354,8 @@ function makeUniversalDraggable(wrap, trigger) {
     if (!start || e.pointerId !== start.id) return;
     if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
     if (!start.moved) { start.moved = true; wrap.classList.add('moving'); spot.show(); }
-    placeUniversal(wrap, trigger, e.clientX - start.ox, e.clientY - start.oy);
+    const p0 = spot.pull(e.clientX - start.ox, e.clientY - start.oy, trigger.offsetWidth, trigger.offsetHeight); // the dock's magnet
+    placeUniversal(wrap, trigger, p0.x, p0.y);
     spot.near(trigger.getBoundingClientRect());
     if (wrap.classList.contains('open')) placeUniversalPanel(wrap);
   });
@@ -362,7 +363,7 @@ function makeUniversalDraggable(wrap, trigger) {
     if (!start) return;
     if (start.moved) {
       const r = trigger.getBoundingClientRect();
-      if (spot.near(r)) sendUniversalHome(wrap);
+      if (spot.near(r)) flyHome(wrap, () => sendUniversalHome(wrap));
       else store.setPref('universalPos', { x: Math.round(r.left), y: Math.round(r.top) });
       spot.hide();
       wrap.classList.remove('moving');

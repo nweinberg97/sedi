@@ -3829,3 +3829,10 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .vw-add { display: flex; align-items: center; gap: 6px; }
 .vw-add .field-input { flex: 1; min-width: 0; }
 .sky-lab[hidden] { display: none; }
+
+/* The dock's magnet: the dashed spot warms as a control comes near, and clicks when it lands */
+.home-spot { --near: 0; border-color: color-mix(in srgb, #59b2ec calc(var(--near) * 100%), rgba(17, 17, 17, 0.28)); transform: scale(calc(1 + var(--near) * 0.12)); }
+.home-spot.hot { transform: scale(1.16); }
+.dock-click { position: fixed; z-index: 44; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 2px rgba(89, 178, 236, 0.7); animation: dockClick 0.55s cubic-bezier(.2, .8, .2, 1) forwards; }
+@keyframes dockClick { from { transform: scale(1); opacity: 1; } to { transform: scale(1.55); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .dock-click { animation-duration: 0.01s; } }
