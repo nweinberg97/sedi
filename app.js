@@ -10,6 +10,7 @@ import {
 import { dataNudges } from './js/datainfo.js';
 import { buildAssistant } from './js/assistant.js';
 import { seedIfEmpty } from './js/onboarding.js';
+import { initWhatsNew } from './js/whatsnew.js';
 import { runMaintenance } from './js/timely.js';
 import * as home from './js/home.js';
 import * as taskly from './js/taskly.js';
@@ -33,7 +34,7 @@ function framedByAnotherSite() {
 async function boot() {
   if (framedByAnotherSite()) return;
   await store.init();
-  seedIfEmpty();
+  const fresh = seedIfEmpty() !== false;
   runMaintenance();
 
   viewEl = h('main', { id: 'view', class: 'view-host' });
@@ -64,6 +65,7 @@ async function boot() {
 
   registerServiceWorker();
   setTimeout(maybeNudgeUniversal, 4000);
+  initWhatsNew({ fresh });
   dataNudges({ onBackup: exportData, onOpen: showDataInfo });
   // The in-chat preview can't reach the microphone, the weather service or model downloads.
   if (window.SEDI_SANDBOX) setTimeout(() => toast('Sandbox preview with its own data. Voice, weather and offline mode need the real app.', { duration: 8000 }), 900);

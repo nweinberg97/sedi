@@ -10,7 +10,7 @@ const SHELL = [
   './js/util.js', './js/store.js', './js/dnd.js', './js/sound.js', './js/cards.js', './js/shell.js', './js/home.js', './js/skyfx.js',
   './js/taskly.js', './js/boardly.js', './js/timely.js', './js/brainly.js', './js/speech.js', './js/hearing.js', './js/runtime.js', './js/voice-worker.js', './js/assistant.js',
   './js/brain.js', './js/onboarding.js', './js/commands.js', './js/glass.js', './js/dotfield.js',
-  './js/engines.js', './js/google.js', './js/summaries.js', './js/env.js', './js/celebrate.js', './js/datainfo.js', './js/mic-worklet.js', './js/unload.js', './js/unload-parse.js', './js/builder.js', './js/vocab.js',
+  './js/engines.js', './js/google.js', './js/summaries.js', './js/env.js', './js/celebrate.js', './js/datainfo.js', './js/mic-worklet.js', './js/unload.js', './js/unload-parse.js', './js/builder.js', './js/vocab.js', './js/whatsnew.js',
   './navoro/navoro.js', './navoro/navoro-pack.json',
 ];
 const RUNTIME = 'sedi-runtime-v2'; // on-device AI runtime files (exact, versioned URLs only)
