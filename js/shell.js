@@ -192,35 +192,40 @@ export function markActiveRoute(route) {
   document.querySelectorAll('.nav-pill').forEach(p => p.classList.toggle('active', p.dataset.route === route));
 }
 
-// The Universal Board's mark: a view from orbit. A planet's horizon glows along the bottom, a thin orbit
-// sweeps across the dark, and two cards travel it, slipping behind the horizon and rising again. Cards you
-// park here stay in orbit between your tools until you bring them down where they belong. Quiet and precise:
-// fine lines, pin-prick stars, one slow motion (Atom breathes colour; this one moves along a trajectory).
-const ORBIT = 'M-10.6 0A10.6 4.4 0 1 0 10.6 0A10.6 4.4 0 1 0-10.6 0';
-const orbitCard = begin => `<g class="uni-card">
-      <rect x="-1.7" y="-1.15" width="3.4" height="2.3" rx=".45" fill="#f4f6ff"/>
-      <path d="M-1 -.3h1.9M-1 .4h1.1" stroke="#7d8bd8" stroke-width=".32" stroke-linecap="round"/>
-      <animateMotion dur="16s" begin="${begin}" repeatCount="indefinite" rotate="auto" path="${ORBIT}"/>
+// The Universal Board's mark says what it's for: cards in orbit around a planet. Cards you park here circle
+// between your tools until you drag them where they belong. Two small cards orbit slowly, passing in front of
+// the planet and behind it; the stars twinkle in turn. A quiet invitation (Atom breathes colour; this one
+// moves cards), never a badge or a bounce.
+const ORBIT = 'M11 0A11 3.4 0 1 1-11 0A11 3.4 0 1 1 11 0';
+const orbitCard = (layer, begin) => `<g class="uni-card ${layer}">
+      <rect x="-2.3" y="-1.65" width="4.6" height="3.3" rx=".75" fill="${layer === 'front' ? '#ffffff' : '#dfe5ff'}"/>
+      <path d="M-1.35-.45h2.4M-1.35.55h1.5" stroke="#6f7fd6" stroke-width=".45" stroke-linecap="round"/>
+      <animateMotion dur="14s" begin="${begin}" repeatCount="indefinite" path="${ORBIT}"/>
+      <animate attributeName="opacity" dur="14s" begin="${begin}" repeatCount="indefinite" calcMode="discrete" keyTimes="0;.5" values="${layer === 'front' ? '1;0' : '0;1'}"/>
     </g>`;
 const UNIVERSE_SVG = `<svg class="uni-mark" viewBox="0 0 24 24" aria-hidden="true">
   <defs>
-    <radialGradient id="uniLimb" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#2a3d86"/><stop offset=".35" stop-color="#121c45"/><stop offset="1" stop-color="#060a1a"/></radialGradient>
-    <linearGradient id="uniAir" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9bcff" stop-opacity=".0"/><stop offset=".5" stop-color="#a9bcff" stop-opacity=".35"/><stop offset="1" stop-color="#a9bcff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="uniPlanet" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#d9e0ff"/><stop offset="1" stop-color="#7f8fe6"/></radialGradient>
+    <clipPath id="uniBall"><circle cx="12" cy="12" r="5.4"/></clipPath>
   </defs>
   <g class="uni-stars" fill="#fff">
-    <circle class="uni-tw t1" cx="5.2" cy="4.6" r=".32"/>
-    <circle class="uni-tw t2" cx="17.6" cy="3.4" r=".26"/>
-    <circle class="uni-tw t3" cx="20.4" cy="8.6" r=".22"/>
-    <circle class="uni-tw t4" cx="3.4" cy="10.2" r=".2"/>
-    <circle cx="11.2" cy="2.4" r=".18" opacity=".55"/>
-    <circle cx="8.6" cy="7.4" r=".16" opacity=".4"/>
+    <path class="uni-tw t1" d="M5 2.6l.42 1.18 1.18.42-1.18.42L5 5.8l-.42-1.18-1.18-.42 1.18-.42z"/>
+    <path class="uni-tw t2" d="M19.4 18.2l.32.9.9.32-.9.32-.32.9-.32-.9-.9-.32.9-.32z"/>
+    <circle class="uni-tw t3" cx="19.2" cy="3.9" r=".55"/>
+    <circle class="uni-tw t4" cx="3.4" cy="18.4" r=".45"/>
   </g>
-  <g transform="translate(12 14.2) rotate(-9)">
-    <path class="uni-orbit" d="${ORBIT}" fill="none" stroke="#dfe6ff" stroke-width=".32" opacity=".55"/>
-    ${orbitCard('0s')}${orbitCard('-8s')}
+  <g transform="translate(12 12) rotate(-14)">
+    <path class="uni-ring back" d="M-11 0A11 3.4 0 0 1 11 0" fill="none" stroke="#c9d3ff" stroke-width=".8" stroke-dasharray="1.4 1.3" stroke-linecap="round" opacity=".6"/>
+    ${orbitCard('back', '0s')}${orbitCard('back', '-7s')}
   </g>
-  <circle class="uni-air" cx="12" cy="35" r="18.6" fill="none" stroke="url(#uniAir)" stroke-width="1.6"/>
-  <circle class="uni-limb" cx="12" cy="35" r="18" fill="url(#uniLimb)" stroke="#b9c8ff" stroke-width=".35" stroke-opacity=".75"/>
+  <circle cx="12" cy="12" r="5.4" fill="url(#uniPlanet)"/>
+  <g clip-path="url(#uniBall)" fill="none" stroke="#7d8de0" stroke-width=".7" opacity=".45">
+    <path d="M6.2 10.6c3.4 1.1 7.7.9 11.7-.6"/><path d="M6.6 13.9c3.1.8 6.9.5 10.5-.9"/>
+  </g>
+  <g transform="translate(12 12) rotate(-14)">
+    <path class="uni-ring front" d="M11 0A11 3.4 0 0 1-11 0" fill="none" stroke="#fff" stroke-width=".8" stroke-dasharray="1.4 1.3" stroke-linecap="round" opacity=".85"/>
+    ${orbitCard('front', '0s')}${orbitCard('front', '-7s')}
+  </g>
 </svg>`;
 function universeMark() {
   const wrap = document.createElement('span');

@@ -3829,19 +3829,3 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .vw-add { display: flex; align-items: center; gap: 6px; }
 .vw-add .field-input { flex: 1; min-width: 0; }
 .sky-lab[hidden] { display: none; }
-
-/* Universal Board, from orbit: deep space, a glowing horizon, fine lines. Calm and precise. */
-.universal-trigger { background: radial-gradient(130% 100% at 50% 115%, #22336f 0%, #0b1130 46%, #02040b 100%); }
-.universal-trigger::before { display: none; }
-.universal-trigger svg.uni-mark { width: 46px; height: 46px; filter: none; transform: none !important; }
-.universal-trigger::after { background: linear-gradient(170deg, rgba(255, 255, 255, 0.10), transparent 38%); }
-.uni-tw { animation: uniGlimmer 9s ease-in-out infinite; transform: none !important; }
-.uni-tw.t2 { animation-delay: 2.2s; } .uni-tw.t3 { animation-delay: 4.6s; } .uni-tw.t4 { animation-delay: 6.8s; }
-@keyframes uniGlimmer { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.95; } }
-.universal-trigger:hover .uni-tw { animation-duration: 9s; }
-.uni-limb, .uni-air, .uni-orbit { transition: stroke-opacity 0.4s, opacity 0.4s; }
-.universal-trigger:hover .uni-orbit, .universal.open .uni-orbit, body.is-dragging .uni-orbit { opacity: 0.9; }
-.universal-trigger:hover .uni-limb, .universal.open .uni-limb { stroke-opacity: 1; }
-.universal[data-waiting] .uni-card rect { filter: drop-shadow(0 0 0.8px #e6edff); }
-.universal-trigger:hover { transform: translateY(-1px); }
-body.is-dragging .universal-trigger svg.uni-mark { transform: none !important; }
