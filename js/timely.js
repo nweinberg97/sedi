@@ -996,8 +996,10 @@ function renderReminders() {
   }
   if (!rem.length) board.append(h('p', { class: 'cork-empty' }, 'Nothing pinned yet. Write one on the blank note, or drop any card here.'));
   const overdueN = lanes.overdue.length;
+  const unsent = rem.filter(c => c.meta.date && !c.meta.sentToApple && !isRoutine(c));
   const head = h('div', { class: 'cal-head' }, h('div', { class: 'cal-title' }, h('h2', {}, 'Reminders'),
-    h('span', { class: 'cal-sub' }, `${rem.length} open${overdueN ? ` · ${overdueN} overdue` : ''}`)));
+    h('span', { class: 'cal-sub' }, `${rem.length} open${overdueN ? ` · ${overdueN} overdue` : ''}`)),
+    onApple() && unsent.length ? h('button', { class: 'chip ghost apple-send', type: 'button', title: 'Add these to Apple Reminders, with alerts, in one go', onclick: () => sendToReminders(unsent) }, icon('bell'), `Send ${unsent.length} to Apple Reminders`) : null);
   body.replaceChildren(h('div', { class: 'reminders' }, head, board));
   board.scrollTop = prevScroll;
   if (justPinned) {
@@ -1277,26 +1279,41 @@ export function addToCalendar(anchor, id, { choose = false } = {}) {
 export const REMINDER_SHORTCUT_URL = '';
 const shortcutName = () => store.pref('reminderShortcut', 'Sedi Reminder');
 const onApple = () => /Mac|iPhone|iPad|iPod/.test(navigator.platform || '') || /Macintosh|iPhone|iPad/.test(navigator.userAgent);
-/** What Sedi hands the shortcut: one line of JSON. `when` is written the way Shortcuts reads dates best. */
-export function reminderPayload(c) {
+/** One reminder as the shortcut reads it. `due` is ISO local time; `when` is written the way Shortcuts reads dates best. */
+function reminderItem(c) {
   const m = c.meta || {};
   const at = m.start ?? SLOT_TIME[m.slot] ?? 9 * 60;
   const hhmm = `${pad(Math.floor(at / 60))}:${pad(at % 60)}`;
   const due = m.date ? `${m.date}T${hhmm}:00` : '';
   const when = m.date ? new Date(`${m.date}T${hhmm}:00`).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
-  const notes = plainText(c.description || '');
-  return JSON.stringify({ title: c.title, when, due, notes });
+  return { title: c.title, when, due, notes: plainText(c.description || ''), list: store.pref('reminderList', '') };
 }
-const shortcutUrl = text => `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName())}&input=text&text=${encodeURIComponent(text)}`;
-export function sendToReminders(c) {
-  if (!c) return;
+/** What Sedi hands the shortcut: one line of JSON with a list of reminders (one or many, same shape). */
+export function reminderPayload(cards) {
+  const list = (Array.isArray(cards) ? cards : [cards]).filter(Boolean);
+  return JSON.stringify({ v: 2, items: list.map(reminderItem) });
+}
+// On iPhone and iPad, Shortcuts hands you straight back to Sedi when it's done (x-callback-url).
+const onTouchApple = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+const shortcutUrl = text => {
+  const base = `name=${encodeURIComponent(shortcutName())}&input=text&text=${encodeURIComponent(text)}`;
+  if (!onTouchApple()) return `shortcuts://run-shortcut?${base}`;
+  const back = encodeURIComponent(location.href.split('#')[0] + '#/timely');
+  return `shortcuts://x-callback-url/run-shortcut?${base}&x-success=${back}&x-cancel=${back}&x-error=${back}`;
+};
+/** Send one reminder, or several at once, to Apple Reminders. Marks them as sent so they aren't sent twice. */
+export function sendToReminders(cards) {
+  const list = (Array.isArray(cards) ? cards : [cards]).filter(Boolean);
+  if (!list.length) return;
   if (!onApple()) { toast('Apple Reminders works on a Mac, iPhone or iPad. Here, add it to your calendar instead.'); return; }
-  const url = shortcutUrl(reminderPayload(c));
-  if (!store.pref('reminderShortcutReady')) return openRemindersSetup(url);
+  const url = shortcutUrl(reminderPayload(list));
+  if (!store.pref('reminderShortcutReady')) return openRemindersSetup(url, list.map(c => c.id));
+  markSent(list.map(c => c.id));
   location.href = url;
-  toast(`Sent to Shortcuts. “${c.title.slice(0, 30)}” should appear in Reminders in a moment.`, { action: 'Not working?', onAction: () => openRemindersSetup(url), duration: 7000 });
+  toast(list.length === 1 ? `Sent “${list[0].title.slice(0, 30)}” to Reminders.` : `Sent ${list.length} reminders to Reminders.`, { action: 'Not working?', onAction: () => openRemindersSetup(url), duration: 7000 });
 }
-export function openRemindersSetup(pendingUrl) {
+const markSent = ids => ids.forEach(id => store.updateCard(id, { meta: { sentToApple: new Date().toISOString() } }, { silent: true, touch: false }));
+export function openRemindersSetup(pendingUrl, pendingIds = []) {
   if (!onApple()) {
     modal({ title: 'Apple Reminders', body: h('div', { class: 'editor' },
       h('p', {}, 'Sending to Reminders works on a Mac, iPhone or iPad, through Apple’s Shortcuts app.'),
@@ -1318,10 +1335,9 @@ export function openRemindersSetup(pendingUrl) {
       h('li', {}, 'Come back and press “Send a test reminder”.'))
     : h('ol', { class: 'steps' },
       h('li', {}, 'Open the Shortcuts app and create a new shortcut named exactly as below.'),
-      h('li', {}, 'Add “Get Dictionary from Input”, with Shortcut Input as the input.'),
-      h('li', {}, 'Add “Get Dictionary Value” for the key “title”.'),
-      h('li', {}, 'Add “Add New Reminder” and set its text to that Dictionary Value.'),
-      h('li', {}, 'To get alerts: before “Add New Reminder”, add “Get Dictionary Value” for “when”, then “Get Dates from Input”. In “Add New Reminder”, turn on “Remind Me” and choose those Dates. (Cards without a date then arrive without an alert.)'),
+      h('li', {}, 'Add “Get Dictionary from Input” (Shortcut Input), then “Get Dictionary Value” for the key “items”.'),
+      h('li', {}, 'Add “Repeat with Each” on those items. Inside it: “Get Dictionary Value” for “title”, then for “when”, then “Get Dates from Input” on the when value.'),
+      h('li', {}, 'Still inside: “Add New Reminder” with the title, and turn on “Remind Me” at the date. Add the “notes” value as notes if you like.'),
       h('li', {}, 'Come back and press “Send a test reminder”.'));
   modal({
     title: 'Send to Apple Reminders', wide: true,
@@ -1337,7 +1353,7 @@ export function openRemindersSetup(pendingUrl) {
         label: typeof pendingUrl === 'string' ? 'It works, send it' : 'It works', kind: 'primary', onClick: () => {
           store.setPref('reminderShortcut', name.value.trim() || 'Sedi Reminder');
           store.setPref('reminderShortcutReady', true);
-          if (typeof pendingUrl === 'string') location.href = pendingUrl.replace(/name=[^&]*/, `name=${encodeURIComponent(shortcutName())}`);
+          if (typeof pendingUrl === 'string') { markSent(pendingIds); location.href = pendingUrl.replace(/name=[^&]*/, `name=${encodeURIComponent(shortcutName())}`); }
         },
       },
     ],

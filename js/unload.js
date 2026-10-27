@@ -6,7 +6,8 @@
 // and the transcript is saved to Brainly only if you choose to, without the lines you deleted.
 
 import * as store from './store.js';
-import { h, icon, toast, todayKey } from './util.js';
+import { h, icon, toast, todayKey, editInline } from './util.js';
+import { learnFromEdit } from './vocab.js';
 import { hearStream, earsNow } from './speech.js';
 import { suggest, commandFor, whenWords, tidyTitle, TYPE_LABEL } from './unload-parse.js';
 import { parseCommands } from './commands.js';
@@ -118,24 +119,38 @@ export function openUnload(host, api) {
   }
 
   // ---------- Chunks and suggestions ----------
+  // What was heard, small and quiet. Tap to read it all; the pencil fixes a misheard word, and Sedi learns it.
+  function saidEl(entry) {
+    const p = h('p', { class: 'ul-said', title: 'Tap to show all', onclick: () => { if (!p.isContentEditable) p.classList.toggle('open'); } }, entry.text);
+    const fix = h('button', { class: 'icon-btn xs ul-fix', type: 'button', 'aria-label': 'Fix a misheard word', title: 'Fix a misheard word (Sedi learns it)', onclick: e => {
+      e.stopPropagation();
+      p.classList.add('open');
+      editInline(p, { selectAll: false, onCommit: v => {
+        const learned = learnFromEdit(entry.text, v);
+        entry.text = v;
+        if (learned.length) toast(`Got it. Sedi will write ${learned.map(([, m]) => `“${m}”`).join(', ')} from now on.`);
+      } });
+    } }, icon('pencil'));
+    return h('div', { class: 'ul-said-row' }, p, fix);
+  }
   function addChunk(text) {
     const ctx = api.ctx();
     const sugs = suggest(text, { now: new Date(), tabs: ctx.tabs, cards: ctx.cards, plan: ctx.plan });
     const entry = { text, el: null, deleted: false };
     if (sugs.length) {
-      const said = h('p', { class: 'ul-said', title: 'Tap to show all', onclick: () => said.classList.toggle('open') }, text);
+      const said = saidEl(entry);
       entry.el = h('div', { class: 'ul-chunk' }, h('div', { class: 'ul-sugs' }, sugs.map(row)), said);
     } else {
       // Nothing to file: one quiet line. Delete it, or make a card if Atom missed something.
       const del = h('button', { class: 'icon-btn xs ul-del', type: 'button', 'aria-label': 'Delete this line', title: 'Delete (it won’t be saved)', onclick: () => remove() }, icon('trash'));
       const make = h('button', { class: 'linkish ul-make', type: 'button', title: 'Turn this into a card', onclick: () => promote() }, '+ Card');
-      const said = h('p', { class: 'ul-said', title: 'Tap to show all', onclick: () => said.classList.toggle('open') }, text);
+      const said = saidEl(entry);
       entry.el = h('div', { class: 'ul-chunk unfiled' }, said, h('div', { class: 'ul-line-actions' }, make, del));
       const remove = () => { entry.deleted = true; entry.el.classList.add('gone'); setTimeout(() => { entry.el.remove(); paintStatus(); }, 180); };
       const promote = () => {
-        const title = tidyTitle(text.split(/[.!?]/)[0]);
+        const title = tidyTitle(entry.text.split(/[.!?]/)[0]);
         entry.el.classList.remove('unfiled');
-        entry.el.replaceChildren(h('div', { class: 'ul-sugs' }, row({ type: 'task', title: title || text.slice(0, 60), when: null, tab: null, sure: false })), said);
+        entry.el.replaceChildren(h('div', { class: 'ul-sugs' }, row({ type: 'task', title: title || entry.text.slice(0, 60), when: null, tab: null, sure: false })), said);
         paintStatus();
         entry.el.querySelector('.ul-title')?.focus();
       };

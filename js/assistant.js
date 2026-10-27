@@ -19,6 +19,7 @@ import { removeModelFiles } from './runtime.js';
 import { tick } from './sound.js';
 import { parseCommands, looksLikeCommand } from './commands.js';
 import { openUnload } from './unload.js';
+import { learnFix, forgetFix, clearFixes, listFixes } from './vocab.js';
 
 let token, tray, output, input, statusEl, orb, caption, earsChip;
 let session = null;
@@ -876,11 +877,31 @@ function openVoiceSettings() {
     resetHearing();
     toast(n ? 'Removed the downloaded voice files. They’ll download again if you use voice.' : 'No voice files were stored on this device.');
   } }, icon('trash'), 'Remove voice downloads');
+  // Words Sedi knows: your own fixes, kept on this device only. Add one, or remove any.
+  const wordsList = h('div', { class: 'vw-list' });
+  const paintWords = () => {
+    const list = listFixes();
+    wordsList.replaceChildren(...(list.length ? list.slice().reverse().map(([heard, meant]) => h('span', { class: 'vw-chip' },
+      h('s', {}, heard), ' → ', h('b', {}, meant),
+      h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': `Forget ${meant}`, onclick: () => { forgetFix(heard); paintWords(); } }, icon('x'))))
+      : [h('small', { class: 'muted' }, 'None yet. Fix a word in an Unload transcript and it shows up here.')]));
+  };
+  paintWords();
+  const heardIn = h('input', { class: 'field-input sm', placeholder: 'What it writes (e.g. lisben)', 'aria-label': 'What Sedi writes' });
+  const meantIn = h('input', { class: 'field-input sm', placeholder: 'What you mean (Lisbon)', 'aria-label': 'What you mean' });
+  const addWord = () => { if (learnFix(heardIn.value, meantIn.value)) { heardIn.value = meantIn.value = ''; paintWords(); } };
+  [heardIn, meantIn].forEach(i => i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') addWord(); }));
+  const words = h('div', { class: 'vw' },
+    h('p', { class: 'muted small' }, 'Sedi already knows its own name, its tools, common apps, and the names in your cards. Teach it anything else it gets wrong. These stay on this device.'),
+    wordsList,
+    h('div', { class: 'vw-add' }, heardIn, h('span', { 'aria-hidden': 'true' }, '→'), meantIn, h('button', { class: 'btn ghost sm', type: 'button', onclick: addWord }, 'Add')),
+    listFixes().length ? h('button', { class: 'linkish small', type: 'button', onclick: () => { clearFixes(); paintWords(); } }, 'Forget all my words') : null);
   modal({
     title: 'Voice and hearing', className: 'voice-settings',
     body: h('div', { class: 'vs' },
       h('h3', { class: 'vs-h' }, 'Hearing you'), hear,
       h('h3', { class: 'vs-h' }, 'Accuracy'), size,
+      h('h3', { class: 'vs-h' }, 'Words Sedi knows'), words,
       h('p', { class: 'muted small' }, 'Hold the atom and talk, or open Atom and tap the circle. Atom writes down what you said and answers on screen. Space bar works too.'),
       h('div', { class: 'vs-foot' }, storageNote, removeBtn)),
     actions: [{ label: 'Done', kind: 'primary' }],

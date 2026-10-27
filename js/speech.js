@@ -6,6 +6,12 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 export const canListen = !!SR || canCapture;
 
 import * as store from './store.js';
+import { fixHeard } from './vocab.js';
+// Every transcript passes through the words Sedi knows (its own name, your names, your fixes) before anyone sees it.
+const withVocab = cb => ({ ...cb,
+  onFinal: cb.onFinal && (t => cb.onFinal(fixHeard(t))),
+  onChunk: cb.onChunk && ((id, t) => cb.onChunk(id, fixHeard(t))),
+  onInterim: cb.onInterim && (t => cb.onInterim(fixHeard(t))) });
 
 /** Optional: a Whisper-style transcription service, set in Menu → AI engines. */
 function transcriber() {
@@ -43,6 +49,7 @@ function listenRecorded(cfg, { onInterim, onFinal, onEnd, onError }) {
 
 /** Start dictation. Returns { stop }. Callbacks: onInterim(text), onFinal(text), onEnd(), onError(msg). */
 export function listen(opts = {}) {
+  opts = withVocab(opts);
   // Private by default: when the on-device ears are the ones to use, dictation goes through them too.
   if (earsNow() === 'device' && !transcriber()) {
     const { onInterim, onFinal, onEnd, onError } = opts;
@@ -149,6 +156,7 @@ export function earsNow() {
  * onFinal(text), onEnd({ heard }), onError(msg). Returns { stop(), cancel(), ears }.
  */
 export function hearOnce(cb = {}) {
+  cb = withVocab(cb);
   const ears = earsNow();
   // While the browser's ears are in use, quietly get the private ones ready for next time.
   // Only after you've agreed to the download (Set up private voice); never silently.
@@ -183,6 +191,7 @@ export function hearOnce(cb = {}) {
  * Returns { stop() (finish what's queued, then onEnd), cancel(), ears }.
  */
 export function hearStream(cb = {}) {
+  cb = withVocab(cb);
   const ears = earsNow();
   if (!ears) { cb.onError?.('Voice input isn’t supported in this browser.'); cb.onEnd?.(); return { stop() {}, cancel() {}, ears }; }
   if (ears === 'device') {
