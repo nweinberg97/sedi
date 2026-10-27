@@ -192,15 +192,56 @@ export function markActiveRoute(route) {
   document.querySelectorAll('.nav-pill').forEach(p => p.classList.toggle('active', p.dataset.route === route));
 }
 
+// Sedi's own little universe: a ringed planet, a moon on its orbit, and stars that twinkle now and then.
+// The moon passes in front of the planet, then behind it (two copies take turns), so it reads as space, not a sticker.
+const ORBIT = 'M11.2 0A11.2 3.3 0 1 1-11.2 0A11.2 3.3 0 1 1 11.2 0';
+const UNIVERSE_SVG = `<svg class="uni-mark" viewBox="0 0 24 24" aria-hidden="true">
+  <defs>
+    <radialGradient id="uniPlanet" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#d9e0ff"/><stop offset="1" stop-color="#7f8fe6"/></radialGradient>
+    <clipPath id="uniBall"><circle cx="12" cy="12" r="6.5"/></clipPath>
+  </defs>
+  <g class="uni-stars" fill="#fff">
+    <path class="uni-tw t1" d="M5 3.1l.42 1.18 1.18.42-1.18.42L5 6.3l-.42-1.18-1.18-.42 1.18-.42z"/>
+    <path class="uni-tw t2" d="M19.6 17.4l.32.9.9.32-.9.32-.32.9-.32-.9-.9-.32.9-.32z"/>
+    <circle class="uni-tw t3" cx="18.8" cy="4.4" r=".55"/>
+    <circle class="uni-tw t4" cx="3.6" cy="16.9" r=".45"/>
+  </g>
+  <g transform="translate(12 12) rotate(16)">
+    <path class="uni-ring back" d="M-11.2 0A11.2 3.3 0 0 1 11.2 0" fill="none" stroke="#c9d3ff" stroke-width="1.15" stroke-linecap="round" opacity=".55"/>
+    <circle class="uni-moon back" r="1.05" fill="#e9edff"><animateMotion dur="11s" repeatCount="indefinite" path="${ORBIT}"/><animate attributeName="opacity" dur="11s" repeatCount="indefinite" calcMode="discrete" keyTimes="0;.5" values="0;1"/></circle>
+  </g>
+  <circle cx="12" cy="12" r="6.5" fill="url(#uniPlanet)"/>
+  <g clip-path="url(#uniBall)" fill="none" stroke="#7d8de0" stroke-width=".75" opacity=".5">
+    <path d="M5.2 10.1c3.9 1.4 9 1.1 13.7-.7"/><path d="M5.6 14.4c3.7 1 8.2.7 12.4-1"/>
+  </g>
+  <g transform="translate(12 12) rotate(16)">
+    <path d="M11.2 0A11.2 3.3 0 0 1-11.2 0" fill="none" stroke="#1b2450" stroke-width="2.4" stroke-linecap="round" opacity=".9" class="uni-gap"/>
+    <path class="uni-ring front" d="M11.2 0A11.2 3.3 0 0 1-11.2 0" fill="none" stroke="#fff" stroke-width="1.05" stroke-linecap="round"/>
+    <circle class="uni-moon front" r="1.05" fill="#fff"><animateMotion dur="11s" repeatCount="indefinite" path="${ORBIT}"/><animate attributeName="opacity" dur="11s" repeatCount="indefinite" calcMode="discrete" keyTimes="0;.5" values="1;0"/></circle>
+  </g>
+</svg>`;
+function universeMark() {
+  const wrap = document.createElement('span');
+  wrap.className = 'uni-mark-wrap';
+  wrap.innerHTML = UNIVERSE_SVG;
+  const svg = wrap.firstElementChild;
+  // Still for anyone who asks for less motion; otherwise the moon keeps its slow orbit.
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const apply = () => (still.matches ? svg.pauseAnimations?.() : svg.unpauseAnimations?.());
+  still.addEventListener?.('change', apply);
+  requestAnimationFrame(apply);
+  return svg;
+}
+
 // ---------- Universal Board ----------
 // The Universal Board is the in-transit shelf: room for 25, with a gentle nudge (once a day) past 8.
 export const UNI_MAX = 25;
 const UNI_NUDGE_AT = 8;
-let uniPanel, uniList, uniCount;
+let uniPanel, uniList, uniCount, uniBadge;
 export function buildUniversal() {
   // SD-H1: a dark 44px circle with a small spiral galaxy, the "universal" place cards pass through.
   // Drop a card straight onto the button to send it to the board, even while the board is closed.
-  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', title: 'Universal Board (drag to move; drop a card here to park it)', 'aria-expanded': 'false', dataset: { drop: 'universal', accept: 'card' }, onclick: () => { if (!uniJustDragged) toggleUniversal(); } }, icon('galaxy'));
+  const trigger = h('button', { class: 'universal-trigger', 'aria-label': 'Universal Board', title: 'Universal Board (drag to move; drop a card here to park it)', 'aria-expanded': 'false', dataset: { drop: 'universal', accept: 'card' }, onclick: () => { if (!uniJustDragged) toggleUniversal(); } }, universeMark());
   const quick = h('input', { class: 'uni-input', placeholder: 'Capture something…', 'aria-label': 'Add to Universal Board' });
   quick.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !quick.value.trim()) return;
@@ -216,7 +257,9 @@ export function buildUniversal() {
     h('div', { class: 'uni-head' }, h('h2', {}, 'Universal Board'), uniCount),
     withMic(quick, { label: 'Dictate to the Universal Board' }), uniList,
     h('p', { class: 'uni-hint' }, 'Drop cards here, switch tools, then drag them out.'));
-  const wrap = h('div', { class: 'universal' }, trigger, uniPanel);
+  // How many cards are waiting here, on the button itself, so it's clear it holds things.
+  uniBadge = h('span', { class: 'uni-badge', 'aria-hidden': 'true', hidden: true });
+  const wrap = h('div', { class: `universal ${store.pref('uniOpened') ? '' : 'invite'}` }, trigger, uniBadge, uniPanel);
   makeUniversalDraggable(wrap, trigger);
   document.addEventListener('pointerdown', e => {
     if (!wrap.classList.contains('open') || wrap.contains(e.target) || e.target.closest('.modal-backdrop, .popover, .toast, [data-drag]')) return;
@@ -243,6 +286,7 @@ export function toggleUniversal(force) {
   const wrap = uniPanel.parentElement;
   const open = typeof force === 'boolean' ? force : !wrap.classList.contains('open');
   if (open) placeUniversalPanel(wrap);
+  if (open && !store.pref('uniOpened')) { store.setPref('uniOpened', true); wrap.classList.remove('invite'); }
   wrap.classList.toggle('open', open);
   wrap.querySelector('.universal-trigger').setAttribute('aria-expanded', String(open));
   if (open) renderUniversal();
@@ -344,6 +388,7 @@ export function renderUniversal() {
   if (!uniList) return;
   const list = universalCards();
   uniCount.textContent = list.length ? `${list.length}/${UNI_MAX}` : '';
+  if (uniBadge) { uniBadge.hidden = !list.length; uniBadge.textContent = list.length; uniPanel.parentElement.querySelector('.universal-trigger')?.setAttribute('aria-label', `Universal Board${list.length ? `, ${list.length} card${list.length === 1 ? '' : 's'}` : ''}`); }
   uniCount.classList.toggle('busy', list.length >= UNI_NUDGE_AT);
   uniList.replaceChildren(...list.map(c => {
     const el = h('div', { class: 'uni-card', dataset: { drag: 'card', id: c.id } },
