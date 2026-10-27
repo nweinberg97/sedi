@@ -6,6 +6,7 @@ import { h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline,
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
 import { routeCard, openEditor, cardChrome, openMoveDialog, notesSnippet, duplicateCard, withMic } from './cards.js';
 import { crunch } from './sound.js';
+import { sendListButton } from './builder.js';
 
 const MAX_TABS = 10;
 const SIZES = { goal: [208, 60], task: [208, 60], note: [240, 52] };
@@ -277,6 +278,7 @@ function renderTabs() {
   }));
   if (list.length < MAX_TABS) tabBar.append(h('button', { class: 'tab-add icon-btn sm', 'aria-label': 'Add category', 'data-navoro-id': 'boardly.add-category', onclick: addTab }, icon('plus')));
   else tabBar.append(h('span', { class: 'tab-limit muted small' }, '10 of 10'));
+  if (active) tabBar.append(sendListButton(active.name, () => tabCards(active.id).filter(c => c.type !== 'note' || c.title), 'tab-send'));
 }
 
 function renderCanvas() {

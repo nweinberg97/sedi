@@ -1185,8 +1185,17 @@ const field = (label, input) => h('label', { class: 'mini-field' }, h('span', { 
 const plainText = s => String(s || '').replace(/<\/(div|p|li)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
 const icsEsc = s => String(s || '').replace(/\\/g, '\\\\').replace(/\r\n?|\n/g, '\\n').replace(/[,;]/g, m => '\\' + m);
 const RRULE = { daily: 'FREQ=DAILY', weekdays: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR', weekly: 'FREQ=WEEKLY', monthly: 'FREQ=MONTHLY' };
+// A reminder needs a moment to go off. Without a time it would land in a calendar as an all-day event, and
+// its alert would ring at midnight. So it goes in at the part of day you picked, or 9am, for 15 minutes.
+const SLOT_TIME = { morning: 9 * 60, noon: 12 * 60, afternoon: 14 * 60, evening: 18 * 60, night: 20 * 60 };
+function calMeta(c) {
+  const m = { ...(c.meta || {}) };
+  if (m.kind === 'reminder' && m.start == null) { m.start = SLOT_TIME[m.slot] ?? 9 * 60; m.dur = 15; }
+  if (m.kind === 'reminder' && !m.date) m.date = todayKey();
+  return m;
+}
 function vevent(c, onDate) {
-  const m = c.meta || {};
+  const m = calMeta(c);
   const date = (onDate || m.date || todayKey()).replace(/-/g, '');
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const lines = ['BEGIN:VEVENT', `UID:${c.id}${onDate ? `-${onDate}` : ''}@sedi`, `DTSTAMP:${stamp}`, `SUMMARY:${icsEsc(c.title)}`];
@@ -1227,7 +1236,7 @@ export function exportCard(c) {
 }
 /** A prefilled Google Calendar event (opens in a new tab; you press Save there). */
 export function googleCalendarUrl(c) {
-  const m = c.meta || {};
+  const m = calMeta(c);
   const date = (m.date || todayKey()).replace(/-/g, '');
   let dates;
   if (m.start != null) {
@@ -1255,7 +1264,7 @@ export function addToCalendar(anchor, id, { choose = false } = {}) {
   const pick = k => { if (remember) store.setPref('calTarget', k); closePopovers(); CAL_TARGETS[k].run(c); };
   popover(anchor, h('div', { class: 'cal-pop' },
     h('strong', {}, 'Add to calendar'),
-    h('p', { class: 'muted small' }, `${c.title}${c.meta?.date ? ` · ${fmtShortDate(parseKey(c.meta.date))}` : ''}${c.meta?.start != null ? ` · ${fmtMinutes(c.meta.start)}` : ''}`),
+    h('p', { class: 'muted small' }, (() => { const m = calMeta(c); return `${c.title}${m.date ? ` · ${fmtShortDate(parseKey(m.date))}` : ''}${m.start != null ? ` · ${fmtMinutes(m.start)}` : ''}${m.kind === 'reminder' ? ' · alert at that time' : ''}`; })()),
     ...Object.entries(CAL_TARGETS).map(([k, t]) => h('button', { class: `cal-opt ${saved === k ? 'on' : ''}`, type: 'button', onclick: () => pick(k) },
       h('span', { class: `cal-logo cal-${k}` }, icon(k === 'google' ? 'calendar' : 'download')), h('span', { class: 'cal-opt-text' }, h('b', {}, t.label), h('small', {}, t.hint)))),
     h('label', { class: 'cal-remember small muted' }, h('input', { type: 'checkbox', checked: true, onchange: e => { remember = e.target.checked; } }), ' Remember, and do it in one click next time')));
@@ -1271,7 +1280,8 @@ const onApple = () => /Mac|iPhone|iPad|iPod/.test(navigator.platform || '') || /
 /** What Sedi hands the shortcut: one line of JSON. `when` is written the way Shortcuts reads dates best. */
 export function reminderPayload(c) {
   const m = c.meta || {};
-  const hhmm = m.start != null ? `${pad(Math.floor(m.start / 60))}:${pad(m.start % 60)}` : '09:00';
+  const at = m.start ?? SLOT_TIME[m.slot] ?? 9 * 60;
+  const hhmm = `${pad(Math.floor(at / 60))}:${pad(at % 60)}`;
   const due = m.date ? `${m.date}T${hhmm}:00` : '';
   const when = m.date ? new Date(`${m.date}T${hhmm}:00`).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
   const notes = plainText(c.description || '');

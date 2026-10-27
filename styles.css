@@ -3772,3 +3772,11 @@ body:not([data-route="home"]) .sky-fx { display: none; }
 .ul-save { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--muted); }
 .ul-save svg { width: 14px; height: 14px; }
 .ul-summary { order: -1; }
+
+/* Send any list to an AI app, or copy it as Markdown */
+.send-list { color: var(--faint, var(--muted)); opacity: 0.7; }
+.send-list svg { width: 13px; height: 13px; }
+.send-list:hover { opacity: 1; color: var(--ink); }
+.col-head .send-list { margin-left: auto; }
+.col-head .send-list + .col-count, .col-head .col-count + .send-list { margin-left: 4px; }
+.tab-send { margin-left: auto; }

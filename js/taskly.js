@@ -6,6 +6,7 @@ import { registerDrop } from './dnd.js';
 import { routeCard, reorder, byOrder, openEditor, cardChrome, truncate, notesSnippet, withMic, guardDuplicate } from './cards.js';
 import { crunch, checkSound } from './sound.js';
 import { celebrate } from './celebrate.js';
+import { sendListButton } from './builder.js';
 
 export const COLUMNS = [
   { id: 'todo', name: 'To do', icon: 'checklist', empty: 'Nothing queued. Add the next thing you’ll start.' },
@@ -136,6 +137,7 @@ export function render() {
       const body = h('div', { class: 'col-body', 'data-navoro-sensitive': '' });
       const count = h('span', { class: 'col-count' });
       const head = h('header', { class: 'col-head' }, h('span', { class: 'col-icon' }, icon(col.icon)), h('h2', {}, col.name), count);
+      if (col.id !== 'completed') head.append(sendListButton(col.name, () => colCards(col.id)));
       if (col.id === 'completed') head.append(h('button', { class: 'col-finished', 'aria-label': 'Finished archive', title: 'Finished: older completed cards', onclick: openFinished }, icon('inbox')));
       if (col.id === 'completed') head.append(h('button', { class: 'col-clear', 'aria-label': 'Clear completed', title: 'Clear completed (moves them to the trash, you can Undo)', onclick: clearCompleted }, icon('trash'), h('span', { class: 'col-clear-label' }, 'Clear')));
       const add = h('button', { class: 'col-add', 'aria-label': `Add a task to ${col.name}`, onclick: () => startAdd(col.id) }, icon('plus'), 'Add task');

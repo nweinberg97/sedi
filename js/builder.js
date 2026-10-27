@@ -82,3 +82,23 @@ export function toggleBuilder(onChange) {
     actions: [{ label: 'Not now', kind: 'ghost' }, { label: 'Turn on', kind: 'primary', onClick: () => { store.setPref('builderMode', true); onChange?.(); } }],
   });
 }
+
+/** Any list, written as a plain Markdown checklist, for any AI app (or anywhere you paste it). */
+export function listMarkdown(name, cards) {
+  const lines = cards.map(c => {
+    const d = details(c);
+    return `- [${c.meta?.done ? 'x' : ' '}] ${c.title}${d ? `\n  ${d}` : ''}`;
+  }).join('\n');
+  return `Here is my list "${name}" from Sedi:\n\n${lines}\n\n`;
+}
+/** A quiet "Send list" button: opens Claude, ChatGPT or another app with the list typed in, or copies it. */
+export const sendListButton = (name, getCards, cls = '') => h('button', {
+  class: `icon-btn xs send-list ${cls}`, type: 'button', 'aria-label': `Send “${name}” to an AI app or copy it`, title: 'Send this list to Claude, ChatGPT… or copy it as Markdown',
+  onpointerdown: e => e.stopPropagation(),
+  onclick: e => {
+    e.stopPropagation();
+    const cards = getCards();
+    if (!cards.length) { toast('Nothing in this list yet.'); return; }
+    openSendMenu(e.currentTarget, () => listMarkdown(name, getCards()), { title: `Send “${name}” (${cards.length}) to` });
+  },
+}, icon('send'));
