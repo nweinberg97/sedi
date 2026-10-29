@@ -4162,3 +4162,8 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .ct-clear-done svg { width: 14px; height: 14px; }
 .ct-clear-done:hover { color: var(--ink); border-color: var(--ink-2); background: rgba(255, 255, 255, 0.6); }
 .ct.all-done .ct-clear-done { color: var(--ink-2); border-style: solid; }
+/* Folder dots: each in its item's color, one line only, then "+N" */
+.f-dots { flex-wrap: nowrap; overflow: visible; gap: 4px; }
+.fd { background: var(--dot, #9aa3b0); }
+.fd-folder { background: transparent; box-shadow: inset 0 0 0 1.75px var(--dot, #A796CB); border-radius: 2px; }
+.fd-more { margin-left: 1px; font-size: 10.5px; font-weight: 600; color: var(--muted); line-height: 1; }

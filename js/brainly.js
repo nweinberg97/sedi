@@ -177,13 +177,22 @@ function linkEl(c) {
 
 // From the outside, a folder shows one small dot per thing inside (notes, links and files, folders, each its
 // own color), so you can tell at a glance how full it is and with what. Past a dozen, it's a count.
-const DOT_MAX = 12;
+const DOT_MAX = 5; // one dot per thing inside, in its own color; past five it's a quiet "+N"
+// Note papers are pale, so each dot uses a deeper shade of the same color to stay readable at 7px.
+const DOT_SHADE = { '#fdf0d8': '#e2b25c', '#ece5fb': '#9a88c4', '#dff0fb': '#5aa3d6', '#e2f3e4': '#6cb37a', '#fde2da': '#e2876d', '#eef0f3': '#9aa3b0' };
+const dotColor = x => {
+  if (x.folder) return x.color || '#A796CB';
+  if (kindOf(x) === 'note') { const c = noteColor(x).toLowerCase(); return DOT_SHADE[c] || c; }
+  return x.meta?.color || '#5a8fd6';
+};
 function dotsRow(items) {
   const kind = x => (x.folder ? 'folder' : kindOf(x) === 'note' ? 'note' : 'link');
-  const shown = items.slice(0, DOT_MAX);
-  return h('div', { class: 'f-dots', 'aria-hidden': 'true' },
-    shown.map(x => h('i', { class: `fd fd-${kind(x)}`, title: x.title || x.name || '' })),
-    items.length > DOT_MAX ? h('span', { class: 'fd-more' }, `+${items.length - DOT_MAX}`) : null);
+  const extra = items.length - DOT_MAX;
+  const shown = items.slice(0, extra > 0 ? DOT_MAX - 1 : DOT_MAX); // the "+N" takes the last dot's place
+  const label = `${items.length} item${items.length === 1 ? '' : 's'}`;
+  return h('div', { class: 'f-dots', role: 'img', 'aria-label': label, title: label },
+    shown.map(x => h('i', { class: `fd fd-${kind(x)}`, style: { '--dot': dotColor(x) } })),
+    extra > 0 ? h('span', { class: 'fd-more' }, `+${items.length - shown.length}`) : null);
 }
 const ICON_MAX = 4; // a peek at what's inside, like icons in a folder; past that it's a count
 /** Mini icons of a folder's contents: each note's emoji, each link's icon, each subfolder's emoji. */
@@ -220,7 +229,7 @@ function linkFolderEl(f) {
   },
   h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, lfEmoji(f)),
   h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, lfCount(f)),
-    all.length || subs.length ? dotsRow([...subs.map(x => ({ folder: true, name: x.name })), ...all]) : null),
+    all.length || subs.length ? dotsRow([...subs.map(x => ({ folder: true, name: x.name, color: x.color })), ...all]) : null),
   h('button', { class: 'card-del', 'aria-label': `Delete folder ${f.name}`, title: 'Delete folder (what’s inside moves up a level)', onclick: e => { e.stopPropagation(); deleteLinkFolder(f); } }, icon('x')));
   tile.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openLinkFolder(f.id, tile); });
   tile.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tile) openLinkFolder(f.id, tile); });
@@ -585,7 +594,7 @@ function folderEl(f) {
   h('div', { class: 'bf-body' },
     h('button', { class: 'bf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveFolder(f.id, { emoji: v })); } }, emoji),
     name,
-    notes.length || subs.length ? dotsRow([...subs.map(s => ({ folder: true, name: s.name })), ...notes]) : null,
+    notes.length || subs.length ? dotsRow([...subs.map(s => ({ folder: true, name: s.name, color: s.color })), ...notes]) : null,
     h('span', { class: 'bf-count' }, count)),
   h('button', { class: 'bf-color', 'aria-label': 'Folder color', style: { background: f.color || '#A796CB' }, onclick: e => { e.stopPropagation(); pickFolderColor(e.currentTarget, f); } }));
   el.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openFolder(f.id); });
@@ -858,7 +867,7 @@ function openFolder(fid) {
         h('button', { class: 'icon-btn sm fv-more', type: 'button', 'aria-label': 'Folder options', title: 'Duplicate, color, delete', onclick: e => folderMenu(e.currentTarget, f) }, icon('more'))),
       h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, subs.length ? `Folders · ${subs.length}` : 'Folders'),
         h('div', { class: 'fv-folders' }, newFolderTile, ...subs.map(sf => h('div', { class: 'fv-folder', style: { '--folder': sf.color || '#A796CB' } },
-          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(sf.id); } }, h('span', { class: 'bf-emoji' }, folderEmoji(sf)), h('span', {}, sf.name), dotsRow([...childFolders(sf.id).map(x => ({ folder: true, name: x.name })), ...folderNotes(sf.id)])),
+          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(sf.id); } }, h('span', { class: 'bf-emoji' }, folderEmoji(sf)), h('span', {}, sf.name), dotsRow([...childFolders(sf.id).map(x => ({ folder: true, name: x.name, color: x.color })), ...folderNotes(sf.id)])),
           h('button', { class: 'chip ghost', title: 'Move this folder out onto the canvas', onclick: () => saveFolder(sf.id, { parentId: null, ...freeSpot() }) }, 'Move out'))))),
       h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, notes.length ? `Notes · ${notes.length} · drag one out to move it` : 'Notes'),
         h('div', { class: 'fv-notes' }, newNoteTile(), ...notes.map(n => {
