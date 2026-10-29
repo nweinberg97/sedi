@@ -3,7 +3,7 @@
 
 import * as store from './store.js';
 import {
-  h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml, relTime,
+  h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, stripHtml, relTime, confirmModal,
   colorFor, smartEmoji, mostCommonEmoji, prettyUrl, EMOJI_CHOICES, debounce, hashStr, listMode, safeUrl,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
@@ -175,6 +175,16 @@ function linkEl(c) {
   return el;
 }
 
+// From the outside, a folder shows one small dot per thing inside (notes, links and files, folders, each its
+// own color), so you can tell at a glance how full it is and with what. Past a dozen, it's a count.
+const DOT_MAX = 12;
+function dotsRow(items) {
+  const kind = x => (x.folder ? 'folder' : kindOf(x) === 'note' ? 'note' : 'link');
+  const shown = items.slice(0, DOT_MAX);
+  return h('div', { class: 'f-dots', 'aria-hidden': 'true' },
+    shown.map(x => h('i', { class: `fd fd-${kind(x)}`, title: x.title || x.name || '' })),
+    items.length > DOT_MAX ? h('span', { class: 'fd-more' }, `+${items.length - DOT_MAX}`) : null);
+}
 const ICON_MAX = 4; // a peek at what's inside, like icons in a folder; past that it's a count
 /** Mini icons of a folder's contents: each note's emoji, each link's icon, each subfolder's emoji. */
 function iconsRow(items, max = ICON_MAX) {
@@ -210,7 +220,7 @@ function linkFolderEl(f) {
   },
   h('button', { class: 'lf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })); } }, lfEmoji(f)),
   h('div', { class: 'lf-tile-text' }, name, h('span', { class: 'lf-count' }, lfCount(f)),
-    all.length || subs.length ? iconsRow([...subs.map(x => ({ folder: true, name: x.name, emoji: x.emoji || lfEmoji(x) })), ...all]) : null),
+    all.length || subs.length ? dotsRow([...subs.map(x => ({ folder: true, name: x.name })), ...all]) : null),
   h('button', { class: 'card-del', 'aria-label': `Delete folder ${f.name}`, title: 'Delete folder (what’s inside moves up a level)', onclick: e => { e.stopPropagation(); deleteLinkFolder(f); } }, icon('x')));
   tile.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openLinkFolder(f.id, tile); });
   tile.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tile) openLinkFolder(f.id, tile); });
@@ -252,7 +262,19 @@ function openLinkFolder(fid, fromEl) {
         t.addEventListener('keydown', e => { if (e.key === 'Enter') { glass.fid = x.id; paint(); } });
         return t;
       }))) : null;
+    // Adding is right where the things are: three clear tiles lead the grid (a link, a file or PDF, a folder).
+    const linkBox = h('div', { class: 'glass-add', hidden: !glass.adding }, icon('link'), (() => {
+      const inp = h('input', { class: 'field-input sm glass-link-in', placeholder: 'Paste a link, then Enter', 'aria-label': `Add a link to ${f.name}`, inputmode: 'url' });
+      inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { glass.adding = false; paint(); } if (e.key === 'Enter' && inp.value.trim()) { if (addLink(inp.value, f.id)) { inp.value = ''; toast(`Added to ${f.name}`); } } });
+      inp.addEventListener('paste', () => setTimeout(() => { const v = inp.value.trim(); if (/^https?:\/\/\S+$/i.test(v) && addLink(v, f.id)) { inp.value = ''; toast(`Added to ${f.name}`); } }, 0));
+      if (glass.adding) setTimeout(() => inp.focus(), 30);
+      return inp;
+    })());
+    const tile = (ic, label, fn) => h('button', { class: 'glass-item glass-add-tile', type: 'button', onclick: fn }, h('span', { class: 'glass-icon add' }, icon(ic)), h('span', { class: 'glass-label' }, label));
     const grid = h('div', { class: 'glass-grid', dataset: { drop: 'link-list', accept: 'card', lfolder: f.id }, 'data-list': 'grid' },
+      tile('link', 'Add link', () => { glass.adding = !glass.adding; paint(); }),
+      tile('upload', 'Add file or PDF', () => fileIn.click()),
+      tile('folder', 'New folder', () => addLinkFolder(f.id)),
       items.map(c => {
         const t = h('div', { class: 'glass-item', tabindex: 0, dataset: { drag: 'card', id: c.id }, title: c.meta?.url || c.title },
           h('span', { class: 'glass-icon' }, favicon(c)), h('span', { class: 'glass-label' }, c.title));
@@ -261,12 +283,23 @@ function openLinkFolder(fid, fromEl) {
         t.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(t, c.id); });
         return t;
       }));
-    if (!items.length) grid.append(h('p', { class: 'glass-empty' }, subs.length ? 'No links or files here yet. Drop some in, or upload.' : 'Empty. Drop links or files here, upload something, or make a folder inside.'));
-    const fileRow = h('div', { class: 'glass-section glass-files' }, subs.length ? h('span', { class: 'glass-section-label' }, icon('link'), `Links & files · ${items.length}`) : null, grid);
+    if (!items.length && !subs.length) grid.append(h('p', { class: 'glass-empty' }, 'Empty. Add something above, or drop links and files here.'));
+    const fileRow = h('div', { class: 'glass-section glass-files' }, subs.length ? h('span', { class: 'glass-section-label' }, icon('link'), `Links & files · ${items.length}`) : null, linkBox, grid);
     panel.replaceChildren(
       h('div', { class: 'glass-top' },
         parent ? h('button', { class: 'glass-back', type: 'button', onclick: () => { glass.fid = parent.id; paint(); } }, icon('chevL'), parent.name) : h('span'),
-        h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Close folder', onclick: () => closeGlass() }, icon('x'))),
+        h('div', { class: 'glass-top-right' },
+          h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Folder options', title: 'Move out, delete', onclick: e => {
+            const item = (ic, label, fn, cls = '') => h('button', { class: `cm-item ${cls}`, type: 'button', onclick: ev => { ev.stopPropagation(); closePopovers(); fn(); } }, icon(ic), label);
+            popover(e.currentTarget, h('div', { class: 'card-menu', role: 'menu' },
+              parent ? item('chevL', `Move out of ${parent.name}`, () => { const to = lfById(parent.parentId) ? parent.parentId : null; saveLinkFolder(f.id, { parentId: to }); toast(`Moved ${f.name} to ${to ? lfById(to).name : 'My links'}`); }) : null,
+              parent ? h('hr') : null,
+              item('trash', 'Delete folder…', async () => {
+                const ok = await confirmModal(`Delete “${f.name}”?`, 'What’s inside moves up a level, so nothing is lost. You can Undo right after.', 'Delete', true);
+                if (ok) { const ff = lfById(glass?.fid); closeGlass(); if (ff) deleteLinkFolder(ff); }
+              }, 'danger')), { className: 'card-menu-pop glass-menu-pop' });
+          } }, icon('more')),
+          h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Close folder', onclick: () => closeGlass() }, icon('x')))),
       // The folder's icon sits by its name; click it to change it and see the new one right away.
       h('div', { class: 'glass-head' },
         h('button', { class: 'glass-emoji', type: 'button', title: 'Change icon', 'aria-label': 'Change folder icon', onclick: e => pickEmoji(e.currentTarget, v => saveLinkFolder(f.id, { emoji: v })) }, lfEmoji(f)),
@@ -275,19 +308,7 @@ function openLinkFolder(fid, fromEl) {
       // While something is being dragged, this strip takes it back out a level.
       h('div', { class: 'glass-out', dataset: { drop: 'lf-out', accept: 'card lfolder', to: f.parentId && parent ? parent.id : '' } },
         icon('chevL'), `Drop here to move out to ${parent ? parent.name : 'My links'}`),
-      // Paste a link straight into this folder.
-      (() => {
-        const inp = h('input', { class: 'field-input sm glass-link-in', placeholder: 'Paste a link, then Enter', 'aria-label': `Add a link to ${f.name}`, inputmode: 'url' });
-        inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && inp.value.trim()) { if (addLink(inp.value, f.id)) { inp.value = ''; toast(`Added to ${f.name}`); } } });
-        inp.addEventListener('paste', () => setTimeout(() => { const v = inp.value.trim(); if (/^https?:\/\/\S+$/i.test(v) && addLink(v, f.id)) { inp.value = ''; toast(`Added to ${f.name}`); } }, 0));
-        return h('div', { class: 'glass-add' }, icon('link'), inp);
-      })(),
       h('div', { class: 'glass-scroll' }, folderRow, fileRow),
-      h('div', { class: 'glass-actions' },
-        h('button', { class: 'glass-btn', type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Upload'),
-        h('button', { class: 'glass-btn', type: 'button', onclick: () => addLinkFolder(f.id) }, icon('folder'), 'New folder'),
-        parent ? h('button', { class: 'glass-btn', type: 'button', title: `Move this folder out of ${parent.name}`, onclick: () => { const to = lfById(parent.parentId) ? parent.parentId : null; saveLinkFolder(f.id, { parentId: to }); toast(`Moved ${f.name} to ${to ? lfById(to).name : 'My links'}`); } }, icon('chevL'), 'Move out') : null,
-        h('button', { class: 'glass-btn danger', type: 'button', onclick: () => { const ff = lfById(glass.fid); closeGlass(); if (ff) deleteLinkFolder(ff); } }, icon('trash'), 'Delete')),
       fileIn);
   };
   glass = { fid, backdrop, paint, unsub: store.on(() => glass && paint()) };
@@ -564,7 +585,7 @@ function folderEl(f) {
   h('div', { class: 'bf-body' },
     h('button', { class: 'bf-emoji', 'aria-label': 'Change folder emoji', title: 'Change emoji', onclick: e => { e.stopPropagation(); pickEmoji(e.currentTarget, v => saveFolder(f.id, { emoji: v })); } }, emoji),
     name,
-    notes.length || subs.length ? iconsRow([...subs.map(s => ({ folder: true, name: s.name, emoji: s.emoji })), ...notes]) : null,
+    notes.length || subs.length ? dotsRow([...subs.map(s => ({ folder: true, name: s.name })), ...notes]) : null,
     h('span', { class: 'bf-count' }, count)),
   h('button', { class: 'bf-color', 'aria-label': 'Folder color', style: { background: f.color || '#A796CB' }, onclick: e => { e.stopPropagation(); pickFolderColor(e.currentTarget, f); } }));
   el.addEventListener('click', e => { if (!e.target.closest('button') && !name.isContentEditable) openFolder(f.id); });
@@ -743,7 +764,7 @@ export function duplicateNote(id) {
 function duplicateFolder(fid) {
   const created = [];
   const copyTree = (src, parentId, top) => {
-    const nf = { ...src, id: uuid(), name: top ? `${src.name} copy` : src.name, parentId, ...(top && !parentId ? { x: (src.x ?? 24) + 30, y: (src.y ?? 24) + 30 } : {}) };
+    const nf = { ...src, id: uuid(), name: top ? `${src.name} copy` : src.name, parentId, ...(top && !parentId ? freeSpot() : {}) };
     created.push(nf);
     store.set('brainFolders', [...folders(), nf], { silent: true });
     folderNotes(src.id).forEach(n => store.createCard({ type: 'note', tool: 'brainly', title: n.title, description: n.description, meta: { ...n.meta, folderId: nf.id } }, { silent: true }));
@@ -803,44 +824,57 @@ function pickFolderColor(anchor, f) {
 function openFolder(fid) {
   const box = h('div', { class: 'folder-view' });
   let m;
+  // The folder's own menu: the less-used actions live here, so the window itself stays calm.
+  const folderMenu = (anchor, f) => {
+    const item = (ic, label, fn, cls = '') => h('button', { class: `cm-item ${cls}`, type: 'button', onclick: e => { e.stopPropagation(); closePopovers(); fn(e); } }, icon(ic), label);
+    popover(anchor, h('div', { class: 'card-menu', role: 'menu' },
+      item('copy', 'Duplicate folder', () => duplicateFolder(fid)),
+      item('palette', 'Change color', () => pickFolderColor(anchor, folderById(fid) || f)),
+      h('hr'),
+      item('trash', 'Delete folder…', async () => {
+        const n = folderNotes(fid).length + childFolders(fid).length;
+        const ok = await confirmModal(`Delete “${f.name}”?`, n ? `It holds ${n} item${n === 1 ? '' : 's'}; they’ll be deleted too. You can Undo right after.` : 'You can Undo right after.', 'Delete', true);
+        if (ok) { m?.close(); trashFolder(fid); }
+      }, 'danger')), { className: 'card-menu-pop' });
+  };
   const fill = () => {
     const f = folderById(fid);
     if (!f) { m?.close(); return; }
     const path = [];
-    for (let p = f; p; p = folderById(p.parentId)) path.unshift(p);
+    for (let p = f.parentId ? folderById(f.parentId) : null; p; p = folderById(p.parentId)) path.unshift(p);
     const subs = childFolders(fid);
-    const notes = folderNotes(fid).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    box.replaceChildren(
+    const notes = folderNotes(fid).sort((a, b2) => b2.updatedAt.localeCompare(a.updatedAt));
+    // The name is editable right here.
+    const name = h('input', { class: 'fv-name', value: f.name, 'aria-label': 'Folder name', spellcheck: false });
+    name.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') name.blur(); if (e.key === 'Escape') { name.value = f.name; name.blur(); } });
+    name.addEventListener('change', () => { const v = name.value.trim(); if (v && v !== f.name) saveFolder(fid, { name: v }); });
+    const newFolderTile = h('button', { class: 'fv-folder fv-new-folder', type: 'button', onclick: () => addFolder(fid) }, h('span', { class: 'fv-plus' }, '+'), h('span', {}, 'New folder'));
+    box.replaceChildren(...[
+      path.length ? h('div', { class: 'crumbs fv-crumbs' }, path.flatMap((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name)]).filter(Boolean), h('span', { class: 'muted' }, ' ›')) : null,
       h('div', { class: 'fv-head' },
         h('button', { class: 'fv-emoji', type: 'button', title: 'Change icon', 'aria-label': 'Change folder icon', onclick: e => pickEmoji(e.currentTarget, v => saveFolder(fid, { emoji: v })) }, folderEmoji(f)),
-        h('div', { class: 'crumbs' }, path.flatMap((p, i) => [i ? h('span', { class: 'muted' }, ' › ') : null, i < path.length - 1 ? h('button', { class: 'crumb', onclick: () => { m.close(); openFolder(p.id); } }, p.name) : h('strong', {}, p.name)]).filter(Boolean))),
-      subs.length ? h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, 'Folders'),
-        h('div', { class: 'fv-folders' }, subs.map(s => h('div', { class: 'fv-folder', style: { '--folder': s.color || '#A796CB' } },
-          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(s.id); } }, h('span', { class: 'bf-emoji' }, folderEmoji(s)), h('span', {}, s.name), iconsRow(folderNotes(s.id), 6)),
-          h('button', { class: 'chip ghost', title: 'Move this folder out onto the canvas', onclick: () => saveFolder(s.id, { parentId: null, ...freeSpot() }) }, 'Move out'))))) : '',
-      h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, notes.length ? 'Notes · drag one out to move it' : 'Notes'),
-        notes.length ? h('div', { class: 'fv-notes' }, notes.map(n => {
+        name,
+        h('span', { class: 'head-spacer' }),
+        h('button', { class: 'icon-btn sm fv-more', type: 'button', 'aria-label': 'Folder options', title: 'Duplicate, color, delete', onclick: e => folderMenu(e.currentTarget, f) }, icon('more'))),
+      h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, subs.length ? `Folders · ${subs.length}` : 'Folders'),
+        h('div', { class: 'fv-folders' }, newFolderTile, ...subs.map(sf => h('div', { class: 'fv-folder', style: { '--folder': sf.color || '#A796CB' } },
+          h('button', { class: 'fv-folder-open', onclick: () => { m.close(); openFolder(sf.id); } }, h('span', { class: 'bf-emoji' }, folderEmoji(sf)), h('span', {}, sf.name), dotsRow([...childFolders(sf.id).map(x => ({ folder: true, name: x.name })), ...folderNotes(sf.id)])),
+          h('button', { class: 'chip ghost', title: 'Move this folder out onto the canvas', onclick: () => saveFolder(sf.id, { parentId: null, ...freeSpot() }) }, 'Move out'))))),
+      h('div', { class: 'fv-section' }, h('h4', { class: 'list-sub' }, notes.length ? `Notes · ${notes.length} · drag one out to move it` : 'Notes'),
+        h('div', { class: 'fv-notes' }, newNoteTile(), ...notes.map(n => {
           const el = h('article', { class: 'b-note in-folder', dataset: { drag: 'card', id: n.id }, tabindex: 0, style: { '--note': noteColor(n) } },
             h('span', { class: 'note-emoji static' }, n.meta?.emoji || '📝'), h('span', { class: 'b-note-title' }, n.title));
           el.addEventListener('click', () => { hidePeek(); openNote(n.id); });
           el.addEventListener('pointerenter', () => showPeek(el, n.id));
           el.addEventListener('pointerleave', hidePeek);
           return el;
-        }), newNoteTile()) : h('div', { class: 'fv-notes' }, newNoteTile(), h('p', { class: 'muted fv-empty' }, 'Empty. Add a note here, or drag notes onto this folder on the canvas.'))));
-    // A "+ New note" tile sits right among the notes, so adding one is where you'd look.
+        })))].filter(Boolean));
+    // "+ New note" sits first among the notes, the same way "+ New folder" leads the folders.
     function newNoteTile() { return h('button', { class: 'b-note in-folder fv-new-note', type: 'button', onclick: () => addNote(fid) }, h('span', { class: 'note-emoji static' }, '+'), h('span', { class: 'b-note-title' }, 'New note')); }
   };
   fill();
-  const unsub = store.on(fill);
-  const f = folderById(fid);
-  m = modal({
-    title: 'Folder', body: box, wide: true, onClose: () => { unsub(); hidePeek(); },
-    actions: [
-      { label: 'Duplicate folder', kind: 'ghost', onClick: () => duplicateFolder(fid) },
-      { label: 'New folder inside', kind: 'ghost', onClick: () => { addFolder(fid); return true; } },
-      { label: 'New note here', kind: 'primary', onClick: () => addNote(fid) },
-    ],
-  });
+  const unsub = store.on(() => { if (!box.contains(document.activeElement) || document.activeElement?.tagName !== 'INPUT') fill(); });
+  m = modal({ title: 'Folder', body: box, wide: true, className: 'folder-modal', onClose: () => { unsub(); hidePeek(); } });
 }
 
 // ---------- Note editor: rich text, dictation, colour, linked docs ----------

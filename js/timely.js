@@ -279,8 +279,10 @@ export function render() {
       tbRight));
   if (mode() === 'plan') tbRight.append(...[
     planBoard() === 'goals' ? h('button', { class: 'chip ghost', onclick: openGoalGuide }, icon('sparkle'), 'How to set a good goal') : null,
-    planBoard() === 'projects' ? h('button', { class: `chip ghost builder-chip ${builderOn() ? 'on' : ''}`, 'aria-pressed': String(builderOn()), title: 'Builder mode: repo names and Hand off buttons for software projects', onclick: () => toggleBuilder(render) }, icon('send'), builderOn() ? 'Builder mode on' : 'Builder mode') : null,
-    h('button', { class: 'btn sm primary', onclick: () => (planBoard() === 'goals' ? openGoalWizard(null) : addContainer('projects')) }, icon('plus'), planBoard() === 'goals' ? 'New goal' : 'Add project')].filter(Boolean));
+    // Builder mode is a quiet switch, so it never reads like an action button.
+    planBoard() === 'projects' ? h('button', { class: `builder-switch builder-chip ${builderOn() ? 'on' : ''}`, type: 'button', role: 'switch', 'aria-checked': String(builderOn()), title: 'Builder mode: repo, Ship and Ship all for software projects', onclick: () => toggleBuilder(render) }, h('span', { class: 'bs-track' }, h('span', { class: 'bs-knob' })), 'Builder mode') : null,
+    // On a computer the "Add project" tile at the end of the board does this; phones keep a button.
+    listMode() ? h('button', { class: 'btn sm primary', onclick: () => (planBoard() === 'goals' ? openGoalWizard(null) : addContainer('projects')) }, icon('plus'), planBoard() === 'goals' ? 'New goal' : 'Add project') : null].filter(Boolean));
   if (mode() === 'plan') return renderPlan();
   ({ day: renderDay, week: renderWeek, month: renderMonth, reminders: renderReminders })[view()]();
 }

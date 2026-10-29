@@ -128,6 +128,7 @@ export const moreButton = (id, onInfo, onDuplicate) => h('button', {
     const item = (ic, label, fn, cls = '') => h('button', { class: `cm-item ${cls}`, type: 'button', onclick: ev => { ev.stopPropagation(); closePopovers(); fn(ev); } }, icon(ic), label);
     popover(e.currentTarget, h('div', { class: 'card-menu', role: 'menu' },
       item('expand', 'Open details', onInfo),
+      item('move', 'Move to…', () => openMoveDialog(id)), // the way to move things on a phone, no dragging needed
       item('copy', 'Duplicate', () => (onDuplicate || duplicateCard)(id)),
       h('hr'),
       item('trash', 'Delete', () => trashCard(id), 'danger')), { className: 'card-menu-pop' });
