@@ -4157,3 +4157,8 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .fv-new-folder:hover { color: var(--ink); border-color: var(--ink-2) !important; }
 .fv-plus { font-size: 20px; font-weight: 300; line-height: 1; }
 .fv-folders { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Projects: sweep the ticked tasks away in one go */
+.ct-clear-done { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 4px; padding: 9px 12px; border: 1px dashed var(--line-2); border-radius: 12px; background: transparent; color: var(--muted); font-size: var(--fs-sm); cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
+.ct-clear-done svg { width: 14px; height: 14px; }
+.ct-clear-done:hover { color: var(--ink); border-color: var(--ink-2); background: rgba(255, 255, 255, 0.6); }
+.ct.all-done .ct-clear-done { color: var(--ink-2); border-style: solid; }

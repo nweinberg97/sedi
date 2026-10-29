@@ -1758,12 +1758,23 @@ function containerEl(b, ct) {
   const sendAll = builder && open ? h('button', { class: 'chip xs ct-send-all', type: 'button', title: `Ship all ${open} open tasks to ${shipLabel(ct)}`, onclick: e => ship(live(), () => listPrompt(live(), planCards(b, ct.id)), e.currentTarget, { title: `Ship ${open} task${open === 1 ? '' : 's'} to` }) }, icon('send'), `Ship all ${open}`) : null;
   const shipSet = builder ? h('button', { class: 'chip ghost xs ct-ship-to', type: 'button', title: 'Where this project ships, its repo, and standing instructions',
     onclick: e => openShipSettings(e.currentTarget, live(), patch => { saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, ...patch } : x))); }) }, icon('gear'), ct.shipUrl ? `To ${shipLabel(ct)}` : 'Ship settings') : null;
+  // Once anything is ticked, one quiet button sweeps the finished tasks away (one Undo brings them all back).
+  const clearDone = done ? h('button', { class: 'ct-clear-done', type: 'button', title: 'Delete the ticked tasks in this project (you can Undo)',
+    onclick: () => clearDoneTasks(b, ct) }, icon('check'), done === cards.length ? `Clear all ${done} done` : `Clear ${done} done`) : null;
+  if (clearDone) listEl.append(clearDone);
   return h('section', { class: `ct ${cards.length > 1 && done === cards.length ? 'all-done' : ''} ${builder ? 'builder' : ''}`, dataset: { drag: 'ctcol', id: ct.id } },
     listHead(b, ct, [h('span', { class: 'col-count' }, cards.length ? `${done}/${cards.length}` : '')]),
     builder ? h('div', { class: 'ct-builder' }, repo, h('div', { class: 'ct-ship-row' }, shipSet, sendAll)) : null,
     cards.length ? h('div', { class: 'ct-progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': cards.length, 'aria-valuenow': done, 'aria-label': `${done} of ${cards.length} done` },
       h('span', { style: { width: `${(done / cards.length) * 100}%` } })) : null,
     listEl);
+}
+
+function clearDoneTasks(b, ct) {
+  const gone = planCards(b, ct.id).filter(c => c.meta.done).map(c => store.deleteCard(c.id, { silent: true })).filter(Boolean);
+  if (!gone.length) return;
+  store.notify({ reason: 'delete' });
+  toast(`Cleared ${gone.length} done task${gone.length === 1 ? '' : 's'} from “${truncate(ct.name, 24)}”`, { action: 'Undo', onAction: () => gone.forEach(c => store.restoreCard(c)) });
 }
 
 // ---------- Goals: framed with WOOP, broken into milestones and next actions ----------
