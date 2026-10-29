@@ -23,9 +23,11 @@ export function splitThoughts(text) {
   return s.split('|').map(t => t.trim().replace(/^[,.\s]+|[,.\s]+$/g, '')).filter(t => t.split(/\s+/).length >= 2);
 }
 
-const INTENT = /^(?:(?:so|and|but|okay|ok|also)\s+)?(?:i\s+)?(?:really\s+|also\s+|still\s+)?(?:need to|have to|gotta|got to|'?ve got to|should(?: probably)?|must|ought to|remember to|want to remember to|don'?t forget to|make sure (?:i |to |that i )?|'?ll|will|am going to|'m going to|im going to|going to|have got to|need(?=\s+(?:a|an|some|more|to)\b))\s+(.+)$/i;
+const INTENT = /^(?:(?:so|and|but|okay|ok|also)\s+)?(?:(?:i|we)\s+)?(?:really\s+|also\s+|still\s+)?(?:need to|have to|gotta|got to|'?ve got to|should(?: probably)?|must|ought to|remember to|want to remember to|don'?t forget to|make sure (?:i |to |that i )?|'?ll|will|am going to|'m going to|im going to|going to|have got to|need(?=\s+(?:a|an|some|more|to)\b))\s+(.+)$/i;
 const GOAL = /^(?:(?:so|and|but|also)\s+)?(?:i\s+)?(?:really\s+)?(?:want to|wanna|would (?:really )?like to|'d (?:really )?like to|hope to|plan to|aim to|my goal is to|the goal is to|goal is to|i'?m (?:trying|working) (?:to|on)|this year i want to|someday i want to|one day i want to|eventually i want to)\s+(.+)$/i;
 const WHAT_IF = /\bwhat if\s+(.+)$/i;
+const SELF_NOTE = /^(?:(?:so|and|also)\s+)?(?:note to self|quick note|just a note|for the record|fyi)[,:]?\s+(.+)$/i;
+const DONT_FORGET = /^(?:(?:so|and|also)\s+)?(?:don'?t forget|remember|make sure to remember)(?: that)?\s+(.+)$/i;
 const IDEA = /^(?:(?:so|and|but|also)\s+)?(?:(?:i (?:had|have) )?an? idea(?: for)?(?: is)?[:,]?|idea[:,]|what if|maybe (?:we|i) (?:could|should)|it would be (?:cool|nice|great|fun) (?:to|if)|i was thinking(?: about| that)?|i'?ve been thinking(?: about| that)?)\s+(.+)$/i;
 const ACTION = /^(?:call|phone|email|e-mail|text|message|dm|buy|get|grab|pick up|book|pay|send|finish|fix|clean|tidy|schedule|write|read|order|renew|cancel|check|reply to|respond to|follow up|sign up|submit|prepare|prep|plan|organize|return|drop off|wash|update|review|research|ask|tell|sort out|look into|set up|move|file|print|post|ship|make|bake|cook|water|walk|feed|clear|back up|install|charge|invite|thank)\b/i;
 const EVENTISH = /\b(?:meeting|meet(?:ing)? (?:with|up)|appointment|lunch|dinner|breakfast|coffee|drinks|call with|class|session|interview|party|wedding|birthday|flight|game|concert|doctor|dentist|haircut)\b/i;
@@ -49,6 +51,8 @@ export function tidyTitle(t) {
     .replace(/^(?:to|that|i|just)\s+/i, '')
     .replace(/^(?:i\s+)?(?:have|got|'ve got)\s+(?:a|an|the|my)\s+/i, '')     // "I have a dentist appointment" → "Dentist appointment"
     .replace(/^(?:there'?s|there is)\s+(?:a|an)\s+/i, '')
+    .replace(/^add\s+(?=\S+\s+(?:and|,)\s)/i, '')                           // "add milk, eggs and bread…" → "milk, eggs and bread"
+    .replace(/\s+(?:to|on)\s+(?:my|the)\s+(?:to[\s-]?do\s+|shopping\s+|grocery\s+)?list$/i, '')
     .replace(/\s+(?:and stuff|or something|or whatever|and things|and that|you know|too|as well|also|at some point|soon|asap|this week)$/i, '')
     .replace(/\b(?:my|our)\s+(?=\w)/gi, m => m) // keep possessives: "renew my passport" reads naturally
     .replace(/\s{2,}/g, ' ')
@@ -75,12 +79,17 @@ export function suggest(text, { now = new Date(), tabs = [], cards = [], plan = 
       if (c) {
         const type = c.tool === 'boardly' && c.type === 'goal' ? 'goal' : c.tool === 'brainly' ? 'note' : c.tool === 'timely' ? (c.reminder ? 'reminder' : 'event') : 'task';
         s = { type, title: c.title, when: c.when || null, tab: c.tabName || null, sure: true };
+        // "book flights to Lisbon" reads like scheduling, but with no day or time it's something to do.
+        if (type === 'event' && !extractWhen(raw, now).when && ACTION.test(raw.replace(/^(?:i\s+)?(?:need to|have to|gotta|should)\s+/i, ''))) s = { ...s, type: 'task', title: tidyTitle(raw.replace(/^(?:i\s+)?(?:need to|have to|gotta|should)\s+/i, '')) };
       }
     }
     if (!s) {
       const { when, rest } = extractWhen(raw, now);
       let m, type = null, title = null, sure = false;
-      if ((m = WHAT_IF.exec(rest))) { type = 'note'; title = `What if ${m[1]}`; sure = true; }
+      if ((m = SELF_NOTE.exec(rest))) { type = 'note'; title = m[1]; sure = true; }
+      else if ((m = WHAT_IF.exec(rest))) { type = 'note'; title = `What if ${m[1]}`; sure = true; }
+      // "don't forget the rent is due on the first": something with a due date is a reminder
+      else if ((m = DONT_FORGET.exec(rest)) && /\b(?:due|deadline|expires?|renew|on the \w+|by \w+)\b/i.test(m[1])) { type = 'reminder'; title = m[1]; sure = true; }
       else if ((m = GOAL.exec(rest))) { type = 'goal'; title = m[1]; sure = true; }
       else if ((m = IDEA.exec(rest))) { type = 'note'; title = m[1]; sure = true; }
       else if ((m = INTENT.exec(rest))) { type = 'task'; title = m[1]; sure = true; }
