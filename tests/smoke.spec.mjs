@@ -422,6 +422,20 @@ test.describe('assistant', () => {
     expect(await notes()).toBe(1);
   });
 
+  test('Unload: when the rules find nothing, an AI reads the thought, but only Sedi’s own actions come back', async ({ page }) => {
+    let reply = 'COMMANDS:\nremind me to book the vet tomorrow at 9am';
+    await page.route('http://ai.test/v1/chat/completions', r => r.fulfill({ json: { choices: [{ message: { content: reply } }] } }));
+    await open(page, 'home');
+    await loadFixture(page);
+    await page.evaluate(async () => { const s = await import('/js/store.js'); s.setPref('hearing', 'browser'); s.setPref('engine', { active: 'compat', compatBase: 'http://ai.test/v1', compatModel: 'test' }); });
+    await page.evaluate(() => window.__heard.push('the dog is due for the vet thing'));
+    await page.locator('.assistant-token').click();
+    await page.locator('.as-mode[data-mode="unload"]').click();
+    await expect(page.locator('.ul-row.from-ai')).toHaveCount(1);
+    await expect(page.locator('.ul-row.from-ai')).toContainText('Timely');
+    expect(await cardByTitle(page, 'Book the vet')).toBeFalsy(); // nothing until you tap Add
+  });
+
   test('voice is input only: Atom writes down what you said, answers on screen, and changes need a tap', async ({ page }) => {
     await open(page, 'home');
     await loadFixture(page);

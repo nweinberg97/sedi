@@ -196,6 +196,25 @@ export function openUnload(host, api) {
         paintStatus();
         entry.el.querySelector('.ul-title')?.focus();
       };
+      // The rules found nothing. If Atom's brain is on (or an AI engine is connected), it has a read too:
+      // it can only propose Sedi's own commands, and each becomes a suggestion you still add with a tap.
+      if (api.understand) {
+        entry.el.classList.add('reading');
+        api.understand(text).then(res => {
+          entry.el.classList.remove('reading');
+          if (!res?.commands?.length || entry.deleted || !entry.el.isConnected) return;
+          const now = new Date(), c2 = api.ctx();
+          const found = res.commands.flatMap(cmd => parseCommands(cmd, c2)).filter(c => c.kind === 'create' && c.title).slice(0, 4).map(c => ({
+            type: c.tool === 'boardly' && c.type === 'goal' ? 'goal' : c.tool === 'brainly' ? 'note' : c.tool === 'timely' ? (c.reminder ? 'reminder' : 'event') : 'task',
+            title: tidyTitle(c.title) || c.title, when: c.when || null, tab: c.tabName || null, sure: false, raw: text, ai: true,
+          }));
+          if (!found.length) return;
+          entry.el.classList.remove('unfiled');
+          entry.el.replaceChildren(h('div', { class: 'ul-sugs' }, found.map(row)), said);
+          void now;
+          paintStatus();
+        });
+      }
     }
     chunks.push(entry);
     if (intro?.isConnected) intro.remove(); // it has done its job once there's something to look at
@@ -228,7 +247,7 @@ export function openUnload(host, api) {
     };
     type.addEventListener('change', () => { if (!picked) { const g = guessDestination(s.raw || s.title, type.value); dest = g || defaultDestination(type.value, s.tab); guessed = !!g; } paintWhere(); });
     paintWhere();
-    const r = h('div', { class: `ul-row ${s.sure ? 'sure' : 'maybe'}` },
+    const r = h('div', { class: `ul-row ${s.sure ? 'sure' : 'maybe'} ${s.ai ? 'from-ai' : ''}`, title: s.ai ? 'Atom read this one with its on-device brain' : '' },
       h('div', { class: 'ul-row-main' }, type, title),
       h('div', { class: 'ul-row-foot' }, where,
         h('span', { class: 'head-spacer' }),

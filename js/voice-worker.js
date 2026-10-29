@@ -69,7 +69,7 @@ function startListening(o) {
   L = {
     continuous: !!o.continuous, seq: 0,              // Unload: keep listening; each pause closes a chunk
     idleMs: o.idleMs || 8000, maxMs: o.maxMs || 25000,
-    endMs: o.endSilenceMs || (vad ? 700 : 900),      // Silero is trusted to end a turn a little sooner
+    endMs: o.endSilenceMs || (vad ? 1200 : 1400),    // a natural pause mid-thought (about a second) doesn't end your turn
     frames: [], preroll: [], carry: new Float32Array(0), speaking: false, speechMs: 0, silentMs: 0, waitedMs: 0,
     floor: 0.004, loud: 0, busy: Promise.resolve(), done: false,
   };

@@ -20,7 +20,11 @@ export const HEARING_MODELS = {
 // The first conversation should start quickly: English speakers on a computer get Moonshine ("Fast", the smallest
 // download); everyone else gets Whisper Base. "Accurate" is one tap away in Voice and hearing.
 const english = () => (navigator.language || 'en').toLowerCase().startsWith('en');
-export const hearingModelKey = () => store.pref('hearingModel') || (!isSmallDevice() && english() ? 'fast' : 'light');
+// Someone who already has a voice model keeps it (no surprise downloads).
+const haveKey = () => { const have = [...(store.pref('hearingHave') || []), store.pref('hearingReady')].filter(Boolean); return Object.keys(HEARING_MODELS).find(k => have.includes(HEARING_MODELS[k].id)) || null; };
+// A computer with a graphics chip gets the most accurate model (fewer misheard words); other computers get the
+// quick English one; phones get the light one.
+export const hearingModelKey = () => store.pref('hearingModel') || haveKey() || (!isSmallDevice() && typeof navigator !== 'undefined' && navigator.gpu ? 'accurate' : !isSmallDevice() && english() ? 'fast' : 'light');
 /** Pin the model the first time voice is set up, so resizing the window (which changes the
  *  phone/computer guess) never swaps it for a different download. */
 export const lockHearingModel = () => { if (!store.pref('hearingModel')) store.setPref('hearingModel', hearingModelKey()); };
@@ -181,7 +185,7 @@ export function captureUtterance({ onLevel, onSpeech, onStatus, onFinal, onEnd, 
  * keep talking. Callbacks: onLevel, onSpeech, onQueued(id, waiting), onChunk(id, text), onEmpty(id),
  * onWaiting(n), onEnd(), onError(msg). Returns { stop() (finish the last bit, then end), cancel() }.
  */
-export function captureStream({ onLevel, onSpeech, onQueued, onChunk, onEmpty, onWaiting, onEnd, onError, endSilenceMs = 1100, maxMs = 30000 } = {}) {
+export function captureStream({ onLevel, onSpeech, onQueued, onChunk, onEmpty, onWaiting, onEnd, onError, endSilenceMs = 1400, maxMs = 30000 } = {}) {
   let ctx = null, stream = null, node = null, closed = false, ended = false;
   const w = voiceWorker();
   const closeMic = () => {

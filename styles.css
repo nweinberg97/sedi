@@ -4092,3 +4092,8 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .fv-new-note:hover { color: var(--ink); border-color: var(--ink-2) !important; }
 .fv-new-note .note-emoji { font-size: 22px; font-weight: 300; }
 .fv-empty { align-self: center; }
+.ul-chunk.reading .ul-said { background: linear-gradient(90deg, transparent, color-mix(in srgb, #4a63d6 10%, transparent), transparent) 0 0 / 200% 100%; animation: ulRead 1.4s linear infinite; }
+@keyframes ulRead { to { background-position: -200% 0; } }
+.ul-row.from-ai { border-color: color-mix(in srgb, #4a63d6 35%, var(--line)); }
+.brain-does { margin: 4px 0 8px; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-sm); }
+@media (prefers-reduced-motion: reduce) { .ul-chunk.reading .ul-said { animation: none; } }

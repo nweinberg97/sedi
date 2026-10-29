@@ -9,8 +9,9 @@ import { h, icon, modal, toast } from './util.js';
 import { loadTransformers, removeModelFiles } from './runtime.js';
 
 export const MODELS = {
-  light: { id: 'onnx-community/Qwen2.5-0.5B-Instruct', label: 'Light', size: 'about 500 MB', note: 'Fast on most laptops.' },
-  full: { id: 'HuggingFaceTB/SmolLM2-1.7B-Instruct', label: 'Full', size: 'about 1.2 GB', note: 'Smarter. Best with a recent GPU.' },
+  smart: { id: 'onnx-community/Qwen2.5-1.5B-Instruct', label: 'Smart', size: 'about 1 GB', note: 'Understands what you mean best. Recommended on a recent computer.' },
+  light: { id: 'onnx-community/Qwen2.5-0.5B-Instruct', label: 'Light', size: 'about 500 MB', note: 'Quicker and smaller, for older computers. Less sharp.' },
+  full: { id: 'HuggingFaceTB/SmolLM2-1.7B-Instruct', label: 'Writer', size: 'about 1.2 GB', note: 'Good at longer answers and coaching.' },
 };
 
 const SYSTEM = `You are the integrated executive function and behavioral coach inside Sedi. Your primary knowledge base is the context snippets below, which describe frameworks on habit architecture, social mechanics, occupational therapy, and cognitive structuring.
@@ -171,7 +172,7 @@ export async function complete(messages, { maxTokens = 220, onToken } = {}) {
 // ---------- Settings panel ----------
 export function openBrainPanel() {
   const p = store.pref('brain') || {};
-  let choice = p.model || (hasWebGPU() ? 'full' : 'light');
+  let choice = p.model || (hasWebGPU() ? 'smart' : 'light');
   const opts = h('div', { class: 'brain-opts' }, Object.entries(MODELS).map(([k, m]) => h('button', {
     class: `brain-opt ${k === choice ? 'on' : ''}`, type: 'button',
     onclick: e => { choice = k; opts.querySelectorAll('.brain-opt').forEach(b => b.classList.remove('on')); e.currentTarget.classList.add('on'); },
@@ -191,8 +192,12 @@ export function openBrainPanel() {
   modal({
     title: 'On-device AI', wide: true, onClose: unsub,
     body: h('div', { class: 'editor' },
-      h('p', {}, h('b', {}, 'What it is: '), 'a small AI model that runs inside your browser, so nothing you type leaves your device. Turn it on and the assistant (the atom) can answer open questions, like “how do I start this project?” or “help me plan a calmer week”, using your own cards and a built-in library of habit and focus techniques.'),
-      h('p', { class: 'muted small' }, h('b', {}, 'Without it, '), 'the assistant still finds anything you’ve saved, tells you what’s next, and makes the changes you ask for. Turn this on only if you want open-ended answers and coaching.'),
+      h('p', {}, h('b', {}, 'What it is: '), 'Atom’s own brain: an AI model that runs inside your browser. What you say and type never leaves your device, there’s no account and no cost per use.'),
+      h('ul', { class: 'brain-does' },
+        h('li', {}, h('b', {}, 'Understands you. '), 'When you talk loosely (“stick the dentist thing on Friday”), it works out what you meant.'),
+        h('li', {}, h('b', {}, 'Sorts your Unload. '), 'It finds the tasks, reminders and ideas in what you said, and where they belong in your own projects and folders.'),
+        h('li', {}, h('b', {}, 'Answers open questions '), 'using your cards and a library of focus and habit techniques.')),
+      h('p', { class: 'muted small' }, h('b', {}, 'Safe by design: '), 'it can only suggest things Sedi already knows how to do, and nothing changes until you tap Add or Confirm. Without it, Atom still works, with simpler rules.'),
       h('p', { class: 'muted small' }, `One-time download, cached for offline use. ${hasWebGPU() ? 'Your browser supports WebGPU, so it will run on your graphics chip.' : 'WebGPU isn’t available here, so it will run on your CPU (slower). Chrome on a recent Mac works best.'}`),
       opts, bar, status,
       h('p', { class: 'muted small' }, 'Use it from the assistant (the atom at the bottom) or press ⌘K / Ctrl K.')),

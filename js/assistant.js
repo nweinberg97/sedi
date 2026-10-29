@@ -221,6 +221,7 @@ function parkUnload() {
 
 // ---------- Unload: the guided brain dump ----------
 function startUnload() {
+  brain.warmUp(); // get Atom's brain ready in the background, if it's turned on
   if (tray.hidden) toggle(true, { view: 'type' });
   if (!isMicBlocked() && needsVoiceSetup()) { setView('voice'); showVoiceIntro(); return; }
   session?.cancel(); session = null; setState('idle');
@@ -231,6 +232,8 @@ function startUnload() {
   unloadCtl = openUnload(tray, {
     ctx: commandContext,
     execute,
+    // When an AI is ready (on-device or connected), it reads the thoughts the rules couldn't place.
+    understand: text => (smartEngine() ? restate(text, commandContext()).catch(() => null) : Promise.resolve(null)),
     again: () => startUnload(),
     onClose: () => { unloadCtl = null; if (tray.dataset.view === 'unload') { tray.dataset.view = earsNow() ? 'voice' : 'type'; paintModes(); positionTray(); } },
   });
@@ -629,7 +632,9 @@ const NO = /^(?:n|no|nope|nah|cancel|stop|never ?mind|don'?t|wait)\b/i;
 let pending = null;
 
 // ---------- Understanding with a real AI engine (Ollama on your Mac, or Claude) ----------
-const smartEngine = () => engineConfig().active !== 'local' && engineAvailable();
+// A connected engine, or Atom's own on-device brain once it's ready.
+const localBrainReady = () => brain.isEnabled() && brain.brainState().status === 'ready';
+const smartEngine = () => (engineConfig().active !== 'local' && engineAvailable()) || localBrainReady();
 async function restate(text, ctx) {
   const tabs = (ctx.tabs || []).map(t => t.name).join(', ') || 'none';
   const recent = (ctx.cards || []).slice().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0, 40).map(c => `- ${c.title} (${TOOL_NAMES[c.tool]})`).join('\n');
@@ -654,7 +659,10 @@ delete <existing card title>
 Use existing card titles exactly as listed. Leave out <tab> if they didn't name one.
 Their recent cards:
 ${recent || '- none'}`;
-  const r = await engineChat({ system, messages: [{ role: 'user', content: text }], maxTokens: 160 });
+  // On-device first when it's the choice; otherwise the connected engine. Either way only the reply text is used.
+  const r = engineConfig().active === 'local' || !engineAvailable()
+    ? { text: await brain.complete([{ role: 'system', content: system }, { role: 'user', content: text }], { maxTokens: 160 }) }
+    : await engineChat({ system, messages: [{ role: 'user', content: text }], maxTokens: 160 });
   const out = String(r.text || '').trim();
   if (/^QUESTION\b/i.test(out)) return { question: true };
   const m = /COMMANDS:\s*([\s\S]*)$/i.exec(out);
