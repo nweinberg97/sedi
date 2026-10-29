@@ -29,7 +29,15 @@ const DEFAULT_CATS = [['health', 'Health', 0], ['work', 'Work', 1], ['admin', 'A
 /** Your categories, in order. Earlier renames (catNames) carry over. */
 export function cats() {
   const saved = store.pref('cats');
-  if (Array.isArray(saved)) return saved.filter(x => x && x.id && x.color);
+  if (Array.isArray(saved)) {
+    // Admin and Meals joined the standard set later: offer them once to lists made before.
+    if (!store.pref('catsV2')) {
+      store.setPref('catsV2', true);
+      const add = DEFAULT_CATS.filter(d => ['admin', 'meals'].includes(d.id) && !saved.some(x => x.id === d.id || x.name?.toLowerCase() === d.name.toLowerCase()));
+      if (add.length) { const next = [...saved, ...add]; store.setPref('cats', next); return next; }
+    }
+    return saved.filter(x => x && x.id && x.color);
+  }
   const old = store.pref('catNames', {});
   return DEFAULT_CATS.map(c => ({ ...c, name: (old[c.id] || '').trim() || c.name }));
 }
