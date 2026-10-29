@@ -264,7 +264,7 @@ function makeDraggable() {
   });
   const sendHome = () => { token.removeAttribute('style'); store.setPref('assistantPos', null); if (!tray.hidden) positionTray(); };
   addEventListener('sedi:reset-positions', sendHome);
-  const pinned = () => matchMedia('(max-width: 700px)').matches; // phones: the atom sits above the tab bar
+  const pinned = () => matchMedia('(max-width: 700px), (max-width: 1180px) and (hover: none)').matches; // phones and tablets: the atom sits centred above the tab bar, fixed
   let press = null, lastPress = 0;
   const finish = (e, cancelled) => {
     if (!press || (e && e.pointerId != null && e.pointerId !== press.id)) return;

@@ -3999,3 +3999,10 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
   .boardly .view-note, .action-hint { display: none; }
   .ev-range, .ev-time { font-size: 11px; }
 }
+
+/* Phones and tablets: Atom sits centred above the tab bar, fixed in place */
+@media (max-width: 700px), (max-width: 1180px) and (hover: none) {
+  .assistant-token { left: 50% !important; right: auto !important; translate: -50% 0; }
+  .atom-hint { left: 0 !important; right: 0 !important; margin-inline: auto; width: max-content; max-width: calc(100vw - 32px); }
+  .atom-hint i { left: 50% !important; right: auto !important; translate: -50% 0 !important; }
+}
