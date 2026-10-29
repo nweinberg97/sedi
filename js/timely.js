@@ -322,11 +322,17 @@ function renderDay() {
   scroll.append(grid);
   // SD-T9 narrower day column, SD-T10 the day's to-do list beside it, SD-T11 Daily routine.
   const head = navControl(label, n => dateKey(addDays(parseKey(key), n)), { sub: `${occ.length ? `${occ.length} planned` : 'Nothing planned yet'}` });
-  body.replaceChildren(
-    actionRow(standardAdds(key), 'Hover the day to add at a time, or press + Now.'),
+  // Phones: the day fills the screen. One "+ Add" and a "Plan" button sit with the date; the plan opens as a sheet.
+  const onPhone = listMode();
+  const phoneActions = onPhone ? h('div', { class: 'm-day-actions' },
+    key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
+    h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plan', todoCards().length ? h('small', {}, todoCards().length) : null),
+    h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
+  body.replaceChildren(...[
+    onPhone ? null : actionRow(standardAdds(key), 'Hover the day to add at a time, or press + Now.'),
     h('div', { class: 'day-layout' },
-      h('div', { class: 'day-col' }, head, allDay, scroll),
-      sidePlan(key)));
+      h('div', { class: 'day-col' }, head, phoneActions, allDay, scroll),
+      onPhone ? null : sidePlan(key))].filter(Boolean));
 
   // Size hours so 6am–8pm fills the visible window exactly.
   requestAnimationFrame(() => {
@@ -379,6 +385,13 @@ function renderDay() {
     // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
     const startTop = key === todayKey() ? Math.max(0, (nowMins / 60 - 1.25) * hourH) : 7 * hourH;
     const wantTop = dayScroll?.key === key ? dayScroll.top : startTop;
+    // Phones: the hours fill the rest of the screen and scroll on their own, under a header that stays put.
+    if (phone) {
+      const host = document.querySelector('.view-host');
+      if (host) host.scrollTop = 0;
+      const tabbar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tabbar-h')) || 64;
+      scroll.style.setProperty('height', Math.max(320, innerHeight - scroll.getBoundingClientRect().top - tabbar - 12) + 'px', 'important');
+    }
     scroll.scrollTop = wantTop;
     // The box may not be laid out yet on the first render (phones); set it again once it is.
     requestAnimationFrame(() => { if (Math.abs(scroll.scrollTop - wantTop) > 2) scroll.scrollTop = wantTop; });
@@ -556,17 +569,17 @@ function openRepeat(anchorEl, id) {
 // ---------- The day's side panel: Today's plan, or this week's or month's, to drag onto a time ----------
 // Weekly and monthly plans are for deciding what; the day is for deciding when. Switching the panel lets
 // you pull something from the week or the month straight onto an hour, without leaving the day.
-function sidePlan(key) {
+function sidePlan(key, { onChange = render, scheduleOn = null } = {}) {
   const which = store.pref('daySide', 'today');
   const d = parseKey(key);
-  const panel = which === 'week' ? periodPlanPanel('weekplan', weekPlanKey(d), 'This week’s plan', `Week of ${fmtShortDate(parseKey(weekPlanKey(d)))}`)
-    : which === 'month' ? periodPlanPanel('monthplan', monthPlanKey(d), `${MONTH_NAMES[d.getMonth()]} plan`, 'Drag one onto a time to schedule it')
+  const panel = which === 'week' ? periodPlanPanel('weekplan', weekPlanKey(d), 'This week’s plan', `Week of ${fmtShortDate(parseKey(weekPlanKey(d)))}`, { scheduleOn })
+    : which === 'month' ? periodPlanPanel('monthplan', monthPlanKey(d), `${MONTH_NAMES[d.getMonth()]} plan`, 'Drag one onto a time to schedule it', { scheduleOn })
     : dayPlanPanel(key);
   const count = k => (k === 'week' ? periodCards('weekplan', weekPlanKey(d)) : k === 'month' ? periodCards('monthplan', monthPlanKey(d)) : todoCards()).filter(c => !c.meta?.done).length;
   const seg = h('div', { class: 'side-switch', role: 'tablist', 'aria-label': 'Which plan' },
     [['today', key === todayKey() ? 'Today' : 'Day'], ['week', 'Week'], ['month', 'Month']].map(([v, label]) => {
       const n = count(v);
-      return h('button', { class: v === which ? 'on' : '', role: 'tab', 'aria-selected': String(v === which), type: 'button', onclick: () => { store.setPref('daySide', v); render(); } },
+      return h('button', { class: v === which ? 'on' : '', role: 'tab', 'aria-selected': String(v === which), type: 'button', onclick: () => { store.setPref('daySide', v); onChange(); } },
         label, n ? h('small', {}, n) : null);
     }));
   if (which !== 'today') { const tip = [...panel.querySelectorAll('p.muted.small')].pop(); if (tip && panel.querySelector('.plan-item')) tip.textContent = 'Drag one onto a time to schedule it.'; }
@@ -609,6 +622,26 @@ function scheduleToday(id, key) {
   placeSched(id, { date: key, start, dur: 30, slot: null, itemType: 'task' }, 'Scheduled');
   toast(`Scheduled “${c?.title}” at ${fmtMinutes(start)}`, { action: 'Undo', onAction: () => routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'todo', order: 0 } }) });
 }
+/** Give any plan item the next free half hour on a day (week and month plan items, from the phone's plan sheet). */
+function scheduleAt(id, key) {
+  const now = new Date();
+  const taken = occurrencesOn(key).filter(o => o.card.meta.start != null).map(o => [o.card.meta.start, o.card.meta.start + (o.card.meta.dur || 60)]);
+  let start = key === todayKey() ? Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / 30) * 30 : 9 * 60;
+  while (start < 23 * 60 && taken.some(([a, b]) => start < b && start + 30 > a)) start += 30;
+  start = Math.min(start, 23 * 60);
+  const c = store.getCard(id);
+  placeSched(id, { date: key, start, dur: 30, slot: null, itemType: 'task' }, 'Scheduled');
+  toast(`Scheduled “${truncate(c?.title || '', 30)}” at ${fmtMinutes(start)}`);
+}
+/** Phones: the day's plan opens as a sheet over the day, and stays in step with changes. */
+function openPlanSheet(key) {
+  const holder = h('div', { class: 'plan-sheet' });
+  const paint = () => holder.replaceChildren(sidePlan(key, { onChange: paint, scheduleOn: key }));
+  paint();
+  const off = store.on(() => { if (holder.isConnected && !holder.contains(document.activeElement)) paint(); });
+  modal({ title: key === todayKey() ? 'Today’s plan' : `Plan · ${fmtShortDate(parseKey(key))}`, body: holder, className: 'sheet-modal', onClose: () => off() });
+}
+
 // Dropping a card on Today's plan puts it in Taskly's To do.
 registerDrop('day-plan', ({ id, index }) => {
   const c = store.getCard(id);
@@ -732,7 +765,41 @@ function standardAdds(date, slot = null) {
   ];
 }
 const addBtn = (type, onClick) => h('button', { class: `add-btn add-${type}`, type: 'button', onclick: onClick }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES[type].icon)), ITEM_TYPES[type].label);
+/** Phones: the week as a calm list of days, like a calendar app's list view. Tap + to add to a day, tap an item
+ *  to open it, hold and drag an item onto another day to move it. The week's plan opens as a sheet. */
+function renderWeekPhone() {
+  const ws = parseKey(anchor());
+  const days = [...Array(7)].map((_, i) => addDays(ws, i));
+  const label = days[0].getMonth() === days[6].getMonth() ? `${fmtShortDate(days[0])} – ${days[6].getDate()}` : `${fmtShortDate(days[0])} – ${fmtShortDate(days[6])}`;
+  const today = todayKey();
+  const head = navControl(label, n => dateKey(addDays(ws, 7 * n)), { sub: '' });
+  const wk = weekPlanKey(ws), planN = periodCards('weekplan', wk).filter(c => !c.meta.done).length;
+  const actions = h('div', { class: 'm-day-actions' },
+    anchor() !== today ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; setAnchor(today); } }, 'Today') : null,
+    h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => {
+      const holder = h('div', { class: 'plan-sheet' });
+      const paint = () => holder.replaceChildren(periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) }));
+      paint();
+      const off = store.on(() => { if (holder.isConnected && !holder.contains(document.activeElement)) paint(); });
+      modal({ title: 'This week’s plan', body: holder, className: 'sheet-modal', onClose: () => off() });
+    } }, icon('checklist'), 'Week plan', planN ? h('small', {}, planN) : null));
+  const list = h('div', { class: 'agenda' }, days.map(d => {
+    const k = dateKey(d);
+    const occ = occurrencesOn(k);
+    return h('section', { class: `ag-day ${k === today ? 'today' : ''}`, dataset: { drop: 'timely-month', accept: 'card', date: k }, 'data-list': '' },
+      h('div', { class: 'ag-head' },
+        h('span', { class: 'ag-name' }, k === today ? 'Today' : DAY_NAMES[d.getDay()]),
+        h('span', { class: 'ag-date' }, `${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`),
+        h('span', { class: 'head-spacer' }),
+        h('button', { class: 'icon-btn sm ag-add', type: 'button', 'aria-label': `Add to ${DAY_NAMES[d.getDay()]}`, onclick: e => openItemForm(e.currentTarget, { type: 'task', date: k, pickDate: false }) }, icon('plus'))),
+      occ.length ? h('div', { class: 'ag-items' }, occ.map(o => chip(o.card, { showTime: true, date: k, done: o.done })))
+        : h('p', { class: 'ag-empty' }, 'Nothing planned'));
+  }));
+  body.replaceChildren(h('div', { class: 'week-phone' }, head, actions, list));
+}
+
 function renderWeek() {
+  if (listMode()) return renderWeekPhone();
   const ws = parseKey(anchor());
   const days = [...Array(7)].map((_, i) => addDays(ws, i));
   const label = days[0].getMonth() === days[6].getMonth() ? `${fmtShortDate(days[0])} – ${days[6].getDate()}` : `${fmtShortDate(days[0])} – ${fmtShortDate(days[6])}`;
@@ -919,7 +986,7 @@ registerDrop('timely-hour', {
 
 // ---------- Weekly and monthly plans (separate from Taskly; only Today's plan is Taskly's To do) ----------
 const periodCards = (kind, key) => store.cardsWhere(c => c.tool === 'timely' && c.meta?.board === kind && c.meta.planKey === key).sort(byOrder);
-function periodPlanPanel(kind, key, heading, sub) {
+function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
   const list = periodCards(kind, key);
   const done = list.filter(c => c.meta.done).length;
   const input = h('input', { class: 'field-input sm', placeholder: kind === 'weekplan' ? 'Add to this week, then Enter' : 'Add to this month, then Enter', 'aria-label': heading, 'data-keep': `pp-${kind}-${key}` });
@@ -937,7 +1004,9 @@ function periodPlanPanel(kind, key, heading, sub) {
         if (!was) celebrate(btn);
         setTimeout(() => store.updateCard(c.id, { meta: { done: !was } }, { log: !was, logLabel: 'Completed' }), was ? 0 : 450);
       } }, icon('check')),
-      h('div', { class: 'plan-main' }, h('span', { class: 'plan-text', title: c.title, dataset: { fit: c.title } }, c.title), notesSnippet(c)));
+      h('div', { class: 'plan-main' }, h('span', { class: 'plan-text', title: c.title, dataset: { fit: c.title } }, c.title), notesSnippet(c)),
+      // Phones can't drag from a sheet onto the day, so a tap gives it the next free time instead.
+      scheduleOn && !c.meta.done ? h('button', { class: 'icon-btn xs', type: 'button', title: 'Give it a time that day', 'aria-label': `Schedule “${c.title}”`, onclick: e => { e.stopPropagation(); scheduleAt(c.id, scheduleOn); } }, icon('clock')) : null);
     el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Plan item' }));
     return cardChrome(el, c, () => openEditor(c.id, { title: 'Plan item' }), { compact: true });
   });
@@ -1281,11 +1350,48 @@ export function openEventEditor(id) {
       let catVal = cats().some(x => x.id === m.cat) ? m.cat : '';
       f.cat = { get value() { return catVal; } };
       const catRow = h('div', { class: 'cat-pick', role: 'radiogroup', 'aria-label': 'Category' });
-      const paintCatRow = () => catRow.replaceChildren(...[{ id: '', name: 'None' }, ...cats()].map(k => {
-        const b = h('button', { class: `cat-opt ${k.id ? '' : 'cat-none'} ${k.id === catVal ? 'on' : ''}`, type: 'button', role: 'radio', 'aria-checked': String(k.id === catVal), title: k.name, style: k.id ? catVars(k.color) : {},
-          onclick: () => { catVal = k.id; catRow.querySelectorAll('.cat-opt').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); }); } }, h('i'), h('span', {}, k.name));
-        return b;
-      }));
+      // Your most-used categories show first; the rest sit behind "More". "+ New" adds one right here,
+      // with its color, and the dot on the chosen chip changes that category's color.
+      let showAll = false, adding = false;
+      const useCount = () => { const n = {}; store.cardsWhere(x => x.tool === 'timely' && x.meta?.cat).forEach(x => { n[x.meta.cat] = (n[x.meta.cat] || 0) + 1; }); return n; };
+      const SHOW = 5;
+      const paintCatRow = () => {
+        const all = cats(), used = useCount();
+        const ranked = all.map((k, i) => ({ k, i, n: used[k.id] || 0 })).sort((a2, b2) => b2.n - a2.n || a2.i - b2.i).map(x => x.k);
+        const top = ranked.slice(0, SHOW);
+        if (catVal && !top.some(k => k.id === catVal)) { const cur = all.find(k => k.id === catVal); if (cur) top.push(cur); }
+        const list = showAll ? ranked : top;
+        const chip = k => {
+          const b = h('button', { class: `cat-opt ${k.id ? '' : 'cat-none'} ${k.id === catVal ? 'on' : ''}`, type: 'button', role: 'radio', 'aria-checked': String(k.id === catVal), title: k.id ? `${k.name} (click the dot to change its color)` : 'No category', style: k.id ? catVars(k.color) : {},
+            onclick: e => {
+              if (k.id && k.id === catVal && e.target.closest('i')) { recolor(k, b); return; }
+              catVal = k.id; paintCatRow();
+            } }, h('i'), h('span', {}, k.name));
+          return b;
+        };
+        const kids = [chip({ id: '', name: 'None' }), ...list.map(chip)];
+        if (ranked.length > list.length) kids.push(h('button', { class: 'cat-more-btn', type: 'button', onclick: () => { showAll = true; paintCatRow(); } }, `More (${ranked.length - list.length})`));
+        else if (showAll && ranked.length > SHOW) kids.push(h('button', { class: 'cat-more-btn', type: 'button', onclick: () => { showAll = false; paintCatRow(); } }, 'Fewer'));
+        if (adding) {
+          let color = CAT_PALETTE.find(col => !all.some(x => x.color === col)) || CAT_PALETTE[all.length % CAT_PALETTE.length];
+          const name = h('input', { class: 'field-input sm cat-new-name', placeholder: 'Name', maxlength: 18, 'aria-label': 'New category name' });
+          const dots = h('div', { class: 'cat-new-colors' }, CAT_PALETTE.map(col => h('button', { class: `cat-sw ${col === color ? 'on' : ''}`, type: 'button', style: { background: col }, 'aria-label': `Color ${col}`,
+            onclick: ev => { color = col; dots.querySelectorAll('.cat-sw').forEach(x => x.classList.toggle('on', x === ev.currentTarget)); } })));
+          const save = () => { const nm = name.value.trim(); if (!nm) { name.focus(); return; } const id = `c${Date.now().toString(36)}`; saveCats([...cats(), { id, name: nm, color }]); catVal = id; adding = false; paintCatRow(); };
+          name.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); save(); } if (ev.key === 'Escape') { adding = false; paintCatRow(); } });
+          kids.push(h('div', { class: 'cat-new-inline' }, name, dots, h('div', { class: 'cat-new-actions' },
+            h('button', { class: 'btn ghost xs', type: 'button', onclick: () => { adding = false; paintCatRow(); } }, 'Cancel'),
+            h('button', { class: 'btn primary xs', type: 'button', onclick: save }, 'Add'))));
+          setTimeout(() => name.focus(), 0);
+        } else kids.push(h('button', { class: 'cat-add-btn', type: 'button', onclick: () => { adding = true; paintCatRow(); } }, icon('plus'), 'New'));
+        catRow.replaceChildren(...kids);
+      };
+      // Change a category's color straight from its chip.
+      const recolor = (k, anchor) => {
+        catRow.querySelectorAll('.cat-swatches').forEach(x => x.remove());
+        anchor.after(h('div', { class: 'cat-swatches inline' }, CAT_PALETTE.map(col => h('button', { class: `cat-sw ${col === k.color ? 'on' : ''}`, type: 'button', style: { background: col }, 'aria-label': `Color ${col}`,
+          onclick: () => { saveCats(cats().map(x => (x.id === k.id ? { ...x, color: col } : x))); paintCatRow(); } }))));
+      };
       paintCatRow();
       const sync = () => { f.dur.disabled = !f.time.value; f.slot.disabled = !!f.time.value; };
       f.time.addEventListener('input', sync); sync();

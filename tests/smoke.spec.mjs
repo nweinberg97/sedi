@@ -427,11 +427,12 @@ test.describe('assistant', () => {
     await loadFixture(page);
     // These tests stand in for the browser's ears (the private model can't download here).
     await page.evaluate(async () => (await import('/js/store.js')).setPref('hearing', 'browser'));
-    // Tapping the atom opens Atom ready to type; the mic switches to voice.
+    // Voice first: tapping the atom opens Atom on the mic (not listening yet); tapping the orb starts.
     await page.locator('.assistant-token').click();
-    await expect(page.locator('.assistant-tray')).toHaveAttribute('data-view', 'type');
+    await expect(page.locator('.assistant-tray')).toHaveAttribute('data-view', 'voice');
+    await expect(page.locator('.assistant-tray')).toHaveAttribute('data-state', 'idle');
     await page.evaluate(() => window.__heard.push('summary'));
-    await page.locator('.as-mic').click();
+    await page.locator('.as-orb').click();
     // The first time, two tip cards explain how voice works; Start talking begins listening.
     await expect(page.locator('.vt-card')).toHaveCount(2);
     await page.getByRole('button', { name: 'Start talking' }).click();

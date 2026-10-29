@@ -12,7 +12,7 @@ import { findCard, fixVocabulary } from './commands.js';
 import { nextUpItems } from './home.js';
 import { COLUMNS } from './taskly.js';
 import { occurrencesOn, weekPlanKey, monthPlanKey } from './timely.js';
-import { hearOnce, earsNow } from './speech.js';
+import { hearOnce, earsNow, isMicBlocked } from './speech.js';
 import { hearingState, onHearingChange, hearingPref, prepareHearing, canCapture, hearingDownloaded, hearingModel, hearingModelKey, HEARING_MODELS, resetHearing } from './hearing.js';
 import * as brain from './brain.js';
 import { removeModelFiles } from './runtime.js';
@@ -40,8 +40,13 @@ export function buildAssistant() {
     h('button', { class: 'as-mode', type: 'button', role: 'tab', dataset: { mode: 'ask' }, title: 'Ask a question, or tell Sedi what to change', onclick: () => setMode('ask') }, 'Ask'),
     h('button', { class: 'as-mode', type: 'button', role: 'tab', dataset: { mode: 'unload' }, title: 'Talk it all out; Atom pulls out the cards', onclick: () => setMode('unload') }, 'Unload'));
   tray = h('section', { class: 'assistant-tray', 'aria-label': 'Atom', hidden: true, dataset: { view: 'voice', state: 'idle' } },
-    h('div', { class: 'as-head' }, modes, statusEl, earsChip, h('span', { class: 'head-spacer' }), more,
-      h('button', { class: 'icon-btn xs', 'aria-label': 'Close assistant', title: 'Close', onclick: () => toggle(false) }, icon('x'))),
+    // Its name sits in the middle, as a title (not a button); the two modes sit centred beneath it.
+    h('div', { class: 'as-head' },
+      h('div', { class: 'as-head-side' }, earsChip),
+      h('div', { class: 'as-name' }, h('strong', {}, 'Atom'), statusEl),
+      h('div', { class: 'as-head-side end' }, more,
+        h('button', { class: 'icon-btn xs', 'aria-label': 'Close assistant', title: 'Close', onclick: () => toggle(false) }, icon('x')))),
+    h('div', { class: 'as-modes-row' }, modes),
     output,
     h('div', { class: 'as-voice' },
       h('button', { class: 'icon-btn as-side', type: 'button', 'aria-label': 'Type instead', title: 'Type instead', onclick: () => setView('type') }, icon('keyboard')),
@@ -85,7 +90,7 @@ function paintStatus() {
   const active = engineConfig().active;
   if (active !== 'local') { statusEl.textContent = engineLabel(); statusEl.title = 'Answers come from the engine chosen in AI engines'; }
   else {
-    statusEl.textContent = !brain.isEnabled() ? 'Atom' : s.status === 'ready' ? 'On-device AI' : s.status === 'loading' ? 'AI loading…' : s.status === 'error' ? 'AI offline' : 'On-device AI';
+    statusEl.textContent = !brain.isEnabled() ? '' : s.status === 'ready' ? 'On-device AI' : s.status === 'loading' ? 'AI loading…' : s.status === 'error' ? 'AI offline' : 'On-device AI';
     statusEl.title = brain.isEnabled() ? 'Answers come from the open model running on this device' : 'Answers come from your own cards. Turn on an AI engine for open questions.';
   }
   const ears = earsNow(), hs = hearingState();
@@ -172,7 +177,7 @@ function openMore(anchor) {
     item('eraser', 'Clear conversation', clearChat)), { className: 'as-menu-pop' });
 }
 
-function toggle(force, { view = 'voice' } = {}) {
+function toggle(force, { view = 'voice', listen = true } = {}) {
   const open = typeof force === 'boolean' ? force : tray.hidden;
   const wasOpen = !tray.hidden;
   tray.hidden = !open;
@@ -185,7 +190,9 @@ function toggle(force, { view = 'voice' } = {}) {
     if (view === 'type' || !earsNow()) { setView('type'); return; }
     tray.dataset.view = 'voice';
     paintModes();
-    if (!wasOpen || vstate === 'idle') talk();
+    if (isMicBlocked()) { setState('idle', micNote()); return; } // voice stays in view; it just can't listen here
+    if (listen && (!wasOpen || vstate === 'idle')) talk();
+    else if (vstate === 'idle') setState('idle');
   } else { parkUnload(); session?.cancel(); session = null; setState('idle'); }
 }
 
@@ -193,7 +200,7 @@ function toggle(force, { view = 'voice' } = {}) {
 function paintModes() {
   const m = tray.dataset.view === 'unload' ? 'unload' : 'ask';
   modes.querySelectorAll('.as-mode').forEach(b => { const on = b.dataset.mode === m; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
-  modes.querySelector('[data-mode="unload"]').hidden = !earsNow() && !unloadCtl;
+  modes.querySelector('[data-mode="unload"]').hidden = false; // always there: without a mic, Unload takes typing
   // No microphone here (blocked, or the sandbox): typing only, with no buttons that would just error.
   const mic = tray.querySelector('.as-mic');
   if (mic) mic.hidden = !earsNow();
@@ -215,7 +222,7 @@ function parkUnload() {
 // ---------- Unload: the guided brain dump ----------
 function startUnload() {
   if (tray.hidden) toggle(true, { view: 'type' });
-  if (needsVoiceSetup()) { setView('voice'); showVoiceIntro(); return; }
+  if (!isMicBlocked() && needsVoiceSetup()) { setView('voice'); showVoiceIntro(); return; }
   session?.cancel(); session = null; setState('idle');
   tray.dataset.view = 'unload';
   paintModes();
@@ -281,7 +288,7 @@ function makeDraggable() {
       return;
     }
     if (cancelled) return;
-    toggle(undefined, { view: 'type' }); // a tap opens Atom ready to type; holding is how you talk
+    toggle(undefined, { listen: false }); // voice first: a tap opens Atom with the mic one tap away (typing too); holding talks right away
     token.classList.remove('spin'); void token.offsetWidth; token.classList.add('spin'); setTimeout(() => token.classList.remove('spin'), 1100);
   };
   token.addEventListener('pointerdown', e => {
@@ -318,7 +325,7 @@ function makeDraggable() {
   token.addEventListener('pointercancel', e => finish(e, true));
   token.addEventListener('lostpointercapture', e => { if (press && e.pointerId === press.id) finish(e, press.mode === 'tap'); });
   // Keyboard: Enter or Space. Some touch browsers also send a detail-0 click right after a tap; that one is skipped.
-  token.addEventListener('click', e => { if (e.detail === 0 && Date.now() - lastPress > 600) toggle(undefined, { view: 'type' }); });
+  token.addEventListener('click', e => { if (e.detail === 0 && Date.now() - lastPress > 600) toggle(undefined, { listen: false }); });
   token.addEventListener('contextmenu', e => e.preventDefault());           // long-press on touch screens
   addEventListener('resize', () => { placeToken(); if (!tray.hidden) positionTray(); });
 }
@@ -381,8 +388,11 @@ function onOrb() {
   if (intro) { const b = intro.querySelector('.btn.primary'); b?.classList.remove('nudge'); void b?.offsetWidth; b?.classList.add('nudge'); b?.focus(); return; }
   if (vstate === 'listening' || vstate === 'hearing') { session?.stop(); return; }           // done talking
   if (vstate === 'thinking' || vstate === 'preparing') return;
+  if (isMicBlocked()) { setState('idle', micNote()); return; }
   talk();
 }
+// Voice-first stays the way in, even when the microphone can't be reached; Atom just says why, once, calmly.
+const micNote = () => (window.SEDI_SANDBOX ? 'Voice works in the real Sedi app, not this preview. Tap the keyboard to type.' : 'The microphone is blocked. Allow it in your browser and tap here, or tap the keyboard to type.');
 /** Start talking, or, the first time, explain the private voice and ask before downloading it. */
 function talk() {
   if (needsVoiceSetup()) { showVoiceIntro(); return; }

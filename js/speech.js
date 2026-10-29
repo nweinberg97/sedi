@@ -157,7 +157,6 @@ export function askVoiceConsent() {
 import { captureUtterance, captureStream, prepareHearing, hearingState, hearingPref, canCapture, shouldPrepare, onHearingChange } from './hearing.js';
 /** Which ears will be used right now: 'device' (private, on-device Whisper) or 'browser'. */
 export function earsNow() {
-  if (micBlocked) return null;
   const pref = hearingPref(), ready = hearingState().status === 'ready';
   if (pref === 'browser') return SR ? 'browser' : (canCapture ? 'device' : null);
   if (ready && canCapture) return 'device';

@@ -3988,7 +3988,7 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
   .task-card.has-chrome, .plan-card.has-chrome, .board-canvas > .tile.has-chrome:not(.note-card), .plan-item.has-chrome { padding-right: 40px; }
   /* Bigger targets for the things you tap most */
   .card-more { width: 36px; height: 36px; top: 2px; right: 2px; opacity: 0.75; }
-  .task-check, .plan-check, .step-check, .routine-tick, .check { position: relative; }
+  .task-check, .plan-check, .step-check, .check, .t-chip > .routine-tick { position: relative; }
   .task-check::after, .plan-check::after, .step-check::after, .routine-tick::after, .check::after { content: ""; position: absolute; inset: -8px; }
   .side-switch button { height: 36px; }
   .bf-color, .swatch.sm { position: relative; }
@@ -4006,3 +4006,80 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
   .atom-hint { left: 0 !important; right: 0 !important; margin-inline: auto; width: max-content; max-width: calc(100vw - 32px); }
   .atom-hint i { left: 50% !important; right: auto !important; translate: -50% 0 !important; }
 }
+
+/* Categories in details: most-used first, More for the rest, + New right in the row */
+.cat-more-btn, .cat-add-btn { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 11px; border-radius: var(--r-pill); font-size: var(--fs-sm); color: var(--muted); border: 1px dashed var(--line-2); background: transparent; }
+.cat-more-btn:hover, .cat-add-btn:hover { color: var(--ink); border-color: var(--ink-2); }
+.cat-add-btn svg { width: 13px; height: 13px; }
+.cat-opt.on i { cursor: pointer; box-shadow: inset 0 0 0 1.5px var(--cat), 0 0 0 2px var(--paper), 0 0 0 3px color-mix(in srgb, var(--cat) 50%, transparent); }
+.cat-new-inline { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; background: var(--well); }
+.cat-new-inline .cat-new-name { flex: 1 1 140px; min-width: 120px; }
+.cat-new-colors { display: flex; flex-wrap: wrap; gap: 6px; }
+.cat-new-colors .cat-sw { width: 20px; height: 20px; }
+.cat-new-actions { display: flex; gap: 6px; margin-left: auto; }
+.cat-swatches.inline { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 2px; grid-template-columns: none; }
+
+/* ======================================================================
+   Timely on phones: calm and easy
+   ====================================================================== */
+@media (max-width: 700px) {
+  .timely .timely-head { gap: 6px; padding-right: 0; }
+  .timely .timely-top { min-height: 0; gap: 10px; }
+  .timely .view-title { font-size: 22px; }
+  .timely .timely-toolbar { margin: 0; }
+  .timely .tl-tabs { width: 100%; display: flex; }
+  .timely .tl-tab { flex: 1; justify-content: center; padding: 8px 0; font-size: var(--fs-sm); }
+  .timely .tl-tab svg { display: none; }
+  .timely .tb-right { display: none; }
+  /* Day: date, arrows and the two actions on one compact header */
+  .timely .day-col > .cal-head .cal-today { display: none; }
+  .timely .m-day-actions { display: flex; gap: 8px; }
+  .timely .m-day-actions .m-today-btn { height: 38px; }
+  .timely .m-day-actions .m-plan-btn { flex: 1; justify-content: center; height: 38px; }
+  .timely .m-day-actions .m-plan-btn small { font-size: var(--fs-2xs); font-weight: 600; background: var(--well); border-radius: 8px; padding: 0 6px; }
+  .timely .m-day-actions .m-add-btn { flex: 1; justify-content: center; height: 38px; }
+  .timely .day-layout { display: block !important; }
+  .timely .day-col { gap: 8px; }
+  .timely .allday { padding: 6px 10px; min-height: 0; }
+  .timely .day-scroll { flex: none !important; overflow-y: auto !important; overscroll-behavior: contain; border-radius: 16px; }
+  .timely .now-add { display: none; }
+  /* Plan sheet */
+  .sheet-modal .side-plan .day-plan { background: transparent; box-shadow: none; border: 0; padding: 0; }
+  .sheet-modal .side-switch { margin-bottom: 4px; }
+}
+@media (max-width: 700px) {
+  .timely .day-col .event-block { right: 10px; }
+  .timely .day-col .event-block.in-lane { width: calc((100% - 82px) * var(--span, 1) / var(--lanes) - 4px); left: calc(72px + (100% - 82px) * var(--lane) / var(--lanes)); }
+  .timely .event-block > .routine-tick { width: 22px !important; height: 22px !important; left: 7px; }
+  .timely .event-block:has(> .routine-tick) { padding-left: 38px; }
+  .timely .event-block.tiny > .routine-tick { width: 16px !important; height: 16px !important; }
+  .timely .event-block.tiny:has(> .routine-tick) { padding-left: 30px; }
+}
+/* Weekly on phones: a list of days */
+.week-phone { display: flex; flex-direction: column; gap: 10px; }
+.week-phone .cal-head .cal-today { display: none; }
+.agenda { display: flex; flex-direction: column; gap: 8px; padding-bottom: 90px; }
+.ag-day { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.ag-day.today { border-color: color-mix(in srgb, var(--timely) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--timely) 25%, transparent); }
+.ag-day.drop-over { background: color-mix(in srgb, var(--timely) 8%, var(--paper)); }
+.ag-head { display: flex; align-items: baseline; gap: 8px; }
+.ag-name { font-weight: 600; font-size: var(--fs-md); }
+.ag-day.today .ag-name { color: var(--timely-ink, #8a6a2f); }
+.ag-date { font-size: var(--fs-sm); color: var(--muted); }
+.ag-add { align-self: center; }
+.ag-items { display: flex; flex-direction: column; gap: 6px; }
+.ag-items .t-chip { min-height: 40px; padding: 6px 10px; font-size: var(--fs-sm); display: flex; align-items: center; gap: 8px; }
+.ag-items .t-chip-time { min-width: 52px; color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.ag-empty { margin: 0; font-size: var(--fs-sm); color: var(--faint, var(--muted)); }
+.t-chip > .routine-tick { position: relative !important; inset: auto !important; transform: none !important; flex: none; }
+.ag-items .t-chip > .routine-tick { width: 22px !important; height: 22px !important; }
+
+/* Atom's tray: its name centred as a title, the modes centred beneath */
+.as-head { display: grid !important; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+.as-head-side { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.as-head-side.end { justify-content: flex-end; }
+.as-name { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.as-name strong { font-size: var(--fs-md, 15px); font-weight: 600; letter-spacing: 0.01em; color: var(--ink); }
+.as-name .as-status { margin: 0; font-size: 10px; color: var(--faint, var(--muted)); }
+.as-name .as-status:empty { display: none; }
+.as-modes-row { display: flex; justify-content: center; margin: 2px 0 4px; }

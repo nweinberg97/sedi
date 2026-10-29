@@ -8,7 +8,7 @@
 import * as store from './store.js';
 import { h, icon, toast, todayKey, editInline } from './util.js';
 import { learnFromEdit } from './vocab.js';
-import { hearStream, earsNow } from './speech.js';
+import { hearStream, earsNow, isMicBlocked } from './speech.js';
 import { suggest, commandFor, whenWords, tidyTitle, TYPE_LABEL } from './unload-parse.js';
 import { parseCommands } from './commands.js';
 import { tick } from './sound.js';
@@ -60,7 +60,7 @@ const HOME = { task: 'Taskly', reminder: 'Timely', event: 'Timely', goal: 'Board
  */
 export function openUnload(host, api) {
   let session = null, paused = false, finished = false, startedAt = Date.now(), talkMs = 0, timer = null, softStop = null;
-  let waiting = 0, run = 0, savedNoteId = null;
+  let waiting = 0, run = 0, savedNoteId = null, typing = false;
   const chunks = [];            // { text, el, deleted }
   const rows = new Set();       // every suggestion row, to count what's left
 
@@ -89,7 +89,7 @@ export function openUnload(host, api) {
   const unfiled = () => chunks.filter(c => !c.deleted && c.el.classList.contains('unfiled'));
   const paintStatus = () => {
     panel.dataset.state = finished ? 'done' : paused ? 'paused' : 'listening';
-    status.textContent = finished ? 'Finished' : paused ? 'Paused' : waiting > 0 ? 'Listening · writing…' : 'Listening';
+    status.textContent = finished ? 'Finished' : typing ? 'Typing' : paused ? 'Paused' : waiting > 0 ? 'Listening · writing…' : 'Listening';
     const n = openRows().length;
     toSort.hidden = !n;
     toSort.textContent = `${n} to sort`;
@@ -131,7 +131,7 @@ export function openUnload(host, api) {
         if (/Didn’t catch/.test(msg)) return;
         live.textContent = msg;
         // A blocked microphone won't fix itself: pause once and say so, instead of retrying into it.
-        if (!earsNow()) { pause(); live.textContent = 'Voice isn’t available here: the microphone is blocked. Allow it in your browser, then tap Resume.'; return; }
+        if (!earsNow() || isMicBlocked()) { pause(); typeMode(); return; }
         toast(msg);
       },
       onEnd: () => {
@@ -323,7 +323,21 @@ export function openUnload(host, api) {
   // Worth keeping open when Atom closes: something was said that hasn't been dealt with.
   const busy = () => !finished ? chunks.some(c => !c.deleted) || openRows().length > 0 : openRows().length > 0 || (!savedNoteId && chunks.some(c => !c.deleted));
 
-  if (!earsNow()) { live.textContent = 'Voice isn’t available in this browser. Type in Atom instead.'; finished = true; paintStatus(); return { stop: close, pause() {}, resume() {}, finish() {}, busy: () => false }; }
+  // No microphone here (blocked, or the in-chat preview): Unload still works by typing. Same sorting, same cards.
+  function typeMode() {
+    if (panel.querySelector('.ul-type-box')) return;
+    const box = h('textarea', { class: 'field-input ul-type-in', rows: 2, placeholder: 'Type it all out. Press Enter after each thought.', 'aria-label': 'Type a thought' });
+    box.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const t = box.value.trim(); if (t) { addChunk(t); box.value = ''; } }
+    });
+    const note = window.SEDI_SANDBOX ? 'Voice works in the real Sedi app. Here, type it out.' : 'The microphone is blocked, so type it out (or allow the mic and tap Resume).';
+    live.after(h('div', { class: 'ul-type-box' }, h('p', { class: 'muted small' }, note), box));
+    paused = true; typing = true; panel.dataset.state = 'paused'; paintStatus();
+    pauseBtn.hidden = !!window.SEDI_SANDBOX;
+    setTimeout(() => box.focus(), 30);
+  }
+  if (!earsNow() || isMicBlocked()) { typeMode(); return { stop: close, pause() {}, resume() {}, finish, busy }; }
   timer = setInterval(tickClock, 1000);
   softStop = setTimeout(() => { toast('Unload stopped after 15 minutes. Tap Unload more to keep going.'); finish(); }, SOFT_STOP_MS);
   listen();
