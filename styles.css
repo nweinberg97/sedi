@@ -3920,3 +3920,60 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .event-block.cat, .t-chip.cat { background: var(--cat-bg); border-color: color-mix(in srgb, var(--cat) 30%, transparent); border-left-color: var(--cat); }
 .ical-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .ical-row > [hidden] { display: none; }
+
+/* Unload: where each card goes, chosen like "Move to…" anywhere else */
+.ul-where { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 2px 8px 2px 6px; border-radius: var(--r-pill); font-size: var(--fs-2xs, 11px); color: var(--ink-2); background: var(--well); }
+.ul-where:hover { background: color-mix(in srgb, var(--ink) 8%, var(--well)); color: var(--ink); }
+.ul-where > span:not(.ul-where-arrow) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ul-where-arrow { color: var(--muted); }
+.ul-where-chev { width: 11px; height: 11px; color: var(--muted); flex: none; }
+.ul-guess { font-style: normal; font-weight: 600; font-size: 10px; color: #4a63d6; background: #eef1fd; border-radius: 999px; padding: 0 6px; }
+.ul-row-foot { min-width: 0; }
+.ul-dest-pop { display: flex; flex-direction: column; gap: 10px; width: min(440px, calc(100vw - 40px)); }
+.ul-dest-pop .mp-here, .ul-dest-pop .mp-status { display: none; }
+.ul-dest-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* One-line card titles: the title gets one comfortable line; the rest continues small and italic beneath */
+.pc-title, .tile-title, .plan-text, .task-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-line-clamp: unset; min-width: 0; }
+.pc-title.editing, .tile-title.editing, .plan-text.editing, .task-title.editing { white-space: normal; overflow: visible; }
+.plan-card, .plan-item { padding-top: 9px; padding-bottom: 9px; }
+.board-canvas > .tile:not(.note-card) { padding-top: 10px; padding-bottom: 10px; }
+
+/* One ⋯ per card: Details, Duplicate, Delete. A single, roomy target in the corner. */
+.card-more { position: absolute; top: 4px; right: 4px; z-index: 4; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); opacity: 0; transition: opacity 0.15s, background 0.12s; }
+.card-more svg { width: 15px; height: 15px; }
+.has-chrome:hover > .card-more, .has-chrome:has(:focus-visible) > .card-more, .card-more[aria-expanded="true"] { opacity: 1; }
+.card-more:hover { background: rgba(17, 17, 17, 0.07); color: var(--ink); }
+@media (hover: none) { .card-more { opacity: 0.7; } }
+.card-tools, .sticky .card-tools, .b-note .card-tools { top: auto; bottom: 4px; right: 6px; }
+.card-menu { display: flex; flex-direction: column; min-width: 170px; padding: 2px; }
+.card-menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+.cm-item { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; font-size: var(--fs-sm); color: var(--ink); text-align: left; }
+.cm-item svg { width: 15px; height: 15px; color: var(--muted); }
+.cm-item:hover { background: var(--well); }
+.cm-item.danger { color: var(--danger); }
+.cm-item.danger svg { color: var(--danger); }
+.cm-item.danger:hover { background: #fde8e8; }
+.boardly .card-more { color: var(--faint, var(--muted)); }
+.sticky .card-more { top: 6px; right: 6px; color: rgba(0, 0, 0, 0.45); }
+.event-block .card-more { top: 3px; right: 3px; width: 22px; height: 22px; }
+/* Titles use the card's full width; the ⋯ floats over the end of the line on hover, on the card's own color */
+.task-card.has-chrome, .plan-card.has-chrome, .board-canvas > .tile.has-chrome:not(.note-card) { padding-right: 12px; }
+.task-card > .card-more, .plan-card > .card-more, .tile > .card-more, .plan-item > .card-more { background: color-mix(in srgb, var(--paper) 88%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--paper) 88%, transparent); }
+.task-card > .card-more:hover, .plan-card > .card-more:hover, .tile > .card-more:hover { background: var(--well); }
+
+/* Builder: Ship settings and Ship all on each project */
+.ct-builder { flex-direction: column; align-items: stretch; }
+.ct-ship-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.ct-ship-to { max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-send-all { background: var(--ink); color: #fff; border-color: var(--ink); }
+.ct-send-all svg { color: #fff; }
+.ship-set { display: flex; flex-direction: column; gap: 6px; width: min(340px, calc(100vw - 40px)); }
+.ship-set .field-label { margin-top: 4px; }
+.ship-set p { margin: 0; }
+.ship-err { color: var(--danger); margin: 0; }
+.ship-actions { display: flex; justify-content: flex-end; margin-top: 4px; }
+.chip.ct-send-all, .chip.ct-send-all:hover, .chip.ct-send-all:focus-visible { background: var(--ink); color: #fff; border-color: var(--ink); }
+.chip.ct-send-all:hover { background: color-mix(in srgb, var(--ink) 85%, white); }
+.popover.ul-dest-popover, .popover.ship-pop, .popover.cat-names-pop { max-width: calc(100vw - 24px); width: auto; }
+.ul-dest-pop .move-picker { min-width: 0; }

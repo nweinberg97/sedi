@@ -95,6 +95,7 @@ export function suggest(text, { now = new Date(), tabs = [], cards = [], plan = 
       if (type && title && title.split(/\s+/).length <= 14) s = { type, title, when: type === 'goal' ? null : when, tab: null, sure };
     }
     if (!s) continue;
+    s.raw = raw; // the words as said, for guessing where it belongs
     if (s.type === 'goal' && !s.tab) s.tab = guessTab(s.title, tabs);
     if (!out.some(o => o.title.toLowerCase() === s.title.toLowerCase())) out.push(s);
   }

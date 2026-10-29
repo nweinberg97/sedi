@@ -326,8 +326,8 @@ function widthHandle(el, c) {
   return hd;
 }
 
-function titleSpan(c) {
-  const t = h('span', { class: 'tile-title', title: c.title }, c.title);
+function titleSpan(c, { fit = true } = {}) {
+  const t = h('span', { class: 'tile-title', title: c.title, dataset: fit ? { fit: c.title } : {} }, c.title);
   t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }, { log: true }) }); });
   return t;
 }
@@ -351,7 +351,7 @@ function noteEl(c) {
   ta.value = c.description || '';
   const el = h('article', { class: 'tile note-card', dataset: { drag: 'card', id: c.id } },
     h('div', { class: 'note-head' },
-      icon('pencil', 'type-icon'), titleSpan(c),
+      icon('pencil', 'type-icon'), titleSpan(c, { fit: false }),
       h('button', { class: 'icon-btn sm note-toggle', 'aria-label': 'Expand note', onclick: e => { e.stopPropagation(); el.classList.contains('open') ? collapseNote(el) : expandNote(el); } }, icon('expand'))),
     h('div', { class: 'note-preview' }, (c.description || '').split('\n')[0] || ' '),
     ta);

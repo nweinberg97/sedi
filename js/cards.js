@@ -1,7 +1,7 @@
 // Sedi — the universal card: polymorphic routing between tools, ordering, and the shared editor.
 
 import * as store from './store.js';
-import { h, icon, modal, stripHtml, toast } from './util.js';
+import { h, icon, modal, stripHtml, toast, popover, closePopovers } from './util.js';
 import { crunch } from './sound.js';
 import { dictate as listen, canListen } from './speech.js'; // card mics: instant browser dictation
 
@@ -99,15 +99,14 @@ export function notesSnippet(card, cls = '') {
   return line ? h('span', { class: `card-snippet ${cls}`, title: d.slice(0, 400) }, line) : null;
 }
 
-/** Adds the shared corner chrome to a card element: delete, details, duplicate, and the notes fold.
- *  Every card gets one-tap Duplicate in its hover tools, beside Details. Small cards ({ compact: true })
- *  get only that; their other extras live inside Details. Pass { onDuplicate } to use a tool's own copy. */
+/** Adds the shared chrome to a card element. One quiet ⋯ in the corner opens Details, Duplicate and Delete,
+ *  so there are never two small targets side by side to mis-click. A tool's own quick actions (calendar,
+ *  repeat, ship…) sit along the bottom on hover. Small cards ({ compact: true }) keep only the ⋯. */
 export function cardChrome(el, card, onInfo, { compact = false, actions = [], onDuplicate = null } = {}) {
   el.classList.add('has-chrome');
   el.classList.toggle('with-notes', hasNotes(card));
   if (hasNotes(card)) el.title = el.title || 'Has notes';
-  el.append(deleteButton(card.id), infoButton(onInfo));
-  const dup = duplicateButton(card.id, onDuplicate);
+  el.append(moreButton(card.id, onInfo, onDuplicate));
   // On touch screens there's no hover or double-click, so a single tap opens the card.
   if (!el.dataset.tapOpen) {
     el.dataset.tapOpen = '1';
@@ -118,9 +117,22 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
       e.sediOpened = true; // a tool's own tap handler checks this so one tap never opens a card twice
     });
   }
-  el.append(h('div', { class: 'card-tools' }, ...(compact ? [] : actions), dup));
+  if (!compact && actions.length) el.append(h('div', { class: 'card-tools' }, ...actions));
   return el;
 }
+/** The card's ⋯ menu: Details first, Delete last and apart, in red. */
+export const moreButton = (id, onInfo, onDuplicate) => h('button', {
+  class: 'card-more', type: 'button', 'aria-label': 'More: details, duplicate, delete', title: 'Details, duplicate, delete',
+  onclick: e => {
+    e.stopPropagation();
+    const item = (ic, label, fn, cls = '') => h('button', { class: `cm-item ${cls}`, type: 'button', onclick: ev => { ev.stopPropagation(); closePopovers(); fn(ev); } }, icon(ic), label);
+    popover(e.currentTarget, h('div', { class: 'card-menu', role: 'menu' },
+      item('expand', 'Open details', onInfo),
+      item('copy', 'Duplicate', () => (onDuplicate || duplicateCard)(id)),
+      h('hr'),
+      item('trash', 'Delete', () => trashCard(id), 'danger')), { className: 'card-menu-pop' });
+  },
+}, icon('more'));
 export const duplicateButton = (id, onDuplicate) => h('button', {
   class: 'card-tool card-dup', type: 'button', 'aria-label': 'Duplicate', title: 'Duplicate',
   onclick: e => { e.stopPropagation(); (onDuplicate || duplicateCard)(id); },
@@ -244,7 +256,7 @@ export function currentDestination(card) {
 }
 const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 /** Send a card somewhere. Crossing tools goes through routeCard, exactly like a drag via the Universal Board. */
-export function moveCardTo(id, key) {
+export function moveCardTo(id, key, { quiet = false } = {}) {
   const card = store.getCard(id);
   if (!card) return false;
   const [tool, a, b, c] = key.split(':');
@@ -285,7 +297,7 @@ export function moveCardTo(id, key) {
     drop.forEach(k => delete meta[k]);
     store.updateCard(id, { type: dest.type || card.type, meta }, { replaceMeta: true, log: true, logLabel: `Moved to ${destinationLabel(key)}` });
   } else routeCard(id, dest);
-  toast(`Moved to ${destinationLabel(key)}`);
+  if (!quiet) toast(`Moved to ${destinationLabel(key)}`);
   return true;
 }
 const MOVE_ICONS = { Taskly: 'checklist', Boardly: 'board', Timely: 'calendar', Brainly: 'brain', Links: 'link', 'Universal Board': 'galaxy' };
@@ -319,7 +331,7 @@ export function moveSelect(card) {
     requestAnimationFrame(() => { track.querySelector('.mp-chip.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }); paintArrows(); });
   };
   const el = h('div', { class: 'move-picker' }, tabs, h('div', { class: 'mp-rail' }, prev, track, next), status);
-  Object.defineProperty(el, 'value', { get: () => value, set: v => { value = v; paint(); } });
+  Object.defineProperty(el, 'value', { get: () => value, set: v => { value = v; group = (groups.find(([, list]) => list.some(([x]) => x === v)) || [group])[0]; paint(); } });
   paint();
   return el;
 }

@@ -169,7 +169,7 @@ function cardEl(c) {
   const el = h('article', { class: `task-card ${col === 'completed' ? 'done' : ''} ${col === 'review' && isDue(c) ? 'due' : ''}`, dataset: { drag: 'card', id: c.id }, tabindex: 0 },
     col === 'todo' ? h('button', { class: 'task-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); complete(c.id, e.currentTarget); } }, icon('check')) : null,
     h('div', { class: 'task-main' },
-      h('span', { class: `task-title ${col === 'review' || notesSnippet(c) ? 'one-line' : ''}`, title: c.title }, c.title),
+      h('span', { class: 'task-title one-line', title: c.title, dataset: { fit: c.title } }, c.title),
       col === 'review' ? null : notesSnippet(c),
       col === 'review' ? reviewTimer(c) : null));
   cardChrome(el, c, () => edit(c.id));

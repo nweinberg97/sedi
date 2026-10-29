@@ -3,7 +3,7 @@
 // Routines (SD-T4) are cards with meta.recurrence; ticking one day adds that date to meta.doneDates.
 
 import * as store from './store.js';
-import { builderOn, toggleBuilder, sendButton, openSendMenu, taskPrompt, listPrompt } from './builder.js';
+import { builderOn, toggleBuilder, sendButton, openSendMenu, taskPrompt, listPrompt, ship, shipButton, shipLabel, openShipSettings } from './builder.js';
 import {
   h, icon, uuid, clamp, toast, modal, editInline, download, popover, closePopovers, hashStr, listMode,
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
@@ -590,7 +590,7 @@ function dayPlanPanel(key) {
     h('div', { class: 'day-plan-list' }, list.map(c => {
       const el = h('div', { class: 'plan-item', dataset: { drag: 'card', id: c.id } },
         h('button', { class: 'plan-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); e.currentTarget.classList.add('on'); celebrate(e.currentTarget); setTimeout(() => completeTask(c.id), 520); } }, icon('check')),
-        h('div', { class: 'plan-main' }, h('span', { class: 'plan-text' }, c.title), notesSnippet(c)),
+        h('div', { class: 'plan-main' }, h('span', { class: 'plan-text', title: c.title, dataset: { fit: c.title } }, c.title), notesSnippet(c)),
         h('button', { class: 'icon-btn xs', title: 'Give it a time today', 'aria-label': 'Schedule it today', onclick: e => { e.stopPropagation(); scheduleToday(c.id, key); } }, icon('clock')));
       el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Task' }));
       return el;
@@ -937,7 +937,7 @@ function periodPlanPanel(kind, key, heading, sub) {
         if (!was) celebrate(btn);
         setTimeout(() => store.updateCard(c.id, { meta: { done: !was } }, { log: !was, logLabel: 'Completed' }), was ? 0 : 450);
       } }, icon('check')),
-      h('div', { class: 'plan-main' }, h('span', { class: 'plan-text' }, c.title), notesSnippet(c)));
+      h('div', { class: 'plan-main' }, h('span', { class: 'plan-text', title: c.title, dataset: { fit: c.title } }, c.title), notesSnippet(c)));
     el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Plan item' }));
     return cardChrome(el, c, () => openEditor(c.id, { title: 'Plan item' }), { compact: true });
   });
@@ -1625,14 +1625,14 @@ function containerEl(b, ct) {
       reorder(planCards(b, ct.id), card.id, 0);
     }) : addRow(ct, 'Add task'),
     cards.map(c => {
-      const t = h('span', { class: 'pc-title', title: c.title }, c.title);
+      const t = h('span', { class: 'pc-title', title: c.title, dataset: { fit: c.title } }, c.title);
       t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
       const check = h('button', {
         class: `step-check round ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? `Mark “${c.title}” not done` : `Mark “${c.title}” done`, 'aria-pressed': String(!!c.meta.done),
         onclick: e => { e.stopPropagation(); togglePlanCard(c, check, el); },
       }, icon('check'));
       const el = h('div', { class: `plan-card ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } }, check, h('div', { class: 'pc-main' }, t, notesSnippet(c)));
-      const actions = builder ? [sendButton(() => taskPrompt(store.getCard(c.id) || c, ct), `Hand off “${c.title}” to an AI app`)] : [];
+      const actions = builder ? [shipButton(() => boardContainers(b).find(x => x.id === ct.id) || ct, () => taskPrompt(store.getCard(c.id) || c, boardContainers(b).find(x => x.id === ct.id) || ct), `Ship “${c.title}” to ${shipLabel(ct)}`)] : [];
       return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }), { actions });
     }));
   if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, 'No tasks yet.'));
@@ -1642,10 +1642,13 @@ function containerEl(b, ct) {
   repo?.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') repo.blur(); });
   repo?.addEventListener('change', () => saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, repo: repo.value.trim() || undefined } : x))));
   const open = cards.filter(c => !c.meta.done).length;
-  const sendAll = builder && open ? h('button', { class: 'chip ghost xs ct-send-all', type: 'button', title: `Hand off all ${open} open tasks to an AI app`, onclick: e => openSendMenu(e.currentTarget, () => listPrompt({ ...ct, repo: repo?.value.trim() || ct.repo }, planCards(b, ct.id)), { title: `Hand off ${open} task${open === 1 ? '' : 's'} to` }) }, icon('send'), 'Hand off all') : null;
+  const live = () => ({ ...(boardContainers(b).find(x => x.id === ct.id) || ct), repo: repo?.value.trim() || ct.repo });
+  const sendAll = builder && open ? h('button', { class: 'chip xs ct-send-all', type: 'button', title: `Ship all ${open} open tasks to ${shipLabel(ct)}`, onclick: e => ship(live(), () => listPrompt(live(), planCards(b, ct.id)), e.currentTarget, { title: `Ship ${open} task${open === 1 ? '' : 's'} to` }) }, icon('send'), `Ship all ${open}`) : null;
+  const shipSet = builder ? h('button', { class: 'chip ghost xs ct-ship-to', type: 'button', title: 'Where this project ships, its repo, and standing instructions',
+    onclick: e => openShipSettings(e.currentTarget, live(), patch => { saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, ...patch } : x))); }) }, icon('gear'), ct.shipUrl ? `To ${shipLabel(ct)}` : 'Ship settings') : null;
   return h('section', { class: `ct ${cards.length > 1 && done === cards.length ? 'all-done' : ''} ${builder ? 'builder' : ''}`, dataset: { drag: 'ctcol', id: ct.id } },
     listHead(b, ct, [h('span', { class: 'col-count' }, cards.length ? `${done}/${cards.length}` : '')]),
-    builder ? h('div', { class: 'ct-builder' }, repo, sendAll) : null,
+    builder ? h('div', { class: 'ct-builder' }, repo, h('div', { class: 'ct-ship-row' }, shipSet, sendAll)) : null,
     cards.length ? h('div', { class: 'ct-progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': cards.length, 'aria-valuenow': done, 'aria-label': `${done} of ${cards.length} done` },
       h('span', { style: { width: `${(done / cards.length) * 100}%` } })) : null,
     listEl);
@@ -1689,7 +1692,7 @@ function goalEl(ct) {
 }
 function stepEl(c) {
   const kind = c.meta.stepKind || 'action';
-  const t = h('span', { class: 'pc-title', title: c.title }, c.title);
+  const t = h('span', { class: 'pc-title', title: c.title, dataset: { fit: c.title } }, c.title);
   t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
   const el = h('div', { class: `plan-card step step-${kind} ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } },
     h('button', { class: `step-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? 'Mark not done' : 'Mark done', 'aria-pressed': String(!!c.meta.done), onclick: e => {

@@ -1,7 +1,7 @@
 // Sedi — boot: hydrate local state, build the shell, route, and keep views in sync with the store.
 
 import * as store from './js/store.js';
-import { h, $, debounce, todayKey, toast } from './js/util.js';
+import { h, $, debounce, todayKey, toast, fitTitles } from './js/util.js';
 import { initDnd } from './js/dnd.js';
 import {
   buildHeader, buildDrawer, buildNavigator, buildUniversal, buildTrash,
@@ -87,6 +87,7 @@ function mountRoute() {
   void viewEl.offsetWidth;
   viewEl.classList.add('enter');
   safely(() => mod.mount(viewEl), route);
+  refit();
   document.title = route === 'home' ? 'Sedi' : `${route[0].toUpperCase() + route.slice(1)} · Sedi`;
 }
 
@@ -107,6 +108,9 @@ function safely(fn, route) {
 }
 
 /** Re-render the visible view, but never while someone is typing inside it. */
+// Card titles are fitted to one line once the view has its final widths.
+const refit = () => requestAnimationFrame(() => requestAnimationFrame(() => viewEl && fitTitles(viewEl)));
+document.fonts?.ready.then(() => refit()); // widths change once the real font arrives
 function renderAll(force = false) {
   renderUniversal();
   const ae = document.activeElement;
@@ -117,6 +121,7 @@ function renderAll(force = false) {
   if (document.body.classList.contains('is-dragging')) { renderQueued = true; setTimeout(() => renderAll(), 300); return; }
   renderQueued = false;
   if (active?.mod.render) safely(() => active.mod.render(), active.name);
+  refit();
   if (keep) {
     const el = viewEl.querySelector(`[data-keep="${CSS.escape(keep.key)}"]`);
     if (el && el !== document.activeElement) {

@@ -309,6 +309,7 @@ export function closePopovers() { $$('.popover').forEach(p => { p._cleanup?.(); 
 /** Make an element's text editable in place; resolves with new text on Enter/blur. */
 export function editInline(el, { multiline = false, onCommit, selectAll = true } = {}) {
   if (el.isContentEditable) return;
+  if (el.dataset.fit) { el.textContent = el.dataset.fit; unfit(el); } // edit the whole title, not the part that fit
   const before = el.textContent;
   el.contentEditable = 'plaintext-only';
   if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
@@ -473,3 +474,36 @@ export function flyHome(el, goHome) {
   setTimeout(() => { el.style.translate = ''; el.style.transition = ''; click(); }, 380);
 }
 
+
+// ---------- One-line card titles ----------
+// A card's title sits on one comfortable line. When it's longer than the card is wide, the words that don't
+// fit continue on the small italic line underneath (ahead of any notes), and that line ends in "…".
+// The full title is always in the card's tooltip and its details. Display only: nothing saved changes.
+function unfit(t) {
+  const snip = t.parentElement?.querySelector(':scope > .card-snippet');
+  if (snip?.dataset.fitAdded) snip.remove();
+  else if (snip && snip.dataset.orig != null) { snip.textContent = snip.dataset.orig; delete snip.dataset.orig; }
+}
+export function fitTitles(root = document) {
+  root.querySelectorAll('[data-fit]').forEach(t => {
+    if (t.isContentEditable || !t.isConnected) return;
+    const full = t.dataset.fit;
+    unfit(t);
+    t.textContent = full;
+    if (!t.clientWidth || t.scrollWidth <= t.clientWidth + 1) return;
+    const parts = full.split(/\s+/);
+    let lo = 1, hi = parts.length - 1, best = 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      t.textContent = parts.slice(0, mid).join(' ');
+      if (t.scrollWidth <= t.clientWidth + 1) { best = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    if (!best) { t.textContent = full; return; } // one long word: the line's own "…" will do
+    t.textContent = parts.slice(0, best).join(' ');
+    const rest = parts.slice(best).join(' ');
+    let snip = t.parentElement.querySelector(':scope > .card-snippet');
+    if (!snip) { snip = h('span', { class: 'card-snippet' }); snip.dataset.fitAdded = '1'; t.after(snip); }
+    else snip.dataset.orig = snip.textContent;
+    snip.textContent = snip.dataset.orig ? `${rest} · ${snip.dataset.orig}` : rest;
+  });
+}

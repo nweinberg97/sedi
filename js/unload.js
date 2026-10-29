@@ -12,6 +12,42 @@ import { hearStream, earsNow } from './speech.js';
 import { suggest, commandFor, whenWords, tidyTitle, TYPE_LABEL } from './unload-parse.js';
 import { parseCommands } from './commands.js';
 import { tick } from './sound.js';
+import { moveDestinations, destinationLabel, moveSelect, moveCardTo, currentDestination } from './cards.js';
+import { popover, closePopovers } from './util.js';
+
+// ---------- Where a card goes ----------
+// Every suggestion has a destination, picked the same way as "Move to…" on any card: a tool, then a place in
+// it (a Taskly column, a Timely project or goal, a Boardly category, a Brainly folder, the Universal Board).
+// Atom proposes one: your own project, goal and folder names, when you mention them, beat the defaults.
+const STOP = new Set('the and for with my our your this that from into about project projects goal goals folder notes note list'.split(' '));
+const words = t => String(t || '').toLowerCase().match(/[a-z0-9][a-z0-9'’-]*/g) || [];
+export function guessDestination(text, type) {
+  const said = ` ${words(text).join(' ')} `;
+  const groups = Object.fromEntries(moveDestinations());
+  const pool = type === 'goal' ? [...(groups.Timely || []).filter(([v]) => v.startsWith('timely:plan:goals:')), ...(groups.Boardly || [])]
+    : type === 'note' ? (groups.Brainly || []).filter(([v]) => v.startsWith('brainly:folder:'))
+    : type === 'task' ? (groups.Timely || []).filter(([v]) => v.startsWith('timely:plan:projects:')) : [];
+  let best = null;
+  for (const [key, label] of pool) {
+    const name = label.split(' › ').pop();
+    const toks = words(name).filter(w => w.length >= 3 && !STOP.has(w));
+    if (!toks.length) continue;
+    const whole = said.includes(` ${words(name).join(' ')} `);
+    const hits = toks.filter(w => said.includes(` ${w} `) || said.includes(` ${w}s `)).length;
+    const score = whole ? 10 + toks.length : hits === toks.length ? 5 + hits : 0;
+    if (score && (!best || score > best.score)) best = { key, score };
+  }
+  return best?.key || null;
+}
+const defaultDestination = (type, tabName) => {
+  if (type === 'task') return 'taskly:todo';
+  if (type === 'note') return 'brainly:canvas';
+  if (type === 'goal') {
+    const tab = (store.get('boardlyTabs', []) || []).find(t => t.name.toLowerCase() === String(tabName || '').toLowerCase()) || store.get('boardlyTabs', [])[0];
+    return tab ? `boardly:${tab.id}` : 'universal';
+  }
+  return null; // reminders and events: on the day and time you said
+};
 
 const SOFT_STOP_MS = 15 * 60000;   // long sessions stop on their own (battery, and the queue on phones)
 const TYPES = ['task', 'reminder', 'event', 'goal', 'note'];
@@ -171,12 +207,26 @@ export function openUnload(host, api) {
     title.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') add(); });
     const type = h('select', { class: 'ul-type', 'aria-label': 'What it becomes' },
       TYPES.map(t => h('option', { value: t, selected: t === s.type }, TYPE_LABEL[t])));
-    const where = h('span', { class: 'ul-where' });
+    // Where it goes: Atom's guess (your own project or folder, when you named it), else the usual home.
+    let picked = false;
+    let dest = guessDestination(s.raw || s.title, s.type) || defaultDestination(s.type, s.tab);
+    let guessed = !!guessDestination(s.raw || s.title, s.type);
+    const where = h('button', { class: 'ul-where', type: 'button', title: 'Choose where it goes', onclick: e => chooseDest(e.currentTarget) });
     const paintWhere = () => {
       const w = (type.value === 'reminder' || type.value === 'event') ? whenWords(s.when) : '';
-      where.textContent = `→ ${HOME[type.value]}${type.value === 'goal' && s.tab ? ` · ${s.tab}` : type.value === 'task' ? ' · To do' : ''}${w ? ` · ${w}` : ''}`;
+      const label = dest ? destinationLabel(dest) : `${HOME[type.value]}${w ? ` · ${w}` : ''}`;
+      where.replaceChildren(...[h('span', { class: 'ul-where-arrow' }, '→'), h('span', {}, label), guessed && !picked ? h('em', { class: 'ul-guess' }, 'suggested') : null, icon('chevD', 'ul-where-chev')].filter(Boolean));
     };
-    type.addEventListener('change', paintWhere);
+    const chooseDest = anchor => {
+      const picker = moveSelect({ tool: 'universal', type: type.value === 'goal' ? 'goal' : type.value === 'note' ? 'note' : 'task', meta: {} });
+      if (dest) picker.value = dest;
+      popover(anchor, h('div', { class: 'ul-dest-pop' },
+        h('strong', {}, 'Where should it go?'), picker,
+        h('div', { class: 'ul-dest-actions' },
+          dest && (type.value === 'reminder' || type.value === 'event') ? h('button', { class: 'btn ghost xs', type: 'button', onclick: () => { dest = null; picked = true; closePopovers(); paintWhere(); } }, 'Keep it on its day') : null,
+          h('button', { class: 'btn primary xs', type: 'button', onclick: () => { if (picker.value) { dest = picker.value; picked = true; } closePopovers(); paintWhere(); } }, 'Use this'))), { className: 'ul-dest-popover' });
+    };
+    type.addEventListener('change', () => { if (!picked) { const g = guessDestination(s.raw || s.title, type.value); dest = g || defaultDestination(type.value, s.tab); guessed = !!g; } paintWhere(); });
     paintWhere();
     const r = h('div', { class: `ul-row ${s.sure ? 'sure' : 'maybe'}` },
       h('div', { class: 'ul-row-main' }, type, title),
@@ -193,10 +243,14 @@ export function openUnload(host, api) {
       if (!cmd) { toast('Couldn’t add that one. Change the words or the type and try again.'); return; }
       let id = null;
       try { id = String(api.execute(cmd)).replace(/^created /, ''); } catch (err) { toast(`Couldn’t add it: ${err.message}`); return; }
+      // Then into the chosen place, if that isn't where the command put it.
+      const made = store.getCard(id);
+      if (made && dest && dest !== currentDestination(made)) moveCardTo(id, dest, { quiet: true });
+      const landed = store.getCard(id);
       r.state = 'added'; r.cardId = id; tick();
       r.classList.add('added');
       r.replaceChildren(h('div', { class: 'ul-done' }, icon('check'),
-        h('span', {}, h('b', {}, sug.title), ` → ${HOME[sug.type]}`),
+        h('span', {}, h('b', {}, sug.title), ` → ${landed ? destinationLabel(currentDestination(landed)) : HOME[sug.type]}`),
         h('button', { class: 'linkish', type: 'button', onclick: () => { store.deleteCard(id); rows.delete(r); const fresh = row(s); r.replaceWith(fresh); paintStatus(); } }, 'Undo')));
       paintStatus();
     };
