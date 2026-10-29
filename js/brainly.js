@@ -275,6 +275,13 @@ function openLinkFolder(fid, fromEl) {
       // While something is being dragged, this strip takes it back out a level.
       h('div', { class: 'glass-out', dataset: { drop: 'lf-out', accept: 'card lfolder', to: f.parentId && parent ? parent.id : '' } },
         icon('chevL'), `Drop here to move out to ${parent ? parent.name : 'My links'}`),
+      // Paste a link straight into this folder.
+      (() => {
+        const inp = h('input', { class: 'field-input sm glass-link-in', placeholder: 'Paste a link, then Enter', 'aria-label': `Add a link to ${f.name}`, inputmode: 'url' });
+        inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && inp.value.trim()) { if (addLink(inp.value, f.id)) { inp.value = ''; toast(`Added to ${f.name}`); } } });
+        inp.addEventListener('paste', () => setTimeout(() => { const v = inp.value.trim(); if (/^https?:\/\/\S+$/i.test(v) && addLink(v, f.id)) { inp.value = ''; toast(`Added to ${f.name}`); } }, 0));
+        return h('div', { class: 'glass-add' }, icon('link'), inp);
+      })(),
       h('div', { class: 'glass-scroll' }, folderRow, fileRow),
       h('div', { class: 'glass-actions' },
         h('button', { class: 'glass-btn', type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Upload'),
@@ -347,15 +354,16 @@ registerDrop('lf-out', ({ kind, id, data }) => {
   toast(`Moved out to ${to ? lfById(to)?.name : 'My links'}`);
 });
 
-function addLink(raw) {
+function addLink(raw, lfid = null) {
   let url = raw.trim();
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
   // A real web address: no spaces, and a host with a dot (or localhost).
   let ok = false;
   try { const u = new URL(url); ok = !/\s/.test(raw.trim()) && /^https?:$/.test(u.protocol) && (u.hostname.includes('.') || u.hostname === 'localhost'); } catch {}
-  if (!ok) return toast('That doesn’t look like a link. To save a thought, add a note instead.');
+  if (!ok) { toast('That doesn’t look like a link. To save a thought, add a note instead.'); return false; }
   const { host, title } = prettyUrl(url);
-  store.createCard({ type: 'link', tool: 'brainly', title, description: url, meta: { url, host, linkFolderId: null, order: links(null).length } });
+  store.createCard({ type: 'link', tool: 'brainly', title, description: url, meta: { url, host, linkFolderId: lfid, order: links(lfid).length } });
+  return true;
 }
 async function addTextFile(file, lfid = null) {
   const text = await file.text();
@@ -818,7 +826,9 @@ function openFolder(fid) {
           el.addEventListener('pointerenter', () => showPeek(el, n.id));
           el.addEventListener('pointerleave', hidePeek);
           return el;
-        })) : h('p', { class: 'muted' }, 'Empty. Drag notes onto this folder on the canvas, or add one here.')));
+        }), newNoteTile()) : h('div', { class: 'fv-notes' }, newNoteTile(), h('p', { class: 'muted fv-empty' }, 'Empty. Add a note here, or drag notes onto this folder on the canvas.'))));
+    // A "+ New note" tile sits right among the notes, so adding one is where you'd look.
+    function newNoteTile() { return h('button', { class: 'b-note in-folder fv-new-note', type: 'button', onclick: () => addNote(fid) }, h('span', { class: 'note-emoji static' }, '+'), h('span', { class: 'b-note-title' }, 'New note')); }
   };
   fill();
   const unsub = store.on(fill);
