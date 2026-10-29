@@ -9,7 +9,7 @@ import {
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet, withMic } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet, withMic, truncate } from './cards.js';
 import { todoCards, todoCapacity, completeTask } from './taskly.js';
 import { tick, checkSound } from './sound.js';
 import { celebrate } from './celebrate.js';
@@ -24,7 +24,7 @@ const RECUR_SHORT = { daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly', mo
 // Category = which part of life (a color). Type = what kind of thing (task, meeting…). Kept apart on purpose.
 // Categories are yours: rename them, recolor them, add your own, remove the ones you don't use.
 export const CAT_PALETTE = ['#2e9e6a', '#4a6fd1', '#c9822b', '#d0567f', '#7a5cc7', '#2f97b0', '#d9534f', '#8a9a2b', '#b5651d', '#5b6b82', '#e08ab6', '#3cb4a6'];
-const DEFAULT_CATS = [['health', 'Health', 0], ['work', 'Work', 1], ['chores', 'Chores', 2], ['social', 'Social', 3], ['learning', 'Learning', 4], ['personal', 'Personal', 5]]
+const DEFAULT_CATS = [['health', 'Health', 0], ['work', 'Work', 1], ['admin', 'Admin', 9], ['meals', 'Meals', 7], ['chores', 'Chores', 2], ['social', 'Social', 3], ['learning', 'Learning', 4], ['personal', 'Personal', 5]]
   .map(([id, name, i]) => ({ id, name, color: CAT_PALETTE[i] }));
 /** Your categories, in order. Earlier renames (catNames) carry over. */
 export function cats() {
@@ -92,7 +92,7 @@ function openCatNames(anchorEl, onChange) {
   paint();
   popover(anchorEl, box, { className: 'cat-names-pop' });
 }
-const TYPE_DEFAULTS = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Focus', icon: 'target' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
+const TYPE_DEFAULTS = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Focus', icon: 'target' }, event: { label: 'Event', icon: 'sparkle' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
 // Types can carry your own names too ("Class" instead of Appointment). The label is read fresh each time.
 export const ITEM_TYPES = Object.fromEntries(Object.entries(TYPE_DEFAULTS).map(([k, t]) => [k, {
   ...t, get label() { return (store.pref('typeNames', {})[k] || '').trim() || t.label; },
@@ -191,7 +191,7 @@ function customRepeatFields(initial = {}, baseDate = todayKey()) {
 export function occurrencesOn(key) {
   const spans = m => m.endDate && m.date && key > m.date && key <= m.endDate; // trips and conferences cover every day in between
   const out = store.cardsWhere(c => live(c) && !(c.meta.kind === 'reminder' && c.meta.done && !c.meta.recurrence) && (c.meta.date === key || spans(c.meta) || recursOn(c.meta, key)))
-    .map(card => ({ card, date: key, done: !!card.meta.doneDates?.includes(key) }));
+    .map(card => ({ card, date: key, done: card.meta.recurrence ? !!card.meta.doneDates?.includes(key) : !!card.meta.done }));
   const slotIdx = s => (s ? SLOTS.indexOf(s) : 9);
   return out.sort((a, b) => {
     const ma = a.card.meta, mb = b.card.meta;
@@ -334,17 +334,24 @@ function renderDay() {
     // Overlapping blocks sit side by side instead of on top of each other.
     const spans = timed.map(o => ({ o, a: o.card.meta.start, b: o.card.meta.start + (o.card.meta.dur || 60) })).sort((x, y) => x.a - y.a || y.b - x.b);
     let cluster = [], clusterEnd = -1;
+    // Side by side, the way good calendars do it: each block takes the first free lane, then stretches across
+    // any lanes to its right that are free for its whole time, so nothing is squeezed narrower than it needs.
     const flush = () => {
       const lanes = [];
       for (const sp of cluster) { let i = lanes.findIndex(end => end <= sp.a); if (i < 0) { i = lanes.length; lanes.push(0); } lanes[i] = sp.b; sp.lane = i; }
-      cluster.forEach(sp => { sp.lanes = lanes.length; });
+      cluster.forEach(sp => {
+        sp.lanes = lanes.length;
+        let span = 1;
+        while (sp.lane + span < lanes.length && !cluster.some(o => o !== sp && o.lane === sp.lane + span && o.a < sp.b && o.b > sp.a)) span++;
+        sp.span = span;
+      });
       cluster = [];
     };
     for (const sp of spans) { if (sp.a >= clusterEnd && cluster.length) flush(); cluster.push(sp); clusterEnd = Math.max(clusterEnd, sp.b); }
     flush();
     for (const sp of spans) {
       const el = eventBlock(sp.o.card, hourH, key, sp.o.done);
-      if (sp.lanes > 1) { el.style.setProperty('--lane', sp.lane); el.style.setProperty('--lanes', sp.lanes); el.classList.add('in-lane'); }
+      if (sp.lanes > 1) { el.style.setProperty('--lane', sp.lane); el.style.setProperty('--lanes', sp.lanes); el.style.setProperty('--span', sp.span); el.classList.add('in-lane'); }
       grid.append(el);
     }
     const nowMins = (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
@@ -368,43 +375,73 @@ function renderDay() {
     // The box may not be laid out yet on the first render (phones); set it again once it is.
     requestAnimationFrame(() => { if (Math.abs(scroll.scrollTop - wantTop) > 2) scroll.scrollTop = wantTop; });
     scroll.addEventListener('scroll', () => { dayScroll = { key, top: scroll.scrollTop }; }, { passive: true });
-    // Hover the day: the half hour under the pointer lights up with a + so adding feels natural.
+    // Hover the day: after a short pause on a clearly empty spot, the free time under the pointer lights up with
+    // a +. Passing over, or resting right next to a block, shows nothing, so grabbing a short block never turns
+    // into adding a new one. A click adds only while the + is showing.
     const ghost = h('div', { class: 'slot-ghost', hidden: true }, h('span', { class: 'slot-ghost-pill' }, icon('plus'), h('span', { class: 'slot-ghost-time' })));
     grid.append(ghost);
     const slotAt = e => clamp(Math.floor(((e.clientY - grid.getBoundingClientRect().top) / hourH) * 2) * 30, 0, 23 * 60 + 30);
-    grid.addEventListener('pointermove', e => {
-      if (document.body.classList.contains('is-dragging') || resizing) return; // the drag preview owns the ghost then
-      const onEmpty = e.target === grid || e.target.classList.contains('hour-row') || e.target.closest('.slot-ghost');
-      if (!onEmpty) { ghost.hidden = true; return; }
-      const start = slotAt(e);
+    const onEmpty = e => e.target === grid || e.target.classList.contains('hour-row') || e.target.closest('.slot-ghost');
+    const nearBlock = e => [-10, 10].some(dy => document.elementsFromPoint(e.clientX, e.clientY + dy).some(n => n.classList?.contains('event-block')));
+    let armed = null, armTimer = 0, lastSlot = -1;
+    const disarm = () => { clearTimeout(armTimer); armed = null; lastSlot = -1; ghost.hidden = true; };
+    const arm = (start, x) => {
+      // Fit the free gap: up to half an hour, stopping at the next block in that column.
+      const next = timed.map(o => o.card.meta.start).filter(t => t > start && t < start + 30).sort((p, q) => p - q)[0];
+      const len = (next ?? start + 30) - start;
+      if (len < 15) return;
+      armed = { start, len };
       ghost.hidden = false;
       ghost.style.top = (start / 60) * hourH + 'px';
-      ghost.style.height = hourH / 2 + 'px';
+      ghost.style.height = (len / 60) * hourH + 'px';
       ghost.querySelector('.slot-ghost-time').textContent = `Add at ${fmtMinutes(start)}`;
+    };
+    grid.addEventListener('pointermove', e => {
+      if (document.body.classList.contains('is-dragging') || resizing) return; // the drag preview owns the ghost then
+      if (!onEmpty(e) || nearBlock(e)) { disarm(); return; }
+      const start = slotAt(e);
+      if (start === lastSlot) return;
+      disarm(); lastSlot = start;
+      armTimer = setTimeout(() => arm(start, e.clientX), 320);
     });
-    grid.addEventListener('pointerleave', () => { if (!document.body.classList.contains('is-dragging')) ghost.hidden = true; });
-    // Adding is a deliberate click on an empty spot: press and release in place. Letting go after a drag or a
+    grid.addEventListener('pointerleave', () => { if (!document.body.classList.contains('is-dragging')) disarm(); });
+    // Adding is a deliberate click on the lit spot: press and release in place. Letting go after a drag or a
     // resize (which the browser also reports as a click) never starts a new event.
     let press = null;
     grid.addEventListener('pointerdown', e => {
-      const onEmpty = e.target === grid || e.target.classList.contains('hour-row') || e.target.closest('.slot-ghost');
-      press = onEmpty && e.button === 0 ? { x: e.clientX, y: e.clientY, t: Date.now() } : null;
+      press = onEmpty(e) && e.button === 0 && armed ? { x: e.clientX, y: e.clientY, t: Date.now(), slot: armed } : null;
     });
     grid.addEventListener('click', e => {
-      if (e.target !== grid && !e.target.classList.contains('hour-row') && !e.target.closest('.slot-ghost')) return;
+      if (!onEmpty(e)) return;
       const p = press; press = null;
       if (!p || Date.now() - lastMoveEnd < 450 || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6 || Date.now() - p.t > 700) return;
-      ghost.hidden = true;
+      disarm();
       // On a phone a tap opens the add sheet with that time filled in, so a stray tap never makes an event.
-      if (phone) openItemForm(grid, { type: 'task', date: key, start: slotAt(e), pickDate: false });
-      else addAt(slotAt(e));
+      if (phone) openItemForm(grid, { type: 'task', date: key, start: p.slot.start, pickDate: false });
+      else {
+        // An hour by default, or up to the next block if that comes sooner.
+        const next = timed.map(o => o.card.meta.start).filter(t => t > p.slot.start).sort((x, y) => x - y)[0];
+        addAt(p.slot.start, Math.max(15, Math.min(60, (next ?? p.slot.start + 60) - p.slot.start)));
+      }
     });
+    // Phones have no hover: a tap on an empty spot opens the add sheet straight away.
+    if (phone) grid.addEventListener('click', e => { if (onEmpty(e) && !press && Date.now() - lastMoveEnd > 450) openItemForm(grid, { type: 'task', date: key, start: slotAt(e), pickDate: false }); });
   });
 }
 
+/** The tick on anything scheduled. A routine is ticked for that day only; anything else is simply done. */
 function routineTick(c, key, done) {
-  return h('button', { class: `routine-tick ${done ? 'on' : ''}`, 'aria-label': done ? 'Mark not done for this day' : 'Done for this day', 'aria-pressed': String(done), title: done ? 'Done for this day' : 'Tick off this day (the routine stays)',
-    onclick: e => { e.stopPropagation(); toggleRoutineDay(c.id, key); } }, icon('check'));
+  const routine = isRoutine(c);
+  return h('button', { class: `routine-tick ${done ? 'on' : ''}`, type: 'button', 'aria-label': done ? 'Mark not done' : routine ? 'Done for this day' : 'Mark done', 'aria-pressed': String(done),
+    title: routine ? (done ? 'Done for this day' : 'Tick off this day (the routine stays)') : done ? 'Done. Click to undo' : 'Mark done',
+    onclick: e => { e.stopPropagation(); routine ? toggleRoutineDay(c.id, key) : toggleDone(c.id); } }, icon('check'));
+}
+function toggleDone(id) {
+  const c = store.getCard(id);
+  if (!c) return;
+  const on = !c.meta.done;
+  store.updateCard(id, { meta: { done: on, completedAt: on ? new Date().toISOString() : null } }, { log: on, logLabel: 'Completed' });
+  if (on) { checkSound(); toast(`Done: “${truncate(c.title, 32)}”`, { action: 'Undo', onAction: () => store.updateCard(id, { meta: { done: false, completedAt: null } }) }); }
 }
 const routineTag = c => h('span', { class: 'routine-tag' }, icon('repeat'), recurLabel(c.meta));
 
@@ -420,46 +457,55 @@ function eventBlock(c, hourH, key, done) {
     class: `event-block ${short ? 'short' : ''} ${tiny ? 'tiny' : ''} ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id },
     style: { top: (m.start / 60) * hourH + 'px', height: px + 'px', '--lines': lines },
   },
-  h('span', { class: 'ev-title', title: c.title }, catClass(c) ? h('span', {}, icon(ITEM_TYPES[itemTypeOf(c)]?.icon || 'bell', 'ev-type'), c.title) : c.title),
+  // Anything scheduled can be ticked off: routines for the day, everything else for good.
+  ITEM_TYPES[itemTypeOf(c)]?.span ? null : routineTick(c, key, done),
+  h('span', { class: 'ev-title', title: 'Double-click to rename' }, catClass(c) ? h('span', {}, icon(ITEM_TYPES[itemTypeOf(c)]?.icon || 'bell', 'ev-type'), c.title) : c.title),
   h('span', { class: 'ev-time' }, h('span', { class: 'ev-range' }, `${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)}`), isRoutine(c) ? routineTag(c) : null),
   !short && px >= 70 ? notesSnippet(c) : null,
-  isRoutine(c) ? routineTick(c, key, done) : null,
-  // Tiny blocks are all grab: no resize edge to catch by mistake (change the length in Details).
+  // Both edges stretch it: the top moves the start, the bottom moves the end. Tiny blocks are all grab.
+  tiny ? null : h('div', { class: 'resize-handle top', 'aria-hidden': 'true' }),
   tiny ? null : h('div', { class: 'resize-handle', 'aria-hidden': 'true' }));
-  // Calendar, repeat and duplicate live on the card only when it's roomy. Short blocks stay clean so they're
-  // easy to grab: a click opens Details, where everything else lives.
-  if (short) {
-    el.classList.add('bare');
-    el.title = `${c.title} · ${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)}`;
-    el.addEventListener('click', e => { if (!e.target.closest('button, .resize-handle, [contenteditable="true"]')) openEventEditor(c.id); });
-  } else cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
+  el.title = `${c.title} · ${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)} · double-click for details`;
+  // Roomy blocks keep their hover tools; short ones stay clean so they're easy to grab.
+  if (short) el.classList.add('bare');
+  else cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
   paintCat(el, c);
+  // One way in, for every block: double-click the title to rename it, anywhere else to open details.
+  // (On touch screens, which have no double-click, a tap opens details.)
   el.querySelector('.ev-title').addEventListener('dblclick', e => { e.stopPropagation(); editInline(e.currentTarget, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
-  // Resize in 15-minute steps.
-  el.querySelector('.resize-handle')?.addEventListener('pointerdown', e => {
+  el.addEventListener('dblclick', e => { if (!e.target.closest('button, .resize-handle, [contenteditable="true"]')) openEventEditor(c.id); });
+  if (short) el.addEventListener('click', e => { if (matchMedia('(hover: none)').matches && !e.target.closest('button, .resize-handle')) openEventEditor(c.id); });
+  // Stretch in 15-minute steps, from either edge.
+  el.querySelectorAll('.resize-handle').forEach(handle => handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
     e.stopPropagation(); e.preventDefault();
     resizing = true;
-    const sy = e.clientY, sd = dur;
+    const fromTop = handle.classList.contains('top');
+    const sy = e.clientY, end = m.start + dur;
+    let ns = m.start, nd = dur;
     const move = ev => {
-      const nd = clamp(Math.round((sd + ((ev.clientY - sy) / hourH) * 60) / 15) * 15, 15, 24 * 60 - m.start);
-      el.style.height = Math.max(13, (nd / 60) * hourH - 2) + 'px';
-      el.querySelector('.ev-range').textContent = `${fmtMinutes(m.start)}–${fmtMinutes(m.start + nd)}`;
-      el.dataset.nd = nd;
+      const delta = Math.round((((ev.clientY - sy) / hourH) * 60) / 15) * 15;
+      if (fromTop) { ns = clamp(m.start + delta, 0, end - 15); nd = end - ns; el.style.top = (ns / 60) * hourH + 'px'; }
+      else nd = clamp(dur + delta, 15, 24 * 60 - m.start);
+      el.style.height = Math.max(14, (nd / 60) * hourH - 2) + 'px';
+      el.querySelector('.ev-range').textContent = `${fmtMinutes(ns)}–${fmtMinutes(ns + nd)}`;
+      el.classList.add('resizing');
     };
     const up = () => {
       removeEventListener('pointermove', move); removeEventListener('pointerup', up);
       resizing = false; lastMoveEnd = Date.now();
-      if (el.dataset.nd && +el.dataset.nd !== dur) store.updateCard(c.id, { meta: { dur: +el.dataset.nd } });
+      el.classList.remove('resizing');
+      if (ns !== m.start || nd !== dur) store.updateCard(c.id, { meta: { start: ns, dur: nd } });
     };
     addEventListener('pointermove', move); addEventListener('pointerup', up);
-  });
+  }));
   return el;
 }
 
 function chip(c, { showTime = false, date = null, done = false } = {}) {
   const m = c.meta || {};
   const el = h('div', { class: `t-chip ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id }, title: c.title },
-    isRoutine(c) && date ? routineTick(c, date, done) : null,
+    date && !ITEM_TYPES[itemTypeOf(c)]?.span ? routineTick(c, date, done) : null,
     showTime && m.start != null ? h('span', { class: 't-chip-time' }, fmtMinutes(m.start)) : null,
     h('span', { class: 't-chip-title' }, c.title),
     isRoutine(c) && !date ? icon('repeat', 'ev-repeat') : null);
@@ -471,7 +517,7 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
 /** Hover actions for Timely cards: add to calendar, and repeat (turn it into a routine). */
 function quickActions(c) {
   return [
-    h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Add to calendar', title: store.pref('calTarget') ? `Add to ${CAL_TARGETS[store.pref('calTarget')]?.label || 'calendar'} (Shift-click to choose)` : 'Add to your calendar', onclick: e => { e.stopPropagation(); addToCalendar(e.currentTarget, c.id, { choose: e.shiftKey }); } }, icon('calendar')),
+    h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Add to calendar', title: 'Add to your calendar…', onclick: e => { e.stopPropagation(); addToCalendar(e.currentTarget, c.id, { choose: true }); } }, icon('calendar')),
     h('button', { class: `card-tool ${isRoutine(c) ? 'on-routine' : ''}`, type: 'button', 'aria-label': 'Repeat', title: isRoutine(c) ? `Repeats ${recurLabel(c.meta).toLowerCase()}` : 'Repeat: make it a routine', onclick: e => { e.stopPropagation(); openRepeat(e.currentTarget, c.id); } }, icon('repeat')),
   ];
 }
@@ -674,7 +720,7 @@ function actionRow(buttons, hint) {
 function standardAdds(date, slot = null) {
   return [
     h('button', { class: 'add-btn add-routine', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date, slot, routine: true, title: 'New routine' }) }, h('span', { class: 'add-btn-ic' }, icon('repeat')), 'Routine'),
-    ...['task', 'meeting', 'appointment', 'work'].map(t => addBtn(t, e => openItemForm(e.currentTarget, { type: t, date, slot }))),
+    ...['task', 'meeting', 'appointment', 'work', 'event'].map(t => addBtn(t, e => openItemForm(e.currentTarget, { type: t, date, slot }))),
   ];
 }
 const addBtn = (type, onClick) => h('button', { class: `add-btn add-${type}`, type: 'button', onclick: onClick }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES[type].icon)), ITEM_TYPES[type].label);
@@ -769,7 +815,7 @@ function renderMonth() {
       addBtn('trip', e => openSpanForm(e.currentTarget, 'trip', first0)),
       addBtn('meeting', e => openItemForm(e.currentTarget, { type: 'meeting', date: first0 })),
       addBtn('conference', e => openSpanForm(e.currentTarget, 'conference', first0)),
-      h('button', { class: 'add-btn add-task', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: first0, title: 'New event' }) }, h('span', { class: 'add-btn-ic' }, icon('plus')), 'Event'),
+      h('button', { class: 'add-btn add-task', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'event', date: first0 }) }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES.event.icon)), ITEM_TYPES.event.label),
     ], 'Dots show what’s planned. Click a day to zoom in.'),
     h('div', { class: 'period-layout' }, host,
     periodPlanPanel('monthplan', monthPlanKey(a), `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month')));
@@ -1211,11 +1257,12 @@ export function openEventEditor(id) {
       f.rec.addEventListener('change', () => { f.custom.el.hidden = f.rec.value !== 'custom'; });
       // Type: one tap to switch what it is. Spans (trips, conferences) need an end date, so they're offered only when it has one.
       let typeVal = m.itemType || 'task';
-      const typeOpts = Object.entries(ITEM_TYPES).filter(([v, t]) => !t.span || m.endDate || v === typeVal);
+      // Every type is open to every item, whichever view it was made in. Trips and conferences add an end date.
+      const typeOpts = Object.entries(ITEM_TYPES);
       f.type = isRem ? null : { get value() { return typeVal; } };
       const typeRow = isRem ? null : h('div', { class: 'type-pick', role: 'radiogroup', 'aria-label': 'Type' }, typeOpts.map(([v, t]) => {
         const b = h('button', { class: `type-opt it-${v} ${v === typeVal ? 'on' : ''}`, type: 'button', role: 'radio', 'aria-checked': String(v === typeVal),
-          onclick: () => { typeVal = v; typeRow.querySelectorAll('.type-opt').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); }); } }, icon(t.icon), t.label);
+          onclick: () => { typeVal = v; typeRow.querySelectorAll('.type-opt').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); }); syncSpan(); } }, icon(t.icon), t.label);
         return b;
       }));
       // Category: a color for a part of life, so all your health things read as one at a glance.
@@ -1234,8 +1281,16 @@ export function openEventEditor(id) {
             paintCatRow();
             typeRow?.querySelectorAll('.type-opt').forEach(b => { const k = [...b.classList].find(x => x.startsWith('it-'))?.slice(3); if (k && ITEM_TYPES[k]) b.lastChild.textContent = ITEM_TYPES[k].label; });
           };
+      const dateField = field('Date', f.date), untilField = field('Until', f.end);
+      // Trips and conferences run over days: they show an end date, and the first date reads "From".
+      const syncSpan = () => {
+        const span = !!(ITEM_TYPES[f.type ? f.type.value : m.itemType]?.span || f.end.value);
+        untilField.hidden = !span;
+        dateField.querySelector('.field-label').textContent = span ? 'From' : 'Date';
+      };
+      setTimeout(syncSpan, 0);
       return h('div', { class: 'ical' },
-        h('div', { class: 'ical-row' }, field(m.endDate || ITEM_TYPES[m.itemType]?.span ? 'From' : 'Date', f.date), m.endDate || ITEM_TYPES[m.itemType]?.span ? field('Until', f.end) : null, field('Time', f.time), field('Length', f.dur)),
+        h('div', { class: 'ical-row' }, dateField, untilField, field('Time', f.time), field('Length', f.dur)),
         typeRow ? h('div', { class: 'mini-field' }, h('span', { class: 'field-label' }, 'Type'), typeRow) : null,
         h('div', { class: 'mini-field' }, h('span', { class: 'field-label cat-label' }, 'Category',
           h('button', { class: 'linkish small', type: 'button', title: 'Rename types, and add, rename or recolor categories', onclick: e => openCatNames(e.currentTarget, repaintNames) }, 'Edit types and categories')), catRow),

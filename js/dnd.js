@@ -22,7 +22,9 @@ export function initDnd(navigate) {
   document.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
     const el = e.target.closest('[data-drag]');
-    if (!el || e.target.closest(IGNORE)) return;
+    // A card's own small buttons (hover tools, delete, details) don't block a drag: press one and move, and
+    // you're moving the card, not clicking the button. Only a press-and-release in place clicks it.
+    if (!el || (e.target.closest(IGNORE) && !e.target.closest('.card-tool, .card-del, .card-info, .card-more'))) return;
     const r = el.getBoundingClientRect();
     clearTimeout(drag?.holdTimer);
     drag = {

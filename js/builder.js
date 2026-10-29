@@ -63,7 +63,6 @@ export function openSendMenu(anchor, getText, { title = 'Hand off to' } = {}) {
 
 export const sendButton = (getText, label = 'Hand off to an AI app') => h('button', {
   class: 'card-tool card-send', type: 'button', 'aria-label': label, title: label,
-  onpointerdown: e => e.stopPropagation(),
   onclick: e => { e.stopPropagation(); openSendMenu(e.currentTarget, getText); },
 }, icon('send'));
 

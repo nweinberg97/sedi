@@ -3885,3 +3885,38 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .cat-names { gap: 4px; max-height: min(78vh, 600px); }
 .cat-names .field-input.sm { height: 30px; }
 .cat-swatches { padding: 2px 0 6px 26px; }
+
+/* Day view, round 5: lanes stretch over free space; both edges resize; a tick on everything */
+.event-block.in-lane { width: calc((100% - 86px) * var(--span, 1) / var(--lanes) - 4px); }
+.day-col .event-block.in-lane { width: calc((100% - 124px) * var(--span, 1) / var(--lanes) - 4px); }
+.resize-handle.top { top: 0; bottom: auto; }
+.resize-handle.top::after { top: 2px; bottom: auto; }
+.event-block:hover .resize-handle.top::after { opacity: 1; }
+.event-block.short .resize-handle { height: 5px; }
+.event-block.resizing { box-shadow: 0 0 0 2px color-mix(in srgb, var(--cat, var(--timely)) 55%, transparent), 0 6px 16px -8px rgba(17, 17, 17, 0.3); z-index: 6; }
+.event-block .ev-title { cursor: text; }
+/* The tick leads the block, like a checklist, away from the hover tools on the right */
+.event-block > .routine-tick { left: 8px; right: auto; top: 6px; bottom: auto; transform: none; border-color: var(--cat, color-mix(in srgb, var(--ink) 45%, transparent)); }
+.event-block.is-routine > .routine-tick { border-color: var(--routine); }
+.event-block > .routine-tick.on { background: var(--cat, var(--ink-2)); border-color: var(--cat, var(--ink-2)); }
+.event-block.is-routine > .routine-tick.on { background: var(--routine); border-color: var(--routine); }
+.event-block > .routine-tick:hover { color: var(--cat, var(--ink-2)); }
+.event-block:has(> .routine-tick) { padding-left: 34px; }
+.event-block.short > .routine-tick { top: 50%; transform: translateY(-50%); }
+.event-block.tiny:has(> .routine-tick) { padding-left: 26px; }
+.event-block.tiny > .routine-tick { left: 7px; }
+.t-chip > .routine-tick { border-color: var(--cat, color-mix(in srgb, var(--ink) 45%, transparent)); }
+.t-chip.is-routine > .routine-tick { border-color: var(--routine); }
+.t-chip > .routine-tick.on { background: var(--cat, var(--ink-2)); }
+.t-chip.is-routine > .routine-tick.on { background: var(--routine); }
+.event-block.is-done, .t-chip.is-done { opacity: 0.6; }
+/* Event: a type of its own */
+:root { --it-event: #2a9d8f; --it-event-bg: #e6f5f3; }
+.it-event.event-block, .t-chip.it-event { background: var(--it-event-bg); border-left-color: var(--it-event); }
+.t-chip.it-event { border-left-width: 3px; }
+.add-event svg { color: var(--it-event); }
+.month-item.it-event { border-left-color: var(--it-event); }
+.cd.it-event { background: var(--it-event); }
+.event-block.cat, .t-chip.cat { background: var(--cat-bg); border-color: color-mix(in srgb, var(--cat) 30%, transparent); border-left-color: var(--cat); }
+.ical-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.ical-row > [hidden] { display: none; }

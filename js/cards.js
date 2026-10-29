@@ -123,7 +123,6 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
 }
 export const duplicateButton = (id, onDuplicate) => h('button', {
   class: 'card-tool card-dup', type: 'button', 'aria-label': 'Duplicate', title: 'Duplicate',
-  onpointerdown: e => e.stopPropagation(), // a tap here never starts a drag
   onclick: e => { e.stopPropagation(); (onDuplicate || duplicateCard)(id); },
 }, icon('copy'));
 
