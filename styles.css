@@ -3977,3 +3977,25 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .chip.ct-send-all:hover { background: color-mix(in srgb, var(--ink) 85%, white); }
 .popover.ul-dest-popover, .popover.ship-pop, .popover.cat-names-pop { max-width: calc(100vw - 24px); width: auto; }
 .ul-dest-pop .move-picker { min-width: 0; }
+
+/* ======================================================================
+   Touch and phones, round 5
+   ====================================================================== */
+.form-pop-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+.form-pop .field-input, .form-pop select { width: 100%; }
+@media (hover: none) {
+  /* Titles leave room for the ⋯, which is always visible on touch */
+  .task-card.has-chrome, .plan-card.has-chrome, .board-canvas > .tile.has-chrome:not(.note-card), .plan-item.has-chrome { padding-right: 40px; }
+  /* Bigger targets for the things you tap most */
+  .card-more { width: 36px; height: 36px; top: 2px; right: 2px; opacity: 0.75; }
+  .task-check, .plan-check, .step-check, .routine-tick, .check { position: relative; }
+  .task-check::after, .plan-check::after, .step-check::after, .routine-tick::after, .check::after { content: ""; position: absolute; inset: -8px; }
+  .side-switch button { height: 36px; }
+  .bf-color, .swatch.sm { position: relative; }
+  .bf-color::after, .swatch.sm::after { content: ""; position: absolute; inset: -10px; }
+  .sticky-btn, .col-clear, .pad-chip { min-height: 36px; min-width: 36px; }
+  .universal-trigger { width: 44px; height: 44px; }
+  /* Hints written for a mouse don't show on touch screens */
+  .boardly .view-note, .action-hint { display: none; }
+  .ev-range, .ev-time { font-size: 11px; }
+}

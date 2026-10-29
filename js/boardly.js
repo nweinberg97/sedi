@@ -254,7 +254,10 @@ function renderTabs() {
   const list = tabs();
   const active = activeTab();
   tabBar.replaceChildren(...list.map(t => {
-    const dot = h('button', { class: 'tab-dot', style: { background: t.color }, 'aria-label': `Color for ${t.name}`, onclick: e => { e.stopPropagation(); pickColor(e.currentTarget, t); } });
+    // Only the open category offers its color and delete buttons, so tapping any other tab always just opens it.
+    const isActive = t.id === active?.id;
+    const dot = isActive ? h('button', { class: 'tab-dot', style: { background: t.color }, 'aria-label': `Color for ${t.name}`, onclick: e => { e.stopPropagation(); pickColor(e.currentTarget, t); } })
+      : h('span', { class: 'tab-dot', style: { background: t.color }, 'aria-hidden': 'true' });
     const name = h('span', { class: 'tab-name' }, t.name);
     const del = h('button', { class: 'tab-x icon-btn xs', 'aria-label': `Delete ${t.name}`, onclick: e => { e.stopPropagation(); deleteTab(t); } }, icon('x'));
     const tab = h('div', {
@@ -265,7 +268,7 @@ function renderTabs() {
         if (t.id === active?.id) { if (e.target === name && !name.isContentEditable) rename(); return; }
         store.setPref('boardlyTab', t.id); sel.clear(); render();
       },
-    }, dot, name, list.length > 1 ? del : null);
+    }, dot, name, list.length > 1 && isActive ? del : null);
     // The first click of a double-click re-renders the tabs, so edit the fresh copy of this tab's name.
     const rename = () => {
       const fresh = [...tabBar.querySelectorAll('.tab')].find(x => x.dataset.tab === t.id)?.querySelector('.tab-name') || name;

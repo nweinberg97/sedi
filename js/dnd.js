@@ -263,9 +263,13 @@ export function initDnd(navigate) {
     const under = document.elementsFromPoint(drag.x, drag.y).find(e => !e.closest('.drag-ghost'));
     for (let el = under; el && el !== document.body; el = el.parentElement) {
       if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) {
+        // One column at a time: resting at the edge moves about one screen's width, then waits until you
+        // leave the edge and come back, so a held card doesn't run all the way to the last column.
         const b = el.getBoundingClientRect(), e2 = 48;
-        if (drag.x < b.left + e2) el.scrollLeft -= 14;
-        else if (drag.x > b.right - e2) el.scrollLeft += 14;
+        const dir = drag.x < b.left + e2 ? -1 : drag.x > b.right - e2 ? 1 : 0;
+        if (!dir) { drag.edgeRun = 0; break; }
+        drag.edgeRun = (drag.edgeRun || 0) + 14;
+        if (drag.edgeRun <= el.clientWidth * 0.85) el.scrollLeft += dir * 14;
         break;
       }
     }

@@ -211,6 +211,12 @@ document.addEventListener('pointerdown', e => {
   const el = e.target.closest?.('[data-drag], .tile, .task-card, .b-note, .link-card, .lf-tile, button, [role="button"], a');
   if (el) { const r = el.getBoundingClientRect(); lastTap = { x: r.left + r.width / 2, y: r.top + r.height / 2, t: Date.now() }; }
 }, true);
+let pendingBacks = 0, leaving = false;
+addEventListener('beforeunload', () => { leaving = true; });
+addEventListener('popstate', () => {
+  if (pendingBacks) { pendingBacks--; return; }
+  modalStack.at(-1)?.(true);
+});
 export function modal({ title, body, actions = [], wide = false, onClose, className = '' }) {
   const backdrop = h('div', { class: 'modal-backdrop' });
   const opener = document.activeElement;
@@ -219,7 +225,13 @@ export function modal({ title, body, actions = [], wide = false, onClose, classN
     box.style.setProperty('--from-x', `${Math.round(lastTap.x - innerWidth / 2)}px`);
     box.style.setProperty('--from-y', `${Math.round(lastTap.y - innerHeight / 2)}px`);
   }
-  const close = () => {
+  // The phone's back gesture (and the browser's Back) closes the sheet instead of leaving it over another page.
+  const openedAt = location.href;
+  try { history.pushState({ sediModal: true }, ''); } catch {}
+  const close = (fromBack = false) => {
+    if (!modalStack.includes(close)) return;
+    // Step back past the sheet's history entry, unless the page is reloading or has moved on (then leave it be).
+    if (fromBack !== true && location.href === openedAt && history.state?.sediModal) setTimeout(() => { if (!leaving && location.href === openedAt && history.state?.sediModal) { pendingBacks++; history.back(); } }, 0);
     backdrop.classList.remove('in');
     backdrop.classList.add('out');
     modalStack = modalStack.filter(m => m !== close);

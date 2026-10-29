@@ -1051,7 +1051,9 @@ function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null,
   const dayHead = h('span', { class: 'form-pop-day' }, icon('calendar'), dayText, slot ? h('span', { class: 'muted' }, ` · ${SLOT_LABELS[slot]}`) : startAt != null ? h('span', { class: 'muted' }, ` · ${fmtMinutes(startAt)}`) : null);
   dateIn.querySelector('select').addEventListener('change', () => { if (dateIn.value !== '__pick') dayText.textContent = dayName(dateIn.value); });
   const { time, dur, read } = timeFields(startAt);
-  const slotSel = h('select', { class: 'field-input sm', 'aria-label': 'Part of day' }, SLOTS.map(s => h('option', { value: s, selected: s === (slot || 'morning') }, SLOT_LABELS[s])));
+  // The part of the day follows the time you picked (3:30pm → Afternoon), so the two never disagree.
+  const slotFor = mins => (mins == null ? null : slotOfMinutes(mins));
+  const slotSel = h('select', { class: 'field-input sm', 'aria-label': 'Part of day' }, SLOTS.map(s => h('option', { value: s, selected: s === (slot || slotFor(startAt) || 'morning') }, SLOT_LABELS[s])));
   const sync = () => { slotSel.disabled = !!time.value; dur.disabled = !time.value; };
   time.addEventListener('input', sync); sync();
   // Routines: how often, from the same choices as everywhere else.
@@ -1073,7 +1075,9 @@ function openItemForm(anchorEl, { type = 'task', date = todayKey(), slot = null,
     pickDate ? field(routine ? 'Starting' : 'Day', dateIn) : null,
     h('div', { class: 'time-pop-row' }, field('Time (optional)', time), field('Length', dur)),
     field('Otherwise, part of the day', slotSel),
-    h('button', { class: 'btn sm primary', onclick: save }, 'Add')));
+    h('div', { class: 'form-pop-actions' },
+      h('button', { class: 'btn sm ghost', type: 'button', onclick: () => closePopovers() }, 'Cancel'),
+      h('button', { class: 'btn sm primary', onclick: save }, 'Add'))));
   setTimeout(() => title.focus(), 40);
 }
 // ---------- Reminders: a cork board of sticky notes (SD-T19/T20/T21) ----------
