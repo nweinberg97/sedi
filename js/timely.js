@@ -308,6 +308,13 @@ function archiveButton() {
 const itemTypeOf = c => (c.meta?.kind === 'reminder' ? 'reminder' : c.meta?.itemType || 'task');
 
 // ---------- Daily ----------
+/** Which day layout fits this screen: 'compact' (phones, portrait tablets), 'tablet' (landscape touch), or 'desktop'. */
+function dayLayout() {
+  if (listMode()) return 'compact';
+  const touch = matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (!touch) return innerWidth <= 820 ? 'compact' : 'desktop';
+  return innerWidth < 1000 || innerHeight > innerWidth ? 'compact' : 'tablet';
+}
 function renderDay() {
   const key = anchor();
   const d = parseKey(key);
@@ -324,14 +331,24 @@ function renderDay() {
   scroll.append(grid);
   // SD-T9 narrower day column, SD-T10 the day's to-do list beside it, SD-T11 Daily routine.
   const head = navControl(label, n => dateKey(addDays(parseKey(key), n)), { sub: `${occ.length ? `${occ.length} planned` : 'Nothing planned yet'}` });
-  // Phones: the day fills the screen. One "+ Add" and a "Plan" button sit with the date; the plan opens as a sheet.
-  const onPhone = listMode();
+  // Touch screens get a day built for fingers. Phones and portrait tablets: the day fills the screen, with one
+  // "+ Add" and a "Plan" button by the date (the plan opens as a sheet). Landscape tablets keep the plan beside the
+  // day, but both fill the screen and the add buttons collapse into one "+ Add".
+  const layout = dayLayout();
+  const onPhone = layout === 'compact';
+  root.querySelector('.timely')?.classList.toggle('day-touch', layout !== 'desktop');
+  root.querySelector('.timely')?.classList.toggle('day-compact', onPhone);
+  root.querySelector('.timely')?.classList.toggle('day-wide-touch', layout === 'tablet');
   const phoneActions = onPhone ? h('div', { class: 'm-day-actions' },
     key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
     h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plan', todoCards().length ? h('small', {}, todoCards().length) : null),
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
+  const tabletAdd = layout === 'tablet' ? h('div', { class: 'm-day-actions' },
+    key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
+    h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
+  if (tabletAdd) head.append(tabletAdd); // landscape tablets: Add sits on the date line, no extra row
   body.replaceChildren(...[
-    onPhone ? null : actionRow(standardAdds(key), 'Hover the day to add at a time, or press + Now.'),
+    layout === 'desktop' ? actionRow(standardAdds(key), 'Hover the day to add at a time, or press + Now.') : null,
     h('div', { class: 'day-layout' },
       h('div', { class: 'day-col' }, head, phoneActions, allDay, scroll),
       onPhone ? null : sidePlan(key))].filter(Boolean));
@@ -339,8 +356,8 @@ function renderDay() {
   // Size hours so 6am–8pm fills the visible window exactly.
   requestAnimationFrame(() => {
     // Phones: the day is part of the page's own scroll (no box scrolling inside a scrolling page), so the hour height is fixed.
-    const phone = listMode();
-    const hourH = phone ? 64 : Math.max(64, scroll.clientHeight / 12); // 15 minutes ≥ 14px, so short blocks stay grabbable // roomy enough that hour-long titles wrap (SD-B1)
+    const phone = layout !== 'desktop'; // every touch layout: fixed, finger-sized hours, and the box fills the screen
+    const hourH = phone ? (layout === 'compact' && listMode() ? 64 : 72) : Math.max(64, scroll.clientHeight / 12); // 15 minutes ≥ 14px, so short blocks stay grabbable // roomy enough that hour-long titles wrap (SD-B1)
     grid.style.setProperty('--hour', hourH + 'px');
     grid.style.height = hourH * 24 + 'px';
     for (let hr = 0; hr < 24; hr++) {
@@ -391,8 +408,15 @@ function renderDay() {
     if (phone) {
       const host = document.querySelector('.view-host');
       if (host) host.scrollTop = 0;
-      const tabbar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tabbar-h')) || 64;
-      scroll.style.setProperty('height', Math.max(320, innerHeight - scroll.getBoundingClientRect().top - tabbar - 12) + 'px', 'important');
+      const bar = document.querySelector('.navigator');
+      const br = bar?.getBoundingClientRect();
+      const hostR = host?.getBoundingClientRect();
+      const bottom = Math.min(br && br.height && br.top > innerHeight / 2 ? br.top : innerHeight, hostR?.bottom || innerHeight); // above the tab bar, inside the page
+      const h = Math.max(320, bottom - scroll.getBoundingClientRect().top - 14);
+      scroll.style.setProperty('height', h + 'px', 'important');
+      // The plan beside the day (landscape tablets) ends where the day ends.
+      const side = body.querySelector('.day-layout > .side-plan, .day-layout > .day-plan');
+      if (side) { side.style.setProperty('height', (scroll.getBoundingClientRect().bottom - side.getBoundingClientRect().top) + 'px', 'important'); }
     }
     scroll.scrollTop = wantTop;
     // The box may not be laid out yet on the first render (phones); set it again once it is.

@@ -4277,3 +4277,34 @@ textarea.wz-input { min-height: 72px; resize: vertical; }
 .ul-engines { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 2px 0; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
 .ul-engines svg { width: 12px; height: 12px; flex: none; }
 .ul-engines .linkish { font-size: 11.5px; margin-left: 4px; text-decoration: underline; text-underline-offset: 2px; color: var(--ink-2); }
+
+/* ======================================================================
+   Timely day on touch screens (phones, tablets): one calm column that fills the screen.
+   ====================================================================== */
+.timely.day-touch .day-layout { display: flex !important; flex-direction: row !important; gap: 16px !important; align-items: flex-start; max-width: none; }
+.timely.day-touch .day-col { flex: 1 1 auto; min-width: 0; height: auto !important; min-height: 0 !important; gap: 10px; }
+.timely.day-touch .day-scroll { flex: none !important; overflow-y: auto !important; overscroll-behavior: contain; border-radius: 18px; -webkit-overflow-scrolling: touch; }
+.timely.day-touch .cal-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.timely.day-touch .cal-head .cal-title { text-align: left; }
+.timely.day-touch .day-col > .cal-head .cal-today { display: none; }
+.timely.day-touch .m-day-actions { display: flex; gap: 8px; }
+.timely.day-touch .m-day-actions > * { height: 42px; }
+.timely.day-touch .m-day-actions .m-plan-btn, .timely.day-touch .m-day-actions .m-add-btn { flex: 1; justify-content: center; }
+.timely.day-touch .m-day-actions .m-plan-btn small { font-size: var(--fs-2xs); font-weight: 600; background: var(--well); border-radius: 8px; padding: 0 6px; }
+.timely.day-touch .allday { padding: 6px 12px; min-height: 44px; }
+.timely.day-touch .slot-ghost { display: none !important; } /* no hover on touch */
+/* Compact: the plan is a sheet, so the day takes the whole width */
+.timely.day-compact .day-layout > .side-plan, .timely.day-compact .day-layout > .day-plan { display: none !important; }
+/* Landscape tablet: the day and its plan side by side, the same height, nothing floating */
+.timely.day-wide-touch .day-layout > .side-plan, .timely.day-wide-touch .day-layout > .day-plan { order: 0 !important; flex: 0 0 340px; width: 340px !important; position: static !important; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.timely.day-wide-touch .m-day-actions { justify-content: flex-end; }
+.timely.day-wide-touch .m-day-actions .m-add-btn { flex: 0 0 auto; padding: 0 22px; }
+.timely.day-touch .event-block .ev-title { font-size: 15px; }
+.timely.day-touch .hour-label { font-size: 12px; }
+.view-host:has(.timely.day-touch) { padding-bottom: 0 !important; }
+.timely.day-touch .cal-head { flex-wrap: nowrap; }
+.timely.day-touch .cal-head .cal-title { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.timely.day-touch .cal-head .cal-title h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.timely.day-touch .cal-head .cal-nav { flex: none; display: flex; gap: 8px; margin-left: auto; width: auto !important; }
+.timely.day-touch .cal-head .cal-arrow { width: 40px; height: 40px; }
+.timely.day-wide-touch .cal-head .m-day-actions { flex: none; margin-left: 4px; }
