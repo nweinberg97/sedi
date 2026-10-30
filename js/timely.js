@@ -308,6 +308,23 @@ function archiveButton() {
 const itemTypeOf = c => (c.meta?.kind === 'reminder' ? 'reminder' : c.meta?.itemType || 'task');
 
 // ---------- Daily ----------
+/** Touch screens: stretch a calendar box down to just above the tab bar, so the screen is used and nothing scrolls. */
+function fitBottom(el, min = 300) {
+  if (!el?.isConnected) return;
+  const host = document.querySelector('.view-host'), bar = document.querySelector('.navigator');
+  const br = bar?.getBoundingClientRect(), hr = host?.getBoundingClientRect();
+  let bottom = Math.min(br && br.height && br.top > innerHeight / 2 ? br.top : innerHeight, hr?.bottom || innerHeight);
+  // Atom floats at the bottom centre: end the box above it rather than hiding a day under it.
+  const at = document.querySelector('.assistant-token')?.getBoundingClientRect(), er = el.getBoundingClientRect();
+  if (at && at.width && at.left < er.right && at.right > er.left && at.top < bottom) bottom = at.top - 4;
+  el.style.height = Math.max(min, bottom - el.getBoundingClientRect().top - 14) + 'px';
+}
+function markTouch(layout) {
+  const v = root.querySelector('.timely');
+  v?.classList.toggle('day-touch', layout !== 'desktop');
+  v?.classList.toggle('day-compact', layout === 'compact');
+  v?.classList.toggle('day-wide-touch', layout === 'tablet');
+}
 /** Which day layout fits this screen: 'compact' (phones, portrait tablets), 'tablet' (landscape touch), or 'desktop'. */
 function dayLayout() {
   if (listMode()) return 'compact';
@@ -336,9 +353,7 @@ function renderDay() {
   // day, but both fill the screen and the add buttons collapse into one "+ Add".
   const layout = dayLayout();
   const onPhone = layout === 'compact';
-  root.querySelector('.timely')?.classList.toggle('day-touch', layout !== 'desktop');
-  root.querySelector('.timely')?.classList.toggle('day-compact', onPhone);
-  root.querySelector('.timely')?.classList.toggle('day-wide-touch', layout === 'tablet');
+  markTouch(layout);
   const phoneActions = onPhone ? h('div', { class: 'm-day-actions' },
     key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
     h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plan', todoCards().length ? h('small', {}, todoCards().length) : null),
@@ -791,6 +806,23 @@ function standardAdds(date, slot = null) {
   ];
 }
 const addBtn = (type, onClick) => h('button', { class: `add-btn add-${type}`, type: 'button', onclick: onClick }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES[type].icon)), ITEM_TYPES[type].label);
+/** Touch screens: one row with the period's plan (as a sheet, where there's no room beside the calendar) and one
+ *  "+ Add" that offers the same choices as the desktop's row of add buttons. */
+function touchActions(adds, { planLabel, planCount = 0, openPlan = null } = {}) {
+  const addBtnEl = h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: () => {
+    popover(addBtnEl, h('div', { class: 'add-menu' }, adds), { className: 'add-menu-pop' });
+  } }, icon('plus'), 'Add');
+  return h('div', { class: 'm-day-actions' },
+    openPlan ? h('button', { class: 'chip m-plan-btn', type: 'button', onclick: openPlan }, icon('checklist'), planLabel, planCount ? h('small', {}, planCount) : null) : null,
+    addBtnEl);
+}
+function planSheet(title, make) {
+  const holder = h('div', { class: 'plan-sheet' });
+  const paint = () => holder.replaceChildren(make());
+  paint();
+  const off = store.on(() => { if (holder.isConnected && !holder.contains(document.activeElement)) paint(); });
+  modal({ title, body: holder, className: 'sheet-modal', onClose: () => off() });
+}
 /** Phones: the week as a calm list of days, like a calendar app's list view. Tap + to add to a day, tap an item
  *  to open it, hold and drag an item onto another day to move it. The week's plan opens as a sheet. */
 function renderWeekPhone() {
@@ -869,11 +901,15 @@ function renderWeek() {
   }
   const head = navControl(label, n => dateKey(addDays(ws, 7 * n)), { sub: `${MONTH_NAMES[days[0].getMonth()]} ${days[0].getFullYear()}` });
   const wk = weekPlanKey(ws);
+  const layout = dayLayout();
+  markTouch(layout);
+  const makePlan = () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`);
+  if (layout !== 'desktop') head.append(touchActions(standardAdds(today), layout === 'compact'
+    ? { planLabel: 'Week plan', planCount: periodCards('weekplan', wk).filter(c => !c.meta.done).length, openPlan: () => planSheet('This week’s plan', makePlan) } : {}));
   const host = h('div', { class: 'zoom-host week-main' }, head, grid);
-  body.replaceChildren(
-    actionRow(standardAdds(today), 'Dots show what’s planned. Click a block to zoom in and see it all.'),
-    h('div', { class: 'period-layout' }, host,
-    periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`)));
+  body.replaceChildren(...[
+    layout === 'desktop' ? actionRow(standardAdds(today), 'Dots show what’s planned. Click a block to zoom in and see it all.') : null,
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
   if (zoom?.view === 'week') host.append(zoomPanel());
 }
 export const weekPlanKey = d => dateKey(startOfWeek(d instanceof Date ? d : parseKey(d)));
@@ -911,15 +947,22 @@ function renderMonth() {
   const head = navControl(label, n => { const m = addMonths(a, n); return dateKey(m < new Date() && n < 0 ? new Date() : m); });
   const host = h('div', { class: 'zoom-host month-main' }, head, grid);
   const first0 = dateKey(a < parseKey(today) ? parseKey(today) : a);
-  body.replaceChildren(
-    actionRow([
-      addBtn('trip', e => openSpanForm(e.currentTarget, 'trip', first0)),
-      addBtn('meeting', e => openItemForm(e.currentTarget, { type: 'meeting', date: first0 })),
-      addBtn('conference', e => openSpanForm(e.currentTarget, 'conference', first0)),
-      h('button', { class: 'add-btn add-task', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'event', date: first0 }) }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES.event.icon)), ITEM_TYPES.event.label),
-    ], 'Dots show what’s planned. Click a day to zoom in.'),
-    h('div', { class: 'period-layout' }, host,
-    periodPlanPanel('monthplan', monthPlanKey(a), `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month')));
+  const adds = () => [
+    addBtn('trip', e => openSpanForm(e.currentTarget, 'trip', first0)),
+    addBtn('meeting', e => openItemForm(e.currentTarget, { type: 'meeting', date: first0 })),
+    addBtn('conference', e => openSpanForm(e.currentTarget, 'conference', first0)),
+    h('button', { class: 'add-btn add-task', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'event', date: first0 }) }, h('span', { class: 'add-btn-ic' }, icon(ITEM_TYPES.event.icon)), ITEM_TYPES.event.label),
+  ];
+  const layout = dayLayout();
+  markTouch(layout);
+  const mk = monthPlanKey(a);
+  const makePlan = () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month');
+  if (layout !== 'desktop') (listMode() ? head.after.bind(head) : head.append.bind(head))(touchActions(adds(), layout === 'compact'
+    ? { planLabel: 'Month plan', planCount: periodCards('monthplan', mk).filter(c => !c.meta.done).length, openPlan: () => planSheet(`${MONTH_NAMES[a.getMonth()]} plan`, makePlan) } : {}));
+  body.replaceChildren(...[
+    layout === 'desktop' ? actionRow(adds(), 'Dots show what’s planned. Click a day to zoom in.') : null,
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
+  if (layout !== 'desktop' && !listMode()) requestAnimationFrame(() => fitBottom(grid, 360));
   if (zoom?.view === 'month') host.append(zoomPanel());
 }
 
