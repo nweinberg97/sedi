@@ -81,10 +81,10 @@ export function openUnload(host, api) {
   const paintEngines = () => {
     const e = api.engines?.();
     if (!e) return;
-    engineLine.replaceChildren(e.onDevice ? icon('lock') : null,
+    engineLine.replaceChildren(...[e.onDevice ? icon('lock') : null,
       h('span', {}, e.onDevice ? `Hearing: ${e.hear}, on this device.` : `Hearing: ${e.hear}.`),
       h('span', {}, e.sort ? ` Sorting: ${e.sort}.` : ' Sorting: Sedi’s built-in rules.'),
-      !e.brainOn && api.openBrain ? h('button', { class: 'linkish', type: 'button', onclick: () => api.openBrain() }, 'Sort smarter') : null);
+      !e.brainOn && api.openBrain ? h('button', { class: 'linkish', type: 'button', onclick: () => api.openBrain() }, 'Sort smarter') : null].filter(Boolean));
   };
   const panel = h('div', { class: 'unload', role: 'region', 'aria-label': 'Unload' },
     h('div', { class: 'ul-head' },
