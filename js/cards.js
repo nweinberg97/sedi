@@ -410,10 +410,19 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
     const moveTo = refs.move.value;
     if (moveTo && moveTo !== currentDestination(card)) moveCardTo(id, moveTo);
   };
-  refs.title.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); m.close(); } });
-  const m = modal({ title, body, onClose: () => session?.stop(), actions: [
-    { label: 'Duplicate', kind: 'ghost', onClick: () => { save(); duplicateCard(id); } },
-    { label: 'Cancel', kind: 'ghost' }, { label: 'Save', kind: 'primary', onClick: save }] });
+  // Closing the sheet any way other than Cancel keeps what you typed (tapping outside, ✕, swiping back),
+  // the way notes already behave. Only Cancel throws changes away.
+  let settled = false;
+  const snapshot = () => [...body.querySelectorAll('input, textarea, select')].map(x => (x.type === 'checkbox' || x.type === 'radio' ? x.checked : x.value)).join('\u0001');
+  let before = '';
+  refs.title.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); settled = true; save(); m.close(); } });
+  const m = modal({ title, body, onClose: () => {
+    session?.stop();
+    if (!settled && store.getCard(id) && snapshot() !== before) { save(); toast('Saved your changes'); }
+  }, actions: [
+    { label: 'Duplicate', kind: 'ghost', onClick: () => { settled = true; save(); duplicateCard(id); } },
+    { label: 'Cancel', kind: 'ghost', onClick: () => { settled = true; } }, { label: 'Save', kind: 'primary', onClick: () => { settled = true; save(); } }] });
+  requestAnimationFrame(() => { before = snapshot(); });
   return m;
 }
 

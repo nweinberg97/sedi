@@ -163,7 +163,18 @@ function openActivityList() {
     if (card) { item.classList.add('clickable'); item.addEventListener('click', () => { document.querySelector('.modal-backdrop .modal-head .icon-btn')?.click(); revealCard(card.id); }); }
     list.append(item);
   }
-  if (!log.length) list.append(h('p', { class: 'muted' }, 'No activity yet.'));
+  // No log yet (a fresh device, or an imported backup): show what's been touched most recently, like the Home tab does.
+  if (!log.length) {
+    const recent = store.allCards().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 30);
+    for (const c of recent) {
+      const item = h('div', { class: 'activity-row clickable' }, typeIcon(c.type),
+        h('span', { class: 'activity-text' }, h('strong', {}, 'Updated'), ' ', c.title),
+        h('span', { class: 'muted small' }, `${TOOL_NAMES[c.tool] || ''} · ${relTime(c.updatedAt)}`));
+      item.addEventListener('click', () => { document.querySelector('.modal-backdrop .modal-head .icon-btn')?.click(); revealCard(c.id); });
+      list.append(item);
+    }
+    if (!recent.length) list.append(h('p', { class: 'muted' }, 'No activity yet.'));
+  }
   modal({ title: 'Recent activity', body: list, wide: true });
 }
 

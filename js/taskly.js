@@ -212,7 +212,7 @@ function fmtLeft(ms) {
 function reviewTimer(c) {
   const until = c.meta?.reviewUntil;
   const left = until ? new Date(until).getTime() - Date.now() : null;
-  const label = left == null ? 'Set a timer' : left <= 0 ? 'Back now: check on it' : `Back in ${fmtLeft(left)}`;
+  const label = left == null ? 'Set a timer' : left <= 0 ? 'Check on it now' : `Back in ${fmtLeft(left)}`;
   return h('button', {
     class: `review-timer ${left != null && left <= 0 ? 'due' : ''}`, title: until ? `Comes back ${new Date(until).toLocaleString()}` : 'Choose when this comes back',
     onclick: e => { e.stopPropagation(); pickReviewTime(e.currentTarget, c.id); },

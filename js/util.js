@@ -277,7 +277,9 @@ export function modal({ title, body, actions = [], wide = false, onClose, classN
   // Everything behind the dialog is out of reach for keyboards and screen readers while it's open.
   const app = document.getElementById('app'); if (app) app.inert = true;
   requestAnimationFrame(() => backdrop.classList.add('in'));
-  setTimeout(() => box.querySelector('input, textarea, [contenteditable="true"]')?.focus(), 60);
+  // On a phone or tablet, focusing a field pops the keyboard over what you came to read; only focus with a keyboard.
+  if (!matchMedia('(hover: none) and (pointer: coarse)').matches) setTimeout(() => box.querySelector('input, textarea, [contenteditable="true"]')?.focus(), 60);
+  else setTimeout(() => box.querySelector('.modal-body')?.focus?.({ preventScroll: true }), 60);
   return { close, box, content };
 }
 export const hasOpenModal = () => modalStack.length > 0;

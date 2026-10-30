@@ -10,7 +10,7 @@ import { sendListButton } from './builder.js';
 
 const MAX_TABS = 10;
 const SIZES = { goal: [208, 60], task: [208, 60], note: [240, 52] };
-const LEFT = 76; // Room for the in-canvas toolbar (SD-O4)
+const LEFT = 96; // Room for the in-canvas toolbar (SD-O4)
 let root, tabBar, canvas, hoverCanvas = false;
 const sel = new Set(); // SD-O1: selected card ids on the current tab
 
@@ -250,10 +250,19 @@ onDragEnd(snap => {
   live = null;
 });
 
+/** The first spot on the board that no card covers, row by row, so a new card never lands on another. */
 function freeSpot(tabId) {
-  const n = tabCards(tabId).length;
-  const cols = Math.max(1, Math.floor(((canvas?.clientWidth || 900) - LEFT - 16) / 230));
-  return { x: LEFT + 8 + (n % cols) * 228, y: 24 + Math.floor(n / cols) * 84 };
+  // What's on screen is what counts (positions can be squeezed on a narrower screen).
+  const onScreen = canvas?.isConnected && activeTab()?.id === tabId ? [...canvas.querySelectorAll(':scope > .tile')] : [];
+  const taken = onScreen.length ? onScreen.map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight + 8 }))
+    : tabCards(tabId).map(c => { const [w0, hh] = SIZES[c.type] || SIZES.note; return { x: c.meta?.x ?? 0, y: c.meta?.y ?? 0, w: cardW(c) || w0, h: hh + 16 }; });
+  const cw = canvas?.clientWidth || 900, ch = canvas?.clientHeight || 600;
+  for (let y = 24; y < Math.max(ch, 2000); y += 84) {
+    for (let x = LEFT + 8; x + 216 <= Math.max(cw - 8, LEFT + 230); x += 228) {
+      if (!taken.some(t => x < t.x + t.w + 8 && x + 216 > t.x - 8 && y < t.y + t.h && y + 68 > t.y)) return { x, y };
+    }
+  }
+  return { x: LEFT + 8, y: 24 };
 }
 
 // ---------- Render ----------
@@ -370,19 +379,34 @@ function renderCanvas() {
   dots?.recolor();
   const cards = tab ? tabCards(tab.id) : [];
   const cw = canvas.clientWidth || 1000, ch = canvas.clientHeight || 600;
-  canvas.replaceChildren(dots.el, ...cards.map(c => {
+  // A board laid out on a wide screen, seen on a narrower one, gets squeezed against the right edge. Where that
+  // would put one card on top of another, the later one steps down until it's clear (on screen only; the saved
+  // layout is untouched, so it's back as it was on the wide screen).
+  const placed = [];
+  const order = [...cards].sort((p, q) => (p.meta?.y ?? 0) - (q.meta?.y ?? 0) || (p.meta?.x ?? 0) - (q.meta?.x ?? 0));
+  const pos = new Map();
+  for (const c of order) {
     const [w0, hh] = SIZES[c.type] || SIZES.note;
-    const w = cardW(c) || w0;
+    const w = cardW(c) || w0, hgt = c.type === 'note' && c.description ? hh + 22 : hh + (c.description ? 10 : 0);
+    const x = clamp(c.meta?.x ?? 24, LEFT, Math.max(LEFT, cw - w - 8));
+    let y = clamp(c.meta?.y ?? 24, 8, Math.max(8, ch - hh - 8));
+    const squeezed = x !== (c.meta?.x ?? 24);
+    if (squeezed) for (let i = 0; i < 40 && placed.some(r => x < r.x + r.w && x + w > r.x && y < r.y + r.h + 6 && y + hgt > r.y - 6); i++) y += 12;
+    placed.push({ x, y, w, h: hgt });
+    pos.set(c.id, { x, y, w });
+  }
+  canvas.replaceChildren(dots.el, ...cards.map(c => {
+    const { x, y, w } = pos.get(c.id);
     const el = c.type === 'note' ? noteEl(c) : tileEl(c);
     if (cardW(c)) el.style.width = w + 'px';
     el.append(widthHandle(el, c));
-    el.style.left = clamp(c.meta?.x ?? 24, LEFT, Math.max(LEFT, cw - w - 8)) + 'px';
-    el.style.top = clamp(c.meta?.y ?? 24, 8, Math.max(8, ch - hh - 8)) + 'px';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
     return el;
   }), h('div', { class: 'sel-hint', 'aria-live': 'polite' }));
   [...sel].forEach(id => { if (!cards.some(c => c.id === id)) sel.delete(id); });
   paintSel();
-  if (!cards.length) canvas.append(h('div', { class: 'canvas-empty' }, `Add a goal, task or note to ${tab?.name || 'this category'}. Shortcut: G, T or N.`));
+  if (!cards.length) canvas.append(h('div', { class: 'canvas-empty' }, `Add a goal, task or note to ${tab?.name || 'this category'}.${matchMedia('(hover: none)').matches ? '' : ' Shortcut: G, T or N.'}`));
 }
 
 // Cards can be stretched sideways (within limits) so a longer title reads in full.

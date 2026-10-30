@@ -317,7 +317,7 @@ function fitBottom(el, min = 300) {
   // Atom floats at the bottom centre: end the box above it rather than hiding a day under it.
   const at = document.querySelector('.assistant-token')?.getBoundingClientRect(), er = el.getBoundingClientRect();
   if (at && at.width && at.left < er.right && at.right > er.left && at.top < bottom) bottom = at.top - 4;
-  el.style.height = Math.max(min, bottom - el.getBoundingClientRect().top - 14) + 'px';
+  el.style.setProperty('height', Math.max(min, bottom - el.getBoundingClientRect().top - 14) + 'px', 'important');
 }
 function markTouch(layout) {
   const v = root.querySelector('.timely');
@@ -423,12 +423,7 @@ function renderDay() {
     if (phone) {
       const host = document.querySelector('.view-host');
       if (host) host.scrollTop = 0;
-      const bar = document.querySelector('.navigator');
-      const br = bar?.getBoundingClientRect();
-      const hostR = host?.getBoundingClientRect();
-      const bottom = Math.min(br && br.height && br.top > innerHeight / 2 ? br.top : innerHeight, hostR?.bottom || innerHeight); // above the tab bar, inside the page
-      const h = Math.max(320, bottom - scroll.getBoundingClientRect().top - 14);
-      scroll.style.setProperty('height', h + 'px', 'important');
+      fitBottom(scroll, 320);
       // The plan beside the day (landscape tablets) ends where the day ends.
       const side = body.querySelector('.day-layout > .side-plan, .day-layout > .day-plan');
       if (side) { side.style.setProperty('height', (scroll.getBoundingClientRect().bottom - side.getBoundingClientRect().top) + 'px', 'important'); }
@@ -650,7 +645,7 @@ function dayPlanPanel(key) {
       return el;
     })),
     withMic(input, { label: 'Dictate a plan item' }),
-    h('p', { class: 'muted small' }, list.length ? 'Drag a task onto the day to give it a time.' : 'Nothing in To do. Add the day’s plan here; it shows up in Taskly too.'));
+    h('p', { class: 'muted small' }, list.length ? (matchMedia('(hover: none)').matches ? 'Tap the clock on a task to give it a time.' : 'Drag a task onto the day to give it a time.') : 'Nothing in To do. Add the day’s plan here; it shows up in Taskly too.'));
 }
 /** Put a plan task on the day at the next free half hour (moves it from Taskly into Timely). */
 function scheduleToday(id, key) {
@@ -679,7 +674,7 @@ function openPlanSheet(key) {
   const holder = h('div', { class: 'plan-sheet' });
   const paint = () => holder.replaceChildren(sidePlan(key, { onChange: paint, scheduleOn: key }));
   paint();
-  const off = store.on(() => { if (holder.isConnected && !holder.contains(document.activeElement)) paint(); });
+  const off = store.on(() => repaintKeepingFocus(holder, paint));
   modal({ title: key === todayKey() ? 'Today’s plan' : `Plan · ${fmtShortDate(parseKey(key))}`, body: holder, className: 'sheet-modal', onClose: () => off() });
 }
 
@@ -816,11 +811,20 @@ function touchActions(adds, { planLabel, planCount = 0, openPlan = null } = {}) 
     openPlan ? h('button', { class: 'chip m-plan-btn', type: 'button', onclick: openPlan }, icon('checklist'), planLabel, planCount ? h('small', {}, planCount) : null) : null,
     addBtnEl);
 }
+/** Redraw a sheet after a change, keeping the cursor in the field you were typing in. */
+function repaintKeepingFocus(holder, paint) {
+  if (!holder.isConnected) return;
+  const a = document.activeElement, keep = holder.contains(a) ? a?.dataset?.keep : null;
+  if (holder.contains(a) && !keep) return; // typing somewhere without a key: leave it alone
+  const val = keep ? a.value : '';
+  paint();
+  if (keep) { const f = holder.querySelector(`[data-keep="${keep}"]`); if (f) { f.value = val; f.focus(); } }
+}
 function planSheet(title, make) {
   const holder = h('div', { class: 'plan-sheet' });
   const paint = () => holder.replaceChildren(make());
   paint();
-  const off = store.on(() => { if (holder.isConnected && !holder.contains(document.activeElement)) paint(); });
+  const off = store.on(() => repaintKeepingFocus(holder, paint));
   modal({ title, body: holder, className: 'sheet-modal', onClose: () => off() });
 }
 /** Phones: the week as a calm list of days, like a calendar app's list view. Tap + to add to a day, tap an item
@@ -838,7 +842,7 @@ function renderWeekPhone() {
       const holder = h('div', { class: 'plan-sheet' });
       const paint = () => holder.replaceChildren(periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) }));
       paint();
-      const off = store.on(() => { if (holder.isConnected && !holder.contains(document.activeElement)) paint(); });
+      const off = store.on(() => repaintKeepingFocus(holder, paint));
       modal({ title: 'This week’s plan', body: holder, className: 'sheet-modal', onClose: () => off() });
     } }, icon('checklist'), 'Week plan', planN ? h('small', {}, planN) : null));
   const list = h('div', { class: 'agenda' }, days.map(d => {
@@ -905,7 +909,7 @@ function renderWeek() {
   markTouch(layout);
   const makePlan = () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`);
   if (layout !== 'desktop') head.append(touchActions(standardAdds(today), layout === 'compact'
-    ? { planLabel: 'Week plan', planCount: periodCards('weekplan', wk).filter(c => !c.meta.done).length, openPlan: () => planSheet('This week’s plan', makePlan) } : {}));
+    ? { planLabel: 'Week plan', planCount: periodCards('weekplan', wk).filter(c => !c.meta.done).length, openPlan: () => planSheet('This week’s plan', () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) })) } : {}));
   const host = h('div', { class: 'zoom-host week-main' }, head, grid);
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(standardAdds(today), 'Dots show what’s planned. Click a block to zoom in and see it all.') : null,
@@ -958,7 +962,7 @@ function renderMonth() {
   const mk = monthPlanKey(a);
   const makePlan = () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month');
   if (layout !== 'desktop') (listMode() ? head.after.bind(head) : head.append.bind(head))(touchActions(adds(), layout === 'compact'
-    ? { planLabel: 'Month plan', planCount: periodCards('monthplan', mk).filter(c => !c.meta.done).length, openPlan: () => planSheet(`${MONTH_NAMES[a.getMonth()]} plan`, makePlan) } : {}));
+    ? { planLabel: 'Month plan', planCount: periodCards('monthplan', mk).filter(c => !c.meta.done).length, openPlan: () => planSheet(`${MONTH_NAMES[a.getMonth()]} plan`, () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(adds(), 'Dots show what’s planned. Click a day to zoom in.') : null,
     h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
@@ -1086,7 +1090,8 @@ function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
     list.length ? h('div', { class: 'pp-progress' }, h('span', { style: { width: `${Math.round((done / list.length) * 100)}%` } })) : null,
     h('div', { class: 'day-plan-list' }, items),
     withMic(input, { label: 'Dictate a plan item' }),
-    h('p', { class: 'muted small' }, list.length ? `Drag an item onto a ${kind === 'weekplan' ? 'day' : 'date'} to schedule it.` : kind === 'weekplan' ? 'What should this week include? Add a few things, then drag them onto days.' : 'Big things for the month. Drag them onto dates when you’re ready.'));
+    h('p', { class: 'muted small' }, scheduleOn ? (list.length ? 'Tap the clock on an item to give it a time.' : kind === 'weekplan' ? 'What should this week include? Add a few things, then give each a time.' : 'Big things for the month. Give them a date when you’re ready.')
+      : list.length ? `Drag an item onto a ${kind === 'weekplan' ? 'day' : 'date'} to schedule it.` : kind === 'weekplan' ? 'What should this week include? Add a few things, then drag them onto days.' : 'Big things for the month. Drag them onto dates when you’re ready.'));
 }
 const PLAN_STRIP = ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt', 'containerId', 'doneDates', 'itemType', 'columnId', 'completedAt', 'reviewUntil'];
 registerDrop('period-plan', ({ id, index, data }) => {
@@ -1394,7 +1399,8 @@ export function openEventEditor(id) {
     title: isRem ? 'Reminder' : isRoutine(c) ? 'Routine' : 'Scheduled item',
     extra: card => {
       const m = card.meta || {};
-      f.date = h('input', { class: 'field-input', type: 'date', min: todayKey(), value: m.date || '' });
+      // A routine's date is when the series starts; it isn't today's date, so it's labelled that way and can be in the past.
+      f.date = h('input', { class: 'field-input', type: 'date', ...(m.recurrence ? {} : { min: todayKey() }), value: m.date || '' });
       f.end = h('input', { class: 'field-input', type: 'date', min: m.date || todayKey(), value: m.endDate || '', 'aria-label': 'Until' });
       f.time = h('input', { class: 'field-input', type: 'time', value: m.start != null ? `${pad(Math.floor(m.start / 60))}:${pad(m.start % 60)}` : '' });
       const durs = [...new Set([15, 30, 45, 60, 90, 120, 180, m.dur || 60])].sort((a, b) => a - b);
@@ -1468,12 +1474,13 @@ export function openEventEditor(id) {
             paintCatRow();
             typeRow?.querySelectorAll('.type-opt').forEach(b => { const k = [...b.classList].find(x => x.startsWith('it-'))?.slice(3); if (k && ITEM_TYPES[k]) b.lastChild.textContent = ITEM_TYPES[k].label; });
           };
-      const dateField = field('Date', f.date), untilField = field('Until', f.end);
+      const dateLabel = m.recurrence ? 'Repeats from' : 'Date';
+      const dateField = field(dateLabel, f.date), untilField = field('Until', f.end);
       // Trips and conferences run over days: they show an end date, and the first date reads "From".
       const syncSpan = () => {
         const span = !!(ITEM_TYPES[f.type ? f.type.value : m.itemType]?.span || f.end.value);
         untilField.hidden = !span;
-        dateField.querySelector('.field-label').textContent = span ? 'From' : 'Date';
+        dateField.querySelector('.field-label').textContent = span ? 'From' : dateLabel;
       };
       setTimeout(syncSpan, 0);
       return h('div', { class: 'ical' },
@@ -1748,24 +1755,24 @@ function renderPlan() {
   body.replaceChildren(h('div', { class: 'plan' }, viewport));
   // Native sideways scrolling with snapping: swipe on touch screens and trackpads, or use the arrows.
   requestAnimationFrame(() => {
-    const step = colW(b) + COL_GAP;
-    const visible = Math.max(1, Math.floor((viewport.clientWidth + COL_GAP) / step));
-    const total = list.length + 1;
-    const max = Math.max(0, total - visible);
-    navEl.hidden = !max;
-    const offNow = () => clamp(Math.round(viewport.scrollLeft / step), 0, max);
+    // Measure what's really on screen (column widths differ between phones, tablets and computers).
+    const firstCol = track.querySelector('.ct, .plan-ghost');
+    const step = (firstCol?.getBoundingClientRect().width || colW(b)) + COL_GAP;
+    const maxScroll = () => Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    navEl.hidden = maxScroll() < 4;
     const paint = () => {
-      const off = offNow();
-      left.disabled = off === 0; right.disabled = off >= max;
-      label.textContent = `${Math.min(list.length, off + visible)}/${list.length}`;
+      const x = viewport.scrollLeft, from = Math.min(list.length, Math.floor(x / step + 0.5) + 1);
+      const to = Math.min(list.length, Math.floor((x + viewport.clientWidth + COL_GAP) / step));
+      left.disabled = x <= 2; right.disabled = x >= maxScroll() - 2;
+      label.textContent = list.length ? (from >= to ? `${from} of ${list.length}` : `${from}–${to} of ${list.length}`) : '';
     };
-    const go = d => viewport.scrollTo({ left: clamp(offNow() + d, 0, max) * step, behavior: 'smooth' });
-    viewport.scrollLeft = clamp((store.pref('planOffset', {})[b]) || 0, 0, max) * step;
+    const go = d => viewport.scrollTo({ left: clamp(Math.round(viewport.scrollLeft / step + d) * step, 0, maxScroll()), behavior: 'smooth' });
+    viewport.scrollLeft = clamp(((store.pref('planOffset', {})[b]) || 0) * step, 0, maxScroll());
     let t = null;
     viewport.addEventListener('scroll', () => {
       paint();
       clearTimeout(t);
-      t = setTimeout(() => store.setPref('planOffset', { ...store.pref('planOffset', {}), [b]: offNow() }), 200);
+      t = setTimeout(() => store.setPref('planOffset', { ...store.pref('planOffset', {}), [b]: Math.round(viewport.scrollLeft / step) }), 200);
     }, { passive: true });
     left.onclick = () => go(-1); right.onclick = () => go(1);
     paint();
