@@ -1827,72 +1827,91 @@ function stepEl(c) {
   return cardChrome(el, c, () => openEditor(c.id, { title: kind === 'milestone' ? 'Milestone' : 'Next action' }));
 }
 
-/** Step-by-step goal setup: WOOP, a deadline, milestones and the very next action. */
+/** Step-by-step goal setup: one question at a time (WOOP, a deadline, milestones, the very next action). */
 export function openGoalWizard(ctId) {
   const existing = ctId ? boardContainers('goals').find(x => x.id === ctId) : null;
   const w = existing?.woop || {};
-  const f = {};
-  const area = (k, label, help, ph, val = '') => {
-    f[k] = h('textarea', { class: 'field-input', rows: 2, placeholder: ph, 'aria-label': label });
-    f[k].value = val;
-    f[k].addEventListener('keydown', e => e.stopPropagation());
-    return h('div', { class: 'wiz-step' }, h('label', { class: 'field-label' }, label), h('p', { class: 'muted small' }, help), f[k]);
+  const stop = el => { el.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && el.tagName === 'INPUT') { e.preventDefault(); go(1); } }); return el; };
+  const input = (ph, val = '', extra = {}) => stop(h('input', { class: 'field-input wz-input', placeholder: ph, value: val, ...extra }));
+  const area = (ph, val = '') => { const t = stop(h('textarea', { class: 'field-input wz-input', rows: 2, placeholder: ph })); t.value = val; return t; };
+  const f = {
+    name: input('e.g. Run a 10K', existing?.name || w.wish || '', { 'aria-label': 'Goal' }),
+    due: stop(h('input', { class: 'field-input wz-date', type: 'date', min: todayKey(), value: existing?.due || '', 'aria-label': 'By when' })),
+    outcome: area('e.g. More energy, and proud crossing the line', w.outcome || ''),
+    obstacle: area('e.g. Skipping runs when I’m tired after work', w.obstacle || ''),
+    plan: area('If I’m tired after work, then I’ll do 15 easy minutes anyway', w.plan || ''),
+    ms: [0, 1, 2].map(i => input(['e.g. Run 5K without stopping', 'e.g. Run 8K', 'e.g. Sign up for the race'][i], '', { 'aria-label': `Milestone ${i + 1}` })),
+    next: input('e.g. Put my running shoes by the door', '', { 'aria-label': 'Next action' }),
   };
-  f.name = h('input', { class: 'field-input title-input', value: existing?.name || '', placeholder: 'Name the goal, e.g. “Run a 10K”', 'aria-label': 'Goal name' });
-  f.due = h('input', { class: 'field-input sm', type: 'date', min: todayKey(), value: existing?.due || '', 'aria-label': 'Deadline' });
-  const ms = [0, 1, 2].map(i => h('input', { class: 'field-input sm', placeholder: ['First milestone, e.g. run 5K without stopping', 'Second milestone', 'Third milestone'][i], 'aria-label': `Milestone ${i + 1}` }));
-  const next = h('input', { class: 'field-input sm', placeholder: 'Something you can start in 5 minutes, e.g. put running shoes by the door', 'aria-label': 'First next action' });
-  [...ms, next, f.name].forEach(x => x.addEventListener('keydown', e => e.stopPropagation()));
-  const bodyEl = h('div', { class: 'editor goal-wizard' },
-    f.name,
-    h('p', { class: 'muted small' }, 'Four short questions, then break it into steps. Write in your own words; one line each is enough.'),
-    area('wish', '1 · Wish', 'What do you want to achieve? Make it challenging but doable.', 'Run a 10K race without walking', w.wish || ''),
-    area('outcome', '2 · Outcome', 'Picture the best result. How will it feel, what changes?', 'More energy, proud crossing the line', w.outcome || ''),
-    area('obstacle', '3 · Obstacle', 'What inside you is most likely to get in the way?', 'Skipping runs when I’m tired after work', w.obstacle || ''),
-    area('plan', '4 · Plan (if-then)', 'If that obstacle shows up, what will you do? Write it as “If …, then I will …”.', 'If I’m tired after work, then I’ll do a 15-minute easy run anyway', w.plan || ''),
-    h('div', { class: 'wiz-row' }, h('label', { class: 'field-label' }, 'Deadline'), f.due),
-    existing ? null : h('div', { class: 'wiz-step' },
-      h('label', { class: 'field-label' }, '5 · Break it down'),
-      h('p', { class: 'muted small' }, 'Milestones are checkpoints you can see. The next action is the smallest first move.'),
-      ...ms, h('label', { class: 'field-label' }, 'Next action'), next));
-  modal({
-    title: existing ? 'Goal plan' : 'New goal', wide: true, body: bodyEl,
-    actions: [
-      { label: 'Guide', kind: 'ghost', onClick: () => { setTimeout(openGoalGuide, 200); return true; } },
-      { label: 'Cancel', kind: 'ghost' },
-      { label: existing ? 'Save' : 'Create goal', kind: 'primary', onClick: () => {
-        const woop = { wish: f.wish.value.trim(), outcome: f.outcome.value.trim(), obstacle: f.obstacle.value.trim(), plan: f.plan.value.trim() };
-        const name = f.name.value.trim() || woop.wish || 'New goal';
-        if (existing) {
-          saveContainers('goals', boardContainers('goals').map(x => (x.id === ctId ? { ...x, name, woop, due: f.due.value || null } : x)));
-          return;
-        }
-        const ct = { id: uuid(), name, woop, due: f.due.value || null };
-        saveContainers('goals', [...boardContainers('goals'), ct]);
-        let order = 0;
-        ms.map(x => x.value.trim()).filter(Boolean).forEach(t => store.createCard({ type: 'goal', tool: 'timely', title: t, meta: { board: 'goals', containerId: ct.id, order: order++, stepKind: 'milestone', done: false } }, { silent: true }));
-        if (next.value.trim()) store.createCard({ type: 'goal', tool: 'timely', title: next.value.trim(), meta: { board: 'goals', containerId: ct.id, order: order++, stepKind: 'action', done: false } }, { silent: true });
-        store.setPref('planOffset', { ...store.pref('planOffset', {}), goals: boardContainers('goals').length });
-        store.notify({ reason: 'goal' });
-        toast(`Created “${name}”`);
-      } },
-    ],
+  // If-then: start the plan off with their own obstacle, so they only finish the sentence.
+  f.obstacle.addEventListener('change', () => { if (f.obstacle.value.trim() && !f.plan.value.trim()) f.plan.value = 'If that happens, I’ll '; });
+  const obstacleQuote = () => { const ob = f.obstacle.value.trim().replace(/[.!]$/, ''); return ob ? h('blockquote', { class: 'wz-quote' }, ob) : null; };
+  const STEPS = [
+    { key: 'goal', q: 'What do you want to achieve?', tip: 'Make it specific and a bit of a stretch. Say what done looks like.', body: () => [f.name, h('label', { class: 'wz-sub' }, 'By when', h('span', { class: 'muted' }, ' (optional)')), f.due], focus: () => f.name },
+    { key: 'outcome', q: 'Picture the best result.', tip: 'How will it feel? What changes for you?', body: () => [f.outcome], focus: () => f.outcome },
+    { key: 'obstacle', q: 'What in you could get in the way?', tip: 'Be honest: the habit, feeling or excuse most likely to stop you.', body: () => [f.obstacle], focus: () => f.obstacle },
+    { key: 'plan', q: 'When that happens, what will you do?', tip: 'One small, concrete move. Plans written as “if …, I’ll …” are far more likely to stick.', body: () => [obstacleQuote(), f.plan].filter(Boolean), focus: () => f.plan },
+    ...(existing ? [] : [{ key: 'steps', q: 'Break it into steps.', tip: 'A few checkpoints you can see, then the smallest first move, something you could start in five minutes.', body: () => [
+      h('label', { class: 'wz-sub' }, 'Milestones'), ...f.ms, h('label', { class: 'wz-sub' }, 'Your first move'), f.next], focus: () => f.ms[0] }]),
+  ];
+  let i = 0;
+  const dots = h('div', { class: 'wz-dots', role: 'tablist' });
+  const stage = h('div', { class: 'wz-stage' });
+  const back = h('button', { class: 'btn ghost', type: 'button', onclick: () => go(-1) }, 'Back');
+  const nextBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => go(1) });
+  const show = (dir = 0) => {
+    const st = STEPS[i];
+    dots.replaceChildren(...STEPS.map((x, k) => h('button', { class: `wz-dot ${k === i ? 'on' : ''} ${k < i ? 'done' : ''}`, type: 'button', 'aria-label': `Step ${k + 1}`, onclick: () => { i = k; show(); } })));
+    stage.replaceChildren(h('div', { class: `wz-card ${dir > 0 ? 'from-right' : dir < 0 ? 'from-left' : ''}` },
+      h('span', { class: 'wz-count' }, `${i + 1} of ${STEPS.length}`),
+      h('h3', { class: 'wz-q' }, st.q), h('p', { class: 'wz-tip' }, st.tip), ...st.body()));
+    back.style.visibility = i ? 'visible' : 'hidden';
+    nextBtn.textContent = i < STEPS.length - 1 ? 'Next' : existing ? 'Save' : 'Create goal';
+    setTimeout(() => st.focus()?.focus(), 60);
+  };
+  let m;
+  const go = d => {
+    if (d > 0 && i === 0 && !f.name.value.trim()) { f.name.focus(); f.name.classList.add('wz-need'); setTimeout(() => f.name.classList.remove('wz-need'), 600); return; }
+    if (d > 0 && i === STEPS.length - 1) { finish(); m?.close(); return; }
+    i = clamp(i + d, 0, STEPS.length - 1); show(d);
+  };
+  const finish = () => {
+    const woop = { wish: f.name.value.trim(), outcome: f.outcome.value.trim(), obstacle: f.obstacle.value.trim(), plan: f.plan.value.trim().replace(/^If that happens, I’ll\s*$/, '').trim() };
+    const name = f.name.value.trim() || 'New goal';
+    if (existing) { saveContainers('goals', boardContainers('goals').map(x => (x.id === ctId ? { ...x, name, woop, due: f.due.value || null } : x))); return; }
+    const ct = { id: uuid(), name, woop, due: f.due.value || null };
+    saveContainers('goals', [...boardContainers('goals'), ct]);
+    let order = 0;
+    f.ms.map(x => x.value.trim()).filter(Boolean).forEach(t => store.createCard({ type: 'goal', tool: 'timely', title: t, meta: { board: 'goals', containerId: ct.id, order: order++, stepKind: 'milestone', done: false } }, { silent: true }));
+    if (f.next.value.trim()) store.createCard({ type: 'goal', tool: 'timely', title: f.next.value.trim(), meta: { board: 'goals', containerId: ct.id, order: order++, stepKind: 'action', done: false } }, { silent: true });
+    store.setPref('planOffset', { ...store.pref('planOffset', {}), goals: boardContainers('goals').length });
+    store.notify({ reason: 'goal' });
+    toast(`Created “${name}”`);
+  };
+  m = modal({
+    title: existing ? 'Goal plan' : 'New goal', className: 'goal-wizard-modal',
+    body: h('div', { class: 'goal-wizard wz' }, dots, stage, h('div', { class: 'wz-foot' },
+      h('button', { class: 'chip ghost wz-why', type: 'button', onclick: () => setTimeout(openGoalGuide, 150) }, 'Why this works'),
+      h('span', { class: 'head-spacer' }), back, nextBtn)),
+    actions: [],
   });
-  // Focus the first field, unless you've already clicked into another one.
-  setTimeout(() => { if (!bodyEl.contains(document.activeElement)) (existing ? f.wish : f.name).focus(); }, 80);
+  show();
 }
 function openGoalGuide() {
-  const sec = (title, text) => h('div', { class: 'guide-sec' }, h('h4', {}, title), h('p', {}, text));
+  const row = (n, title, ex) => h('li', { class: 'gg-row' }, h('span', { class: 'gg-n' }, n), h('div', {}, h('strong', {}, title), h('span', { class: 'gg-ex' }, ex)));
   modal({
-    title: 'How to set a goal that sticks', wide: true,
-    body: h('div', { class: 'editor goal-guide' },
-      sec('1. Be specific, and make it a stretch', 'Specific, challenging goals tend to beat “do your best”. Say what done looks like and by when.'),
-      sec('2. WOOP it: Wish, Outcome, Obstacle, Plan', 'Imagine the best outcome, then the main thing inside you that could stop you. Picturing both together (mental contrasting) gives you energy for goals you can reach and helps you let go of ones you can’t.'),
-      sec('3. Write an if-then plan', '“If it’s 6pm on a workday, then I’ll put on my running shoes.” Linking a situation to an action makes you far more likely to follow through than intention alone.'),
-      sec('4. Break it into milestones', 'Two to four checkpoints you can see. Each one should feel like progress, not busywork.'),
-      sec('5. Always know the next action', 'The very next physical step, small enough to start in five minutes. When it’s done, write the next one.'),
-      sec('6. Review weekly', 'Once a week, tick what’s done, move what slipped, and adjust the plan. Seeing progress keeps motivation up.'),
-      h('p', { class: 'muted small' }, 'Based on Gabriele Oettingen’s WOOP research, Peter Gollwitzer’s implementation intentions, and Locke & Latham’s goal-setting theory.')),
+    title: 'A goal that sticks', className: 'goal-guide-modal',
+    body: h('div', { class: 'goal-guide gg' },
+      h('p', { class: 'gg-lead' }, 'Five small moves. Each one takes a line.'),
+      h('ol', { class: 'gg-list' },
+        row('1', 'Name it, and when it’s done', 'Run a 10K by May'),
+        row('2', 'Picture the best result', 'More energy, proud at the finish'),
+        row('3', 'Spot what in you could stop you', 'Skipping runs when I’m tired'),
+        row('4', 'Plan for it: if …, then I’ll …', 'If I’m tired, then I’ll run 15 easy minutes'),
+        row('5', 'Know the very next move', 'Shoes by the door tonight')),
+      h('p', { class: 'gg-foot' }, 'Then check in once a week: tick what’s done, write the next move.'),
+      h('details', { class: 'gg-why' }, h('summary', {}, 'Why this works'),
+        h('p', {}, 'Picturing the result and the obstacle together (Gabriele Oettingen’s WOOP) gives you energy for goals you can reach. If-then plans (Peter Gollwitzer) make follow-through far more likely. Specific, stretching goals beat “do your best” (Locke & Latham).'))),
     actions: [{ label: 'Got it', kind: 'primary' }],
   });
 }

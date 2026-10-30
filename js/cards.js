@@ -130,10 +130,29 @@ export const moreButton = (id, onInfo, onDuplicate) => h('button', {
       item('expand', 'Open details', onInfo),
       item('move', 'Move to…', () => openMoveDialog(id)), // the way to move things on a phone, no dragging needed
       item('copy', 'Duplicate', () => (onDuplicate || duplicateCard)(id)),
+      turnIntoRow(id),
       h('hr'),
       item('trash', 'Delete', () => trashCard(id), 'danger')), { className: 'card-menu-pop' });
   },
 }, icon('more'));
+// Boardly cards can change what they are: a note can become a task or a goal, and back.
+const TURN_TYPES = [['note', 'Note', 'pencil'], ['task', 'Task', 'check'], ['goal', 'Goal', 'target']];
+function turnIntoRow(id) {
+  const c = store.getCard(id);
+  if (!c || c.tool !== 'boardly' || !TURN_TYPES.some(([t]) => t === c.type)) return null;
+  return h('div', { class: 'cm-turn' }, h('span', { class: 'cm-turn-label' }, 'Turn into'),
+    h('div', { class: 'cm-turn-row' }, TURN_TYPES.filter(([t]) => t !== c.type).map(([t, label, ic]) => h('button', {
+      class: `cm-turn-btn turn-${t}`, type: 'button',
+      onclick: ev => { ev.stopPropagation(); closePopovers(); turnInto(id, t); },
+    }, icon(ic), label))));
+}
+export function turnInto(id, type) {
+  const c = store.getCard(id);
+  if (!c || c.type === type) return;
+  const before = { type: c.type, meta: { ...c.meta } };
+  store.updateCard(id, { type, meta: { done: false, ...(type === 'goal' && !c.meta?.smart ? { smart: {} } : {}) } }, { log: true, logLabel: `Turned into a ${type}` });
+  toast(`Now a ${type}`, { action: 'Undo', onAction: () => store.updateCard(id, before, { replaceMeta: true }) });
+}
 export const duplicateButton = (id, onDuplicate) => h('button', {
   class: 'card-tool card-dup', type: 'button', 'aria-label': 'Duplicate', title: 'Duplicate',
   onclick: e => { e.stopPropagation(); (onDuplicate || duplicateCard)(id); },

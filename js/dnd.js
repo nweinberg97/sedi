@@ -117,7 +117,7 @@ export function initDnd(navigate) {
     ghost.classList.add('drag-ghost');
     ghost.removeAttribute('data-drag');
     ghost.querySelectorAll('[data-drag],[data-drop]').forEach(n => { n.removeAttribute('data-drag'); n.removeAttribute('data-drop'); });
-    Object.assign(ghost.style, { width: r.width + 'px', height: r.height + 'px', left: '0', top: '0', position: 'fixed', margin: '0' });
+    Object.assign(ghost.style, { width: r.width + 'px', height: r.height + 'px', left: '0', top: '0', position: 'fixed', margin: '0', transformOrigin: `${drag.gx}px ${drag.gy}px` });
     document.body.append(ghost);
     drag.ghost = ghost;
     drag.el.classList.add('drag-source');
@@ -152,6 +152,7 @@ export function initDnd(navigate) {
     if (z !== drag.zone) {
       drag.zone?.classList.remove('drop-over', 'drop-deny');
       drag.zone = z;
+      document.body.dataset.dropKind = z?.dataset.drop || ''; // lets the floating copy shrink over small targets like tabs
       clearTimeout(drag.springTimer);
       if (z) {
         const spec = handlers.get(z.dataset.drop);
@@ -228,7 +229,7 @@ export function initDnd(navigate) {
     drag.placeholder.remove();
     clearGridMark();
     const ghost = drag.ghost, el = drag.el;
-    document.body.classList.remove('is-dragging');
+    document.body.classList.remove('is-dragging'); delete document.body.dataset.dropKind;
     if (accepted || !el.isConnected) {
       ghost.remove();
       el.classList.remove('drag-source');

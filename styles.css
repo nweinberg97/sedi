@@ -3991,7 +3991,7 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
   .task-check, .plan-check, .step-check, .check, .t-chip > .routine-tick { position: relative; }
   .task-check::after, .plan-check::after, .step-check::after, .routine-tick::after, .check::after { content: ""; position: absolute; inset: -8px; }
   .side-switch button { height: 36px; }
-  .bf-color, .swatch.sm { position: relative; }
+  .swatch.sm { position: relative; }
   .bf-color::after, .swatch.sm::after { content: ""; position: absolute; inset: -10px; }
   .sticky-btn, .col-clear, .pad-chip { min-height: 36px; min-width: 36px; }
   .universal-trigger { width: 44px; height: 44px; }
@@ -4167,3 +4167,113 @@ body.is-dragging .universal-trigger svg.uni-mark { transform: scale(1.1); }
 .fd { background: var(--dot, #9aa3b0); }
 .fd-folder { background: transparent; box-shadow: inset 0 0 0 1.75px var(--dot, #A796CB); border-radius: 2px; }
 .fd-more { margin-left: 1px; font-size: 10.5px; font-weight: 600; color: var(--muted); line-height: 1; }
+
+/* ======================================================================
+   Boardly: three kinds of card, three families of color.
+   The Add buttons already speak this language (goal green, task blue, note yellow),
+   so each card wears a whisper of its button's color: a tint, a matching edge, its icon.
+   ====================================================================== */
+.boardly { --goal-c: #3f9a72; --task-c: #3c6aa3; --note-c: #e0a526; }
+.boardly .board-canvas > .tile.task-card { background: #f6f9fe; border: 1px solid #d6e2f3; box-shadow: 0 1px 2px rgba(60, 106, 163, 0.06); }
+.boardly .board-canvas > .tile.task-card:hover { border-color: #a9c1e3; }
+.boardly .board-canvas > .tile.task-card .check { border-color: #8eacd6; }
+.boardly .board-canvas > .tile.task-card .check:hover { border-color: var(--task-c); background: #e9f0fa; }
+.boardly .board-canvas > .tile.task-card .check.on { background: var(--task-c); border-color: var(--task-c); color: #fff; }
+.boardly .board-canvas > .tile.task-card.done { background: #fafbfd; }
+.boardly .board-canvas > .tile.goal-card { background: #f3f9f5; border: 1px solid #d0e8d9; border-left: 3px solid var(--goal-c); box-shadow: 0 1px 2px rgba(63, 154, 114, 0.07); }
+.boardly .board-canvas > .tile.goal-card:hover { border-color: #a8d3b9; border-left-color: var(--goal-c); }
+.boardly .board-canvas > .tile.goal-card .type-icon { color: var(--goal-c); width: 18px; height: 18px; }
+.boardly .board-canvas > .tile.goal-card .tile-title { font-weight: 600; }
+/* While a card is being carried, its outline glows in its own color. */
+.tile.task-card.dragging, .drag-ghost.task-card, .tile.task-card.selected { outline: 2px solid color-mix(in srgb, #3c6aa3 55%, transparent); outline-offset: 2px; }
+.tile.goal-card.dragging, .drag-ghost.goal-card, .tile.goal-card.selected { outline: 2px solid color-mix(in srgb, #3f9a72 55%, transparent); outline-offset: 2px; }
+.tile.note-card.dragging, .drag-ghost.note-card, .tile.note-card.selected { outline: 2px solid color-mix(in srgb, #e0a526 60%, transparent); outline-offset: 2px; }
+/* "Turn into" in a card's ⋯ menu */
+.cm-turn { padding: 6px 8px 4px; }
+.cm-turn-label { display: block; font-size: var(--fs-2xs, 11px); color: var(--muted); margin: 0 0 6px 2px; }
+.cm-turn-row { display: flex; gap: 6px; }
+.cm-turn-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line-2); background: transparent; font-size: var(--fs-sm); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.cm-turn-btn svg { width: 14px; height: 14px; }
+.cm-turn-btn.turn-task svg { color: #3c6aa3; } .cm-turn-btn.turn-task:hover { background: #eef3fb; border-color: #a9c1e3; }
+.cm-turn-btn.turn-goal svg { color: #3f9a72; } .cm-turn-btn.turn-goal:hover { background: #eef7f1; border-color: #a8d3b9; }
+.cm-turn-btn.turn-note svg { color: #c48d14; } .cm-turn-btn.turn-note:hover { background: #fdf6e1; border-color: #ecd393; }
+/* Boardly tabs: a ring that turns when there are more than fit */
+.boardly-tabs { overflow: visible; gap: 4px; }
+.boardly-tabs .tab-strip { display: flex; align-items: center; gap: 2px; flex: 0 1 auto; min-width: 0; overflow: hidden; padding: 3px 2px; touch-action: pan-y; }
+.boardly-tabs .tab-strip .tab { flex: none; }
+.boardly-tabs .tab-turn { display: none; flex: none; color: var(--muted); }
+.boardly-tabs.looping .tab-turn { display: inline-grid; place-items: center; }
+.boardly-tabs.looping .tab-strip { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); }
+.boardly-tabs .tab-turn:hover { color: var(--ink); background: var(--well); }
+/* Carrying a card over a tab: the tab lights up in its color and the card shrinks out of the way. */
+.boardly-tabs .tab.drop-over { background: color-mix(in srgb, var(--tab-color) 30%, white) !important; box-shadow: inset 0 0 0 2px var(--tab-color) !important; transform: translateY(-1px) scale(1.06); transition: transform .15s var(--ease, ease), background .15s; }
+body[data-drop-kind="boardly-tab"] .drag-ghost { scale: 0.5; opacity: 0.9; transition: scale .15s ease, opacity .15s; }
+.drag-ghost { transition: scale .15s ease, opacity .15s; }
+@media (max-width: 720px) { .boardly-tabs .tab-strip { margin: 0; } .boardly-tabs { margin: 0; padding: 2px 0; } }
+.boardly-tabs .tab-strip { flex: 1 1 0; }
+.boardly-tabs:not(.looping) .tab-strip { flex: 0 1 auto; }
+@media (max-width: 720px) { .boardly-tabs .tab-limit { display: none; } .boardly-tabs .tab-turn { width: 30px; } }
+/* Emoji picker: search, keyboard-style groups, recent first */
+.emoji-pop { padding: 0 !important; max-width: none !important; width: min(340px, calc(100vw - 24px)) !important; }
+.emoji-picker { display: flex; flex-direction: column; width: 100%; }
+.ep-search { margin: 10px 10px 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--paper, #fff); font: inherit; font-size: var(--fs-sm); }
+.ep-search:focus { outline: none; border-color: var(--ink-2); }
+.ep-tabs { display: flex; justify-content: space-between; padding: 0 8px 6px; border-bottom: 1px solid var(--line); }
+.ep-tab { width: 32px; height: 30px; border-radius: 8px; font-size: 17px; filter: grayscale(0.6); opacity: 0.75; }
+.ep-tab:hover { background: var(--well); filter: none; opacity: 1; }
+.ep-body { height: 280px; overflow-y: auto; padding: 4px 8px 10px; overscroll-behavior: contain; }
+.ep-sec h5 { margin: 8px 4px 4px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.ep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 2px; }
+.ep-grid .emoji-opt { width: 100%; height: 36px; font-size: 22px; line-height: 1; }
+.ep-empty { color: var(--muted); font-size: var(--fs-sm); padding: 16px 6px; text-align: center; }
+@media (hover: none) { .ep-grid .emoji-opt { height: 42px; font-size: 26px; } .ep-body { height: 300px; } }
+/* Wider color palettes, with a Custom swatch for anything else */
+.swatches.wide { grid-template-columns: repeat(6, 26px); }
+.swatches.wide.sm { grid-template-columns: repeat(9, 22px); gap: 6px; }
+.swatch.sm { width: 22px; height: 22px; }
+.swatch-custom { position: relative; display: inline-block; cursor: pointer; background: conic-gradient(#f28b82, #fbbc04, #fff475, #ccff90, #a7ffeb, #aecbfa, #d7aefb, #fdcfe8, #f28b82); overflow: hidden; }
+.swatch-custom-input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
+.swatch.on { box-shadow: 0 0 0 2px var(--paper, #fff), 0 0 0 3.5px var(--ink); }
+.note-color-btn { width: 26px; height: 26px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 0 3px var(--paper, #fff), 0 0 0 4px var(--line-2); cursor: pointer; }
+.note-color-btn:hover { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 0 3px var(--paper, #fff), 0 0 0 4px var(--ink-2); }
+/* Goal wizard: one question at a time */
+.goal-wizard-modal { max-width: 520px; }
+.wz { display: flex; flex-direction: column; gap: 14px; }
+.wz-dots { display: flex; gap: 6px; justify-content: center; }
+.wz-dot { width: 22px; height: 5px; border-radius: 3px; background: var(--line-2); padding: 0; transition: background .2s, width .2s; }
+.wz-dot.done { background: color-mix(in srgb, var(--timely, #c29a5b) 55%, white); }
+.wz-dot.on { background: var(--ink); width: 34px; }
+.wz-stage { min-height: 250px; }
+.wz-card { display: flex; flex-direction: column; gap: 8px; }
+.wz-card.from-right { animation: wzIn .26s cubic-bezier(.2,.8,.2,1) both; }
+.wz-card.from-left { animation: wzInL .26s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes wzIn { from { opacity: 0; transform: translateX(18px); } }
+@keyframes wzInL { from { opacity: 0; transform: translateX(-18px); } }
+.wz-count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wz-q { margin: 0; font-size: 22px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; }
+.wz-tip { margin: 0 0 6px; color: var(--muted); font-size: var(--fs-sm); line-height: 1.45; }
+.wz-input { font-size: 16px; }
+textarea.wz-input { min-height: 72px; resize: vertical; }
+.wz-sub { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 6px; }
+.wz-date { max-width: 200px; }
+.wz-need { animation: wzShake .4s; border-color: var(--danger, #e5484d) !important; }
+@keyframes wzShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.wz-foot { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
+.wz-why { font-size: 12px; color: var(--muted); }
+/* Goal guide: five lines you can scan */
+.goal-guide-modal { max-width: 500px; }
+.gg-lead { margin: 0 0 12px; color: var(--muted); }
+.gg-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.gg-row { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; }
+.gg-row:nth-child(odd) { background: var(--well); }
+.gg-n { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--ink); color: #fff; }
+.gg-row strong { display: block; font-weight: 600; font-size: 15px; }
+.gg-ex { display: block; color: var(--muted); font-size: 13px; font-style: italic; margin-top: 2px; }
+.gg-foot { margin: 14px 0 6px; font-size: var(--fs-sm); }
+.gg-why { font-size: 13px; color: var(--muted); }
+.gg-why summary { cursor: pointer; }
+.gg-why p { margin: 6px 0 0; line-height: 1.5; }
+.wz-quote { margin: 0 0 4px; padding: 8px 12px; border-left: 3px solid var(--line-2); color: var(--ink-2); font-style: italic; background: var(--well); border-radius: 0 8px 8px 0; }
+.ul-engines { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 2px 0; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.ul-engines svg { width: 12px; height: 12px; flex: none; }
+.ul-engines .linkish { font-size: 11.5px; margin-left: 4px; text-decoration: underline; text-underline-offset: 2px; color: var(--ink-2); }

@@ -11,13 +11,16 @@ import { routeCard, reorder, byOrder, openEditor, typeIcon, TOOL_NAMES, flatten,
 import { revealCard } from './shell.js';
 import { dictate as listen, canListen } from './speech.js'; // card mics: instant browser dictation
 import { crunch } from './sound.js';
+import { pickEmoji } from './emoji.js';
 import { summaryFor, ensureSummary, noteText } from './summaries.js';
 import * as google from './google.js';
 import { addTaskFrom } from './taskly.js';
 
 let root, canvas, dash, searchInput, results, peekEl = null, hovered = null;
 const NOTE = 118, FOLDER_W = 150, FOLDER_H = 112;
-const NOTE_COLORS = ['#fdf0d8', '#ece5fb', '#dff0fb', '#e2f3e4', '#fde2da', '#eef0f3'];
+const NOTE_COLORS = ['#fdf0d8', '#ece5fb', '#dff0fb', '#e2f3e4', '#fde2da', '#eef0f3']; // defaults new notes are given
+// Everything you can pick for a note: soft paper colors, light enough to write on.
+const NOTE_PALETTE = ['#fdf0d8', '#fff6b8', '#ffe9c7', '#fde2da', '#fbe3ec', '#f1defa', '#ece5fb', '#dfe3ff', '#dff0fb', '#d8ecff', '#d4f1ec', '#e2f3e4', '#e8f6c9', '#f6e3d3', '#e6e0d8', '#eef0f3', '#ffffff'];
 const MAX_PDF = 25e6;
 
 const folders = () => store.get('brainFolders', []);
@@ -179,10 +182,20 @@ function linkEl(c) {
 // own color), so you can tell at a glance how full it is and with what. Past a dozen, it's a count.
 const DOT_MAX = 5; // one dot per thing inside, in its own color; past five it's a quiet "+N"
 // Note papers are pale, so each dot uses a deeper shade of the same color to stay readable at 7px.
-const DOT_SHADE = { '#fdf0d8': '#e2b25c', '#ece5fb': '#9a88c4', '#dff0fb': '#5aa3d6', '#e2f3e4': '#6cb37a', '#fde2da': '#e2876d', '#eef0f3': '#9aa3b0' };
+function deepen(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  let hh = 0, s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+  if (d) hh = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  hh = Math.round(hh * 60 + 360) % 360;
+  if (l < 0.72) return hex; // already strong enough
+  return `hsl(${hh} ${Math.round(Math.max(s * 100 > 5 ? 45 : 6, Math.min(s * 100, 65)))}% 58%)`;
+}
 const dotColor = x => {
   if (x.folder) return x.color || '#A796CB';
-  if (kindOf(x) === 'note') { const c = noteColor(x).toLowerCase(); return DOT_SHADE[c] || c; }
+  if (kindOf(x) === 'note') return deepen(noteColor(x));
   return x.meta?.color || '#5a8fd6';
 };
 function dotsRow(items) {
@@ -816,17 +829,19 @@ function copyNow(html, plain) {
   box.remove();
   return ok;
 }
-function pickEmoji(anchor, onPick) {
-  popover(anchor, h('div', { class: 'emoji-grid' }, EMOJI_CHOICES.map(e => h('button', {
-    class: 'emoji-opt', onclick: () => { onPick(e); closePopovers(); },
-  }, e))));
+// Folder colors: a wide, calm palette, plus "Custom" for any color at all.
+export const FOLDER_COLORS = ['#A796CB', '#8E9BC9', '#7FA3D6', '#7FAEBE', '#6FB5A8', '#86AE95', '#9DB86F', '#C9B85E', '#C9A46E', '#D99A6C', '#C98E8E', '#D98C9F', '#D1A0B8', '#B48CC9', '#9AA3AD', '#7C8591'];
+function pickFolderColor(anchor, f, save = col => saveFolder(f.id, { color: col })) {
+  popover(anchor, colorGrid(FOLDER_COLORS, f.color, col => { save(col); closePopovers(); }));
 }
-function pickFolderColor(anchor, f) {
-  const COLORS = ['#A796CB', '#8E9BC9', '#86AE95', '#C9A46E', '#C98E8E', '#7FAEBE', '#9AA3AD', '#D1A0B8'];
-  popover(anchor, h('div', { class: 'swatches' }, COLORS.map(col => h('button', {
-    class: `swatch ${col === f.color ? 'on' : ''}`, style: { background: col }, 'aria-label': `Use color ${col}`,
-    onclick: () => { saveFolder(f.id, { color: col }); closePopovers(); },
-  }))));
+/** A grid of swatches plus a Custom swatch that opens the system color picker. */
+export function colorGrid(colors, current, onPick, { size = '' } = {}) {
+  const custom = h('input', { type: 'color', class: 'swatch-custom-input', value: /^#[0-9a-f]{6}$/i.test(current || '') ? current : '#a796cb', 'aria-label': 'Pick any color' });
+  custom.addEventListener('change', () => onPick(custom.value));
+  const isCustom = current && !colors.some(c => c.toLowerCase() === current.toLowerCase());
+  return h('div', { class: `swatches wide ${size}` },
+    colors.map(col => h('button', { class: `swatch ${size} ${col.toLowerCase() === (current || '').toLowerCase() ? 'on' : ''}`, type: 'button', style: { background: col }, 'aria-label': `Use color ${col}`, onclick: () => onPick(col) })),
+    h('label', { class: `swatch swatch-custom ${size} ${isCustom ? 'on' : ''}`, title: 'Custom color', style: isCustom ? { background: current } : {} }, custom));
 }
 
 /** A folder's window: sub-folders, notes as squares (drag them out), and actions. */
@@ -945,10 +960,9 @@ export function openNote(id, isNew = false) {
     h('span', { class: 'tool-sep' }), mic, micStatus);
 
   // SD-V2: the note's colour.
-  const colors = h('div', { class: 'note-colors', role: 'radiogroup', 'aria-label': 'Note colour' }, NOTE_COLORS.map(col => h('button', {
-    class: `swatch sm ${noteColor(store.getCard(id)) === col ? 'on' : ''}`, style: { background: col }, 'aria-label': `Colour ${col}`,
-    onclick: e => { store.updateCard(id, { meta: { color: col } }, { touch: false }); colors.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s === e.currentTarget)); },
-  })));
+  // One swatch shows the note's color; tap it for the whole palette.
+  const colors = h('button', { class: 'note-color-btn', type: 'button', title: 'Note color', 'aria-label': 'Note color', style: { background: noteColor(store.getCard(id)) },
+    onclick: e => popover(e.currentTarget, colorGrid(NOTE_PALETTE, noteColor(store.getCard(id)), col => { store.updateCard(id, { meta: { color: col } }, { touch: false }); colors.style.background = col; closePopovers(); })) });
 
   // SD-A2: linked docs. "Create Google Doc" makes a real doc in your Drive; any link can be attached too.
   const docList = h('div', { class: 'doc-links' });

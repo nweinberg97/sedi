@@ -51,6 +51,7 @@ export function mount(el) {
       h('p', { class: 'view-note' }, 'Shift-click or drag a box to select several, then drag them together.')),
     tabBar,
     h('div', { class: 'canvas-wrap' }, canvas, toolbar)));
+  wireTabTurns();
   canvas.addEventListener('pointerenter', () => (hoverCanvas = true));
   canvas.addEventListener('pointerleave', () => (hoverCanvas = false));
   canvas.addEventListener('pointerdown', startMarquee);
@@ -148,8 +149,10 @@ registerDrop('boardly-canvas', ({ id, left, top, zone }) => {
   const type = ['goal', 'task', 'note'].includes(card.type) ? card.type : 'note';
   const [w0, hgt] = SIZES[type];
   const w = cardW(card) || w0;
-  const x = clamp(Math.round(left), LEFT, zone.clientWidth - w - 8);
-  const y = clamp(Math.round(top), 8, zone.clientHeight - hgt - 8);
+  // A card dragged on its own board lands exactly where it was seen under the pointer.
+  const seen = live?.d.id === id && live.inside && live.last;
+  const x = seen ? Math.round(live.last.x) : clamp(Math.round(left), LEFT, zone.clientWidth - w - 8);
+  const y = seen ? Math.round(live.last.y) : clamp(Math.round(top), 8, zone.clientHeight - hgt - 8);
   const wasHere = card.tool === 'boardly' && card.meta?.tabId === tab.id;
   if (wasHere && listMode()) return false; // phones list the board; keep the desktop layout untouched
   const dx = x - (card.meta?.x ?? x), dy = y - (card.meta?.y ?? y);
@@ -169,12 +172,14 @@ registerDrop('boardly-canvas', ({ id, left, top, zone }) => {
   }
 });
 registerDrop('boardly-tabbar', ({ id, index }) => {
-  const list = tabs();
+  // Reorder in the order you see; that becomes the real order, so the ring starts from there.
+  const list = rotated(tabs());
+  rot = 0;
   const moving = list.find(t => t.id === id);
   if (!moving) return false;
   const rest = list.filter(t => t.id !== id);
   rest.splice(index ?? rest.length, 0, moving);
-  if (rest.some((t, i) => t.id !== list[i].id)) store.set('boardlyTabs', rest);
+  if (rest.some((t, i) => t.id !== tabs()[i]?.id)) store.set('boardlyTabs', rest); else render();
 });
 registerDrop('boardly-tab', ({ id, data }) => {
   const card = store.getCard(id);
@@ -193,6 +198,12 @@ onDragStart(d => {
   if (!canvas?.isConnected || d.kind !== 'card' || !canvas.contains(d.el)) { live = null; return; }
   const el = d.el;
   const base = { left: parseFloat(el.style.left) || 0, top: parseFloat(el.style.top) || 0 };
+  // A note that folds shut as it's picked up gets shorter; if you grabbed it low down, slide it so the
+  // pointer is still on it instead of hanging below.
+  const start = { ...base };
+  const r0 = el.getBoundingClientRect();
+  if (d.sy - r0.top > r0.height - 6) start.top += d.sy - r0.top - r0.height / 2;
+  const scroll0 = { x: canvas.scrollLeft, y: canvas.scrollTop };
   live = { d, el, base, inside: true };
   el.classList.add('live-drag');
   document.body.classList.add('board-live');
@@ -205,9 +216,11 @@ onDragStart(d => {
       el.classList.toggle('live-drag', inside);
     }
     if (!inside) { el.style.transform = ''; return; }
-    // Where the card's top-left would land, kept inside the board.
-    const x = clamp(d.x - d.gx - cr.left + canvas.scrollLeft, LEFT, canvas.clientWidth - el.offsetWidth - 8);
-    const y = clamp(d.y - d.gy - cr.top + canvas.scrollTop, 8, canvas.clientHeight - el.offsetHeight - 8);
+    // The card moves by exactly as far as the pointer has, so it never jumps when picked up.
+    // It stays inside the board, but a card already past an edge isn't yanked back on the first frame.
+    const x = clamp(start.left + d.x - d.sx + canvas.scrollLeft - scroll0.x, Math.min(LEFT, start.left), Math.max(start.left, canvas.clientWidth - el.offsetWidth - 8));
+    const y = clamp(start.top + d.y - d.sy + canvas.scrollTop - scroll0.y, Math.min(8, start.top), Math.max(start.top, canvas.clientHeight - el.offsetHeight - 8));
+    live.last = { x, y };
     el.style.transform = `translate(${x - live.base.left}px, ${y - live.base.top}px)`;
     if (group) group.els.forEach(o => { o.style.transform = `translate(${x - live.base.left}px, ${y - live.base.top}px)`; });
   };
@@ -248,12 +261,19 @@ export function render() {
   if (!root?.isConnected) return;
   renderTabs();
   renderCanvas();
+  requestAnimationFrame(paintLoop);
 }
 
+// The tabs loop like a carousel when there are more than fit: ‹ and › (or a sideways swipe or trackpad
+// scroll) turn the ring by one, and the first tab comes round again after the last. Nothing moves by itself.
+let rot = 0;
+const rotated = list => (list.length ? [...list.slice(rot % list.length), ...list.slice(0, rot % list.length)] : list);
 function renderTabs() {
   const list = tabs();
   const active = activeTab();
-  tabBar.replaceChildren(...list.map(t => {
+  rot = ((rot % (list.length || 1)) + (list.length || 1)) % (list.length || 1);
+  const strip = h('div', { class: 'tab-strip' });
+  strip.append(...rotated(list).map(t => {
     // Only the open category offers its color and delete buttons, so tapping any other tab always just opens it.
     const isActive = t.id === active?.id;
     const dot = isActive ? h('button', { class: 'tab-dot', style: { background: t.color }, 'aria-label': `Color for ${t.name}`, onclick: e => { e.stopPropagation(); pickColor(e.currentTarget, t); } })
@@ -279,9 +299,69 @@ function renderTabs() {
     tab.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === tab) tab.click(); });
     return tab;
   }));
+  const prev = h('button', { class: 'tab-turn prev icon-btn sm', type: 'button', 'aria-label': 'Show earlier categories', onclick: () => turnTabs(-1) }, icon('chevL'));
+  const next = h('button', { class: 'tab-turn next icon-btn sm', type: 'button', 'aria-label': 'Show more categories', onclick: () => turnTabs(1) }, icon('chevR'));
+  tabBar.replaceChildren(prev, strip, next);
   if (list.length < MAX_TABS) tabBar.append(h('button', { class: 'tab-add icon-btn sm', 'aria-label': 'Add category', 'data-navoro-id': 'boardly.add-category', onclick: addTab }, icon('plus')));
   else tabBar.append(h('span', { class: 'tab-limit muted small' }, '10 of 10'));
   if (active) tabBar.append(sendListButton(active.name, () => tabCards(active.id).filter(c => c.type !== 'note' || c.title), 'tab-send'));
+}
+
+// Only loop when the tabs don't all fit; otherwise they sit still in their own order.
+function paintLoop() {
+  const strip = tabBar?.querySelector('.tab-strip');
+  if (!strip) return;
+  const over = strip.scrollWidth > strip.clientWidth + 2;
+  tabBar.classList.toggle('looping', over || rot !== 0);
+  if (!over && rot !== 0 && !tabBar.classList.contains('turning')) { /* everything fits again: back to the real order */ rot = 0; renderTabs(); }
+}
+let turning = false;
+function turnTabs(dir) {
+  const strip = tabBar?.querySelector('.tab-strip');
+  if (!strip || turning || tabs().length < 2) return;
+  const first = strip.querySelector('.tab'), last = [...strip.querySelectorAll('.tab')].at(-1);
+  const step = ((dir > 0 ? first : last)?.getBoundingClientRect().width || 120) + 2;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  turning = true;
+  if (dir > 0) {
+    // Slide left by one tab, then the first tab moves to the end.
+    const done = () => { rot += 1; renderTabs(); turning = false; };
+    if (reduce || !strip.animate) return done();
+    strip.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${-step}px)` }], { duration: 220, easing: 'cubic-bezier(.3,0,.2,1)' }).finished.then(done, done);
+  } else {
+    // The last tab comes round to the front, and the row slides right into place.
+    rot -= 1; renderTabs();
+    const fresh = tabBar.querySelector('.tab-strip');
+    turning = false;
+    if (reduce || !fresh?.animate) return;
+    fresh.animate([{ transform: `translateX(${-step}px)` }, { transform: 'translateX(0)' }], { duration: 220, easing: 'cubic-bezier(.3,0,.2,1)' });
+  }
+}
+// Sideways trackpad scroll or a swipe turns the ring, one tab per nudge.
+function wireTabTurns() {
+  let acc = 0, quiet = 0;
+  tabBar.addEventListener('wheel', e => {
+    if (!tabBar.classList.contains('looping')) return;
+    const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
+    if (!dx) return;
+    e.preventDefault();
+    if (Date.now() < quiet) return;
+    acc += dx;
+    if (Math.abs(acc) > 40) { turnTabs(Math.sign(acc)); acc = 0; quiet = Date.now() + 260; }
+  }, { passive: false });
+  let sw = null;
+  tabBar.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || !tabBar.classList.contains('looping')) return;
+    sw = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  tabBar.addEventListener('pointermove', e => {
+    if (!sw || e.pointerId !== sw.id || document.body.classList.contains('is-dragging')) return;
+    const dx = e.clientX - sw.x;
+    if (Math.abs(dx) > 36 && Math.abs(dx) > Math.abs(e.clientY - sw.y)) { turnTabs(dx < 0 ? 1 : -1); sw.x = e.clientX; }
+  });
+  const stop = () => { sw = null; };
+  tabBar.addEventListener('pointerup', stop); tabBar.addEventListener('pointercancel', stop);
+  addEventListener('resize', paintLoop);
 }
 
 function renderCanvas() {

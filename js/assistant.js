@@ -234,9 +234,27 @@ function startUnload() {
     execute,
     // When an AI is ready (on-device or connected), it reads the thoughts the rules couldn't place.
     understand: text => (smartEngine() ? restate(text, commandContext()).catch(() => null) : Promise.resolve(null)),
+    engines: whatsRunning,
+    openBrain: () => brain.openBrainPanel(),
     again: () => startUnload(),
     onClose: () => { unloadCtl = null; if (tray.dataset.view === 'unload') { tray.dataset.view = earsNow() ? 'voice' : 'type'; paintModes(); positionTray(); } },
   });
+}
+
+// Plain words for what's doing the work right now, so nobody has to wonder which model is listening.
+const HEAR_NAMES = { 'onnx-community/whisper-small': 'Whisper Small', 'onnx-community/moonshine-base-ONNX': 'Moonshine', 'onnx-community/whisper-base': 'Whisper Base' };
+const BRAIN_NAMES = { 'onnx-community/Qwen2.5-1.5B-Instruct': 'Qwen 2.5 (1.5B)', 'onnx-community/Qwen2.5-0.5B-Instruct': 'Qwen 2.5 (0.5B)', 'HuggingFaceTB/SmolLM2-1.7B-Instruct': 'SmolLM2' };
+function whatsRunning() {
+  const hs = hearingState(), m = hearingModel();
+  const hear = earsNow() === 'device' ? `${HEAR_NAMES[m.id] || m.label}${hs.status === 'ready' ? '' : hs.status === 'loading' ? ` (downloading ${Math.round(hs.progress * 100)}%)` : ''}`
+    : 'your browser’s speech recognition';
+  const b = store.pref('brain') || {};
+  const bm = brain.MODELS[b.model || 'smart'];
+  const bs = brain.brainState().status;
+  const sort = localBrainReady() ? BRAIN_NAMES[bm?.id] || 'the on-device brain'
+    : brain.isEnabled() ? `${BRAIN_NAMES[bm?.id] || 'the on-device brain'}${bs === 'loading' ? ' (getting ready)' : ''}`
+      : engineConfig().active !== 'local' && engineAvailable() ? engineLabel() : null;
+  return { hear, sort, onDevice: earsNow() === 'device', brainOn: !!sort };
 }
 
 function positionTray() {

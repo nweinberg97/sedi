@@ -76,14 +76,27 @@ export function openUnload(host, api) {
     h('strong', {}, 'Just talk.'),
     h('span', {}, ' Atom writes it down and pulls out anything that could be a card. Lines with nothing to file fade, so you can delete them. Short pauses help it keep up.'));
   store.setPref('unloadIntroSeen', true);
+  // Which models are doing the work, in plain words, with one quiet way to make sorting sharper.
+  const engineLine = h('div', { class: 'ul-engines' });
+  const paintEngines = () => {
+    const e = api.engines?.();
+    if (!e) return;
+    engineLine.replaceChildren(e.onDevice ? icon('lock') : null,
+      h('span', {}, e.onDevice ? `Hearing: ${e.hear}, on this device.` : `Hearing: ${e.hear}.`),
+      h('span', {}, e.sort ? ` Sorting: ${e.sort}.` : ' Sorting: Sedi’s built-in rules.'),
+      !e.brainOn && api.openBrain ? h('button', { class: 'linkish', type: 'button', onclick: () => api.openBrain() }, 'Sort smarter') : null);
+  };
   const panel = h('div', { class: 'unload', role: 'region', 'aria-label': 'Unload' },
     h('div', { class: 'ul-head' },
       h('span', { class: 'ul-dot', 'aria-hidden': 'true' }),
       status, h('span', { class: 'head-spacer' }), clock),
     h('div', { class: 'ul-bar' }, toSort, h('span', { class: 'head-spacer' }), clearBtn),
     intro, live, feed,
-    h('div', { class: 'ul-foot' }, pauseBtn, h('span', { class: 'head-spacer' }), doneBtn));
+    h('div', { class: 'ul-foot' }, pauseBtn, h('span', { class: 'head-spacer' }), doneBtn),
+    engineLine);
   host.append(panel);
+  paintEngines();
+  setTimeout(paintEngines, 1500);
 
   const openRows = () => [...rows].filter(r => r.state === 'open' && r.isConnected);
   const unfiled = () => chunks.filter(c => !c.deleted && c.el.classList.contains('unfiled'));
