@@ -4403,3 +4403,7 @@ body:has(.modal-backdrop) .toasts, body:has(.popover:has(.form-pop)) .toasts { b
 .ship-how { color: var(--muted); }
 .ship-how summary { cursor: pointer; color: var(--ink-2); font-weight: 600; }
 .ship-how p { margin: 6px 0 0; line-height: 1.45; }
+.pc-drag { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1.5px dashed #a9c1e3; border-radius: 12px; background: #f6f9fe; color: #3c6aa3; font-size: var(--fs-sm); font-weight: 600; cursor: grab; user-select: none; }
+.pc-drag:hover { background: #eef3fb; border-color: #3c6aa3; }
+.pc-drag.dragging { opacity: 0.5; cursor: grabbing; }
+.pc-drag svg { width: 15px; height: 15px; }

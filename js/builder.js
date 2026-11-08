@@ -98,10 +98,15 @@ function showPasteCard(text, where, { failed = false, openLink = null, chat = fa
   const chatSteps = () => (touch() ? `Copied ${what}. In ${where}, tap the message box, hold, tap Paste, then send.` : `Copied ${what}. In ${where}, click the message box and press ${isMac ? '⌘V' : 'Ctrl+V'}, then send.`);
   if (chat && !failed) { say(`${chatSteps()} If it’s already typed in, just check it and send.`); }
   else say(failed ? `Your browser didn’t let Sedi copy on its own. Tap below to copy ${what}, then paste into ${where}.` : `Copied ${what}. ${pasteHow(where)}`);
+  // Drag-and-drop works between any two sites with no permissions: drag this into the chat's message box
+  // (in Chrome, hover over the chat's tab to switch to it, then drop). It lands as text; you still press send.
+  const drag = touch() ? null : h('div', { class: 'pc-drag', draggable: 'true', title: 'Drag this into the chat’s message box' }, icon('grip'), h('span', {}, `Drag ${what} into the chat`));
+  drag?.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', text); e.dataTransfer.effectAllowed = 'copy'; drag.classList.add('dragging'); });
+  drag?.addEventListener('dragend', () => drag.classList.remove('dragging'));
   pasteCard = h('div', { class: 'paste-card', role: 'status' },
     h('div', { class: 'pc-row' }, h('span', { class: 'pc-ic' }, icon('send')), msg,
       h('button', { class: 'icon-btn xs pc-x', type: 'button', 'aria-label': 'Done', onclick: () => { pasteCard?.remove(); pasteCard = null; } }, icon('x'))),
-    preview,
+    drag, preview,
     h('div', { class: 'pc-actions' }, copyBtn, showBtn));
   document.body.append(pasteCard);
   clearTimeout(showPasteCard.t);
@@ -218,7 +223,7 @@ export function ship(ct, getText, anchor, { title } = {}) {
   }
   // Claude's "new chat" page reads ?q= and types it in. Its chat pages aren't documented to, but it costs nothing
   // to offer: if the chat page picks it up, the tasks are typed in; if not, they're on the clipboard.
-  const link = t.kind === 'chat' && t.app === 'Claude' && text.length <= PROJECT_LIMIT ? withQ(ct.shipUrl, text) : ct.shipUrl;
+  const link = t.kind === 'chat' && text.length <= PROJECT_LIMIT ? withQ(ct.shipUrl, text) : ct.shipUrl;
   if (!copied) { showPasteCard(text, where, { failed: true, openLink: link }); return; }
   window.open(link, '_blank', 'noopener');
   showPasteCard(text, where, { chat: t.kind === 'chat' });
