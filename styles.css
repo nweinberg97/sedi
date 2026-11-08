@@ -4407,3 +4407,16 @@ body:has(.modal-backdrop) .toasts, body:has(.popover:has(.form-pop)) .toasts { b
 .pc-drag:hover { background: #eef3fb; border-color: #3c6aa3; }
 .pc-drag.dragging { opacity: 0.5; cursor: grabbing; }
 .pc-drag svg { width: 15px; height: 15px; }
+/* Ship sheet: read it, pick where, Enter */
+.ship-modal { max-width: 620px; }
+.ship-sheet { display: flex; flex-direction: column; gap: 10px; }
+.ship-preview { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; min-height: 200px; resize: vertical; }
+.ship-dests { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.ship-dest { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; border: 1.5px solid var(--line-2); border-radius: 12px; background: transparent; cursor: pointer; }
+.ship-dest b { font-size: var(--fs-sm); font-weight: 600; }
+.ship-dest small { color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+.ship-dest.on { border-color: var(--ink); background: var(--well); }
+.ship-foot { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
+.ship-kbd { margin-left: 8px; padding: 0 6px; border-radius: 5px; background: rgba(255, 255, 255, 0.2); font: inherit; font-size: 12px; }
+.ship-foot .btn { white-space: nowrap; flex: none; }
+.ship-dests { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }

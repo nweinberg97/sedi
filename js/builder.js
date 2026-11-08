@@ -209,24 +209,61 @@ export const shipLabel = ct => {
 };
 const withQ = (url, text) => { try { const u = new URL(url); u.searchParams.set('q', text); return u.toString(); } catch { return url; } };
 const PROJECT_LIMIT = 6000; // long links get cut off by some browsers; past this, copy and paste instead
+// Ship: one click shows the message in Sedi to read (and edit). Enter opens Claude with it already typed in,
+// and you press send there. Claude types text in only when it opens a new chat, so every typed-in option is a
+// new chat: inside your Claude project when the project has one (keeps its files and instructions), or a plain
+// new chat. A link to one particular chat is offered too, but there you paste the message yourself.
 export function ship(ct, getText, anchor, { title } = {}) {
   const t = shipTarget(ct?.shipUrl);
-  if (t.kind === 'new') return openSendMenu(anchor, getText, { title: title || 'Ship to' });
-  const text = getText();
-  const where = shipLabel(ct);
-  const copied = copyPlainNow(text); // always on the clipboard too, as a backup
-  if (t.kind === 'project' && text.length <= PROJECT_LIMIT) {
-    // A new chat in the project, with everything typed in. You check it and press send.
-    window.open(`https://claude.ai/new?q=${encodeURIComponent(text)}&project=${encodeURIComponent(t.id)}`, '_blank', 'noopener');
-    toast(`Opened a new chat in your Claude project with it typed in. Check it, then press send.${copied ? ' (It’s on your clipboard too.)' : ''}`, { duration: 7000 });
-    return;
-  }
-  // Claude's "new chat" page reads ?q= and types it in. Its chat pages aren't documented to, but it costs nothing
-  // to offer: if the chat page picks it up, the tasks are typed in; if not, they're on the clipboard.
-  const link = t.kind === 'chat' && text.length <= PROJECT_LIMIT ? withQ(ct.shipUrl, text) : ct.shipUrl;
-  if (!copied) { showPasteCard(text, where, { failed: true, openLink: link }); return; }
-  window.open(link, '_blank', 'noopener');
-  showPasteCard(text, where, { chat: t.kind === 'chat' });
+  const text0 = getText();
+  const count = (text0.match(/^\d+\.\s/gm) || []).length;
+  const box = h('textarea', { class: 'field-input ship-preview', rows: 12, spellcheck: false, 'aria-label': 'The message' });
+  box.value = text0;
+  const dests = [
+    t.kind === 'project' && { id: 'project', label: 'New chat in your Claude project', note: 'Typed in, with the project’s files and instructions.', url: q => `https://claude.ai/new?q=${encodeURIComponent(q)}&project=${encodeURIComponent(t.id)}`, typed: true },
+    { id: 'claude', label: 'New Claude chat', note: 'Typed in.', url: q => `https://claude.ai/new?q=${encodeURIComponent(q)}`, typed: true },
+    { id: 'chatgpt', label: 'New ChatGPT chat', note: 'Typed in.', url: q => `https://chatgpt.com/?q=${encodeURIComponent(q)}`, typed: true },
+    (t.kind === 'chat' || t.kind === 'other') && { id: 'chat', label: `${shipLabel(ct).replace(/^your /, 'Your ')}`, note: 'Opens that exact chat; you paste (⌘V). Chat apps only type into new chats.', url: () => ct.shipUrl, typed: false },
+  ].filter(Boolean);
+  const remembered = store.pref('shipDest', {})[ct?.id];
+  let dest = dests.find(d => d.id === remembered) || dests[0];
+  const opts = h('div', { class: 'ship-dests', role: 'radiogroup', 'aria-label': 'Open in' });
+  const paintOpts = () => opts.replaceChildren(...dests.map(d => h('button', {
+    class: `ship-dest ${d === dest ? 'on' : ''}`, type: 'button', role: 'radio', 'aria-checked': String(d === dest),
+    onclick: () => { dest = d; paintOpts(); paintGo(); },
+  }, h('b', {}, d.label), h('small', {}, d.note))));
+  const go = h('button', { class: 'btn primary', type: 'button' });
+  const paintGo = () => { go.replaceChildren(dest.typed ? `Open in ${dest.id === 'chatgpt' ? 'ChatGPT' : 'Claude'}` : 'Copy and open', h('kbd', { class: 'ship-kbd' }, '↵')); };
+  paintOpts(); paintGo();
+  let m;
+  const open = () => {
+    const q = box.value.trim();
+    if (!q) return;
+    store.setPref('shipDest', { ...store.pref('shipDest', {}), [ct?.id]: dest.id });
+    const copied = copyPlainNow(q); // a backup either way
+    if (dest.typed && q.length <= 7000) {
+      window.open(dest.url(q), '_blank', 'noopener');
+      toast('Opened with it typed in. Check it there and press send.', { duration: 5000 });
+    } else if (copied) {
+      window.open(dest.url(q), '_blank', 'noopener');
+      showPasteCard(q, dest.typed ? dest.label : shipLabel(ct), { chat: true });
+    } else showPasteCard(q, shipLabel(ct), { failed: true, openLink: dest.url(q) });
+    m?.close();
+  };
+  go.onclick = open;
+  const body = h('div', { class: 'ship-sheet' },
+    h('p', { class: 'muted small' }, ct?.repo ? `${ct.name} · ${ct.repo}` : ct?.name || ''),
+    box,
+    h('label', { class: 'field-label' }, 'Open in'), opts,
+    h('div', { class: 'ship-foot' }, h('span', { class: 'muted small' }, 'Nothing is sent until you press send in the chat.'), h('span', { class: 'head-spacer' }), go));
+  body.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    // Enter opens it; inside the message, use ⌘/Ctrl+Enter (plain Enter adds a line).
+    if (e.target === box && !(e.metaKey || e.ctrlKey)) return;
+    e.preventDefault(); e.stopPropagation(); open();
+  });
+  m = modal({ title: count > 1 ? `Ship ${count} tasks` : 'Ship this task', body, className: 'ship-modal', actions: [] });
+  setTimeout(() => go.focus(), 80); // Enter right away opens it
 }
 export const shipButton = (getCt, getText, label) => h('button', {
   class: 'card-tool card-send', type: 'button', 'aria-label': label, title: label,
