@@ -256,13 +256,15 @@ export function ship(ct, getText, anchor, { title } = {}) {
     box,
     h('label', { class: 'field-label' }, 'Open in'), opts,
     h('div', { class: 'ship-foot' }, h('span', { class: 'muted small' }, 'Nothing is sent until you press send in the chat.'), h('span', { class: 'head-spacer' }), go));
-  body.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' || e.isComposing) return;
-    // Enter opens it; inside the message, use ⌘/Ctrl+Enter (plain Enter adds a line).
+  // Enter opens it from anywhere in the sheet; inside the message, ⌘/Ctrl+Enter (plain Enter adds a line).
+  const onKey = e => {
+    if (e.key !== 'Enter' || e.isComposing || !body.isConnected) return;
     if (e.target === box && !(e.metaKey || e.ctrlKey)) return;
+    if (e.target !== box && e.target.closest?.('button') && e.target !== go) return; // Enter on a destination picks it
     e.preventDefault(); e.stopPropagation(); open();
-  });
-  m = modal({ title: count > 1 ? `Ship ${count} tasks` : 'Ship this task', body, className: 'ship-modal', actions: [] });
+  };
+  document.addEventListener('keydown', onKey, true);
+  m = modal({ title: count > 1 ? `Ship ${count} tasks` : 'Ship this task', body, className: 'ship-modal', actions: [], onClose: () => document.removeEventListener('keydown', onKey, true) });
   setTimeout(() => go.focus(), 80); // Enter right away opens it
 }
 export const shipButton = (getCt, getText, label) => h('button', {

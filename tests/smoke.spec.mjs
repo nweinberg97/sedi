@@ -296,7 +296,12 @@ test('Builder mode: repo per project and Send to… / Send all build the right m
   expect(msg.all).toMatch(/1\. /);
   await page.locator('.plan-card').first().hover();
   await page.locator('.plan-card .card-send').first().click();
-  await expect(page.locator('.send-item')).toHaveCount(5);
+  // Ship shows the message to read and edit, with where to open it; Enter opens it there.
+  await expect(page.locator('.ship-modal .ship-preview')).toHaveValue(/\(repo: me\/app\)/);
+  await expect(page.locator('.ship-dest')).toHaveCount(2); // no link set: a new Claude chat or a new ChatGPT chat
+  const popup = page.waitForEvent('popup');
+  await page.keyboard.press('Enter');
+  expect((await popup).url()).toContain('claude.ai/new?q=');
 });
 
 // ---------- 5. Assistant: chat, voice, commands ----------
