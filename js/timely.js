@@ -112,6 +112,12 @@ let dayScroll = null;      // { key, top }: keeps your place in the day while th
 let zoom = null;           // { view: 'week'|'month', date, slot?, anim }: the zoomed-in period or day
 const SLOT_HOURS = { morning: [5, 11], noon: [11, 13], afternoon: [13, 17], evening: [17, 21], night: [21, 29] }; // 29 = 5am next day
 const hourLabel = hr => fmtMinutes((hr % 24) * 60);
+// A day in Timely runs 5am to 5am, the way people actually live: 1am Saturday night is still "Saturday".
+// The grid counts minutes from 5am ("grid minutes"); past midnight they belong to the next calendar date.
+const DAY0 = 5 * 60;
+const dayToday = () => dateKey(new Date(Date.now() - DAY0 * 60000)); // the day you're living in right now
+const gridMin = start => (start - DAY0 + 1440) % 1440;
+const fromGrid = (key, g) => (g + DAY0 >= 1440 ? { date: dateKey(addDays(parseKey(key), 1)), start: g + DAY0 - 1440 } : { date: key, start: g + DAY0 });
 export const dayName = (key, { short = false } = {}) => { const d = parseKey(key); return `${key === todayKey() ? 'Today · ' : ''}${short ? DAY_NAMES[d.getDay()].slice(0, 3) : DAY_NAMES[d.getDay()]}, ${fmtShortDate(d)}`; };
 
 // ---------- Queries ----------
@@ -244,9 +250,10 @@ const mode = () => store.pref('timelyMode', 'schedule');
 const view = () => store.pref('timelyView', 'day');
 const planBoard = () => store.pref('timelyPlan', 'projects');
 function anchor() {
-  const a = store.pref('timelyAnchor', todayKey());
-  return a < todayKey() ? todayKey() : a;
+  const a = store.pref('timelyAnchor', dayToday());
+  return a < dayToday() ? dayToday() : a;
 }
+let openedOnce = false;
 const setAnchor = k => { store.setPref('timelyAnchor', k); render(); };
 
 export function mount(el) {
@@ -254,6 +261,8 @@ export function mount(el) {
   body = h('div', { class: 'timely-body', 'data-navoro-sensitive': '' });
   root.replaceChildren(h('div', { class: 'view timely' }, h('div', { class: 'timely-head' }), body));
   dayScroll = null; zoom = null;
+  // Opening Sedi (or refreshing) always lands on today, at the current time.
+  if (!openedOnce) { openedOnce = true; store.setPref('timelyAnchor', dayToday()); }
   render();
 }
 
@@ -325,24 +334,32 @@ function markTouch(layout) {
   v?.classList.toggle('day-compact', layout === 'compact');
   v?.classList.toggle('day-wide-touch', layout === 'tablet');
 }
-// The red "now" line moves by itself: every 20 seconds it slides to the current minute and its label updates.
-// When the date rolls over (past midnight, or the laptop was asleep), the view redraws so "today" is right.
-let lastToday = null;
-setInterval(() => {
+// The red "now" line moves by itself, minute by minute, and the day follows it: if the line was in view, the
+// view scrolls with it so it stays where you're looking. When the day rolls over at 5am (or the laptop wakes up
+// on a new day), the view redraws on the new day.
+let lastToday = null, lastMinute = -1;
+function tickNow() {
   if (document.hidden) return;
-  const t = todayKey();
-  if (lastToday && t !== lastToday && root?.isConnected) { lastToday = t; render(); return; }
+  const t = dayToday();
+  if (lastToday && t !== lastToday && root?.isConnected) { lastToday = t; store.setPref('timelyAnchor', t); dayScroll = null; render(); return; }
   lastToday = t;
   const n = new Date(), mins = n.getHours() * 60 + n.getMinutes();
+  if (mins === lastMinute) return;
+  lastMinute = mins;
   document.querySelectorAll('.now-line').forEach(line => {
     const hh = +line.dataset.hourH;
     if (!hh) return;
-    line.style.top = (mins / 60) * hh + 'px';
-    const lab = line.querySelector('.now-time');
-    if (lab) lab.textContent = fmtMinutes(mins);
+    const box = line.closest('.day-scroll');
+    const before = parseFloat(line.style.top) || 0, top = (gridMin(mins) / 60) * hh;
+    const inView = box && before >= box.scrollTop && before <= box.scrollTop + box.clientHeight;
+    line.style.top = top + 'px';
+    line.querySelectorAll('.now-time').forEach(l => (l.textContent = fmtMinutes(mins)));
+    if (inView && top - before > 0 && top - before < hh) box.scrollTop += top - before;
   });
-}, 20000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && root?.isConnected && lastToday && lastToday !== todayKey()) { lastToday = todayKey(); render(); } });
+}
+setInterval(tickNow, 5000);
+document.addEventListener('visibilitychange', tickNow);
+
 /** Which day layout fits this screen: 'compact' (phones, portrait tablets), 'tablet' (landscape touch), or 'desktop'. */
 function dayLayout() {
   if (listMode()) return 'compact';
@@ -353,9 +370,14 @@ function dayLayout() {
 function renderDay() {
   const key = anchor();
   const d = parseKey(key);
-  const label = `${key === todayKey() ? 'Today, ' : ''}${DAY_NAMES[d.getDay()]} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
+  const label = `${key === dayToday() ? 'Today, ' : ''}${DAY_NAMES[d.getDay()]} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
   const occ = occurrencesOn(key);
-  const timed = occ.filter(o => o.card.meta.start != null);
+  const nextKey = dateKey(addDays(d, 1)), nd = addDays(d, 1);
+  // 5am today through 4:59am tomorrow. Things before 5am today belong to yesterday's day.
+  const timed = [
+    ...occ.filter(o => o.card.meta.start != null && o.card.meta.start >= DAY0).map(o => ({ ...o, g: o.card.meta.start - DAY0, on: key })),
+    ...occurrencesOn(nextKey).filter(o => o.card.meta.start != null && o.card.meta.start < DAY0).map(o => ({ ...o, g: o.card.meta.start + 1440 - DAY0, on: nextKey })),
+  ];
   const untimed = occ.filter(o => o.card.meta.start == null);
   const allDay = h('div', { class: 'allday', dataset: { drop: 'timely-allday', accept: 'card', date: key } },
     h('span', { class: 'allday-label' }, 'Any time'),
@@ -373,11 +395,11 @@ function renderDay() {
   const onPhone = layout === 'compact';
   markTouch(layout);
   const phoneActions = onPhone ? h('div', { class: 'm-day-actions' },
-    key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
+    key !== dayToday() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(dayToday()); } }, 'Today') : null,
     h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plans', todoCards().length ? h('small', {}, todoCards().length) : null),
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
   const tabletAdd = layout === 'tablet' ? h('div', { class: 'm-day-actions' },
-    key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
+    key !== dayToday() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(dayToday()); } }, 'Today') : null,
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
   if (tabletAdd) head.append(tabletAdd); // landscape tablets: Add sits on the date line, no extra row
   body.replaceChildren(...[
@@ -394,11 +416,14 @@ function renderDay() {
     grid.style.setProperty('--hour', hourH + 'px');
     grid.style.height = hourH * 24 + 'px';
     for (let hr = 0; hr < 24; hr++) {
-      grid.append(h('div', { class: 'hour-row', style: { top: hr * hourH + 'px', height: hourH + 'px' } },
-        h('span', { class: 'hour-label' }, hr === 0 ? '' : fmtMinutes(hr * 60))));
+      const real = (hr * 60 + DAY0) % 1440;
+      const midnight = real === 0;
+      grid.append(h('div', { class: `hour-row ${midnight ? 'midnight' : ''}`, style: { top: hr * hourH + 'px', height: hourH + 'px' } },
+        h('span', { class: 'hour-label' }, hr === 0 ? fmtMinutes(real) : fmtMinutes(real)),
+        midnight ? h('span', { class: 'midnight-label' }, `${DAY_NAMES[nd.getDay()].slice(0, 3)} ${MONTH_NAMES[nd.getMonth()].slice(0, 3)} ${nd.getDate()}`) : null));
     }
     // Overlapping blocks sit side by side instead of on top of each other.
-    const spans = timed.map(o => ({ o, a: o.card.meta.start, b: o.card.meta.start + (o.card.meta.dur || 60) })).sort((x, y) => x.a - y.a || y.b - x.b);
+    const spans = timed.map(o => ({ o, a: o.g, b: o.g + (o.card.meta.dur || 60) })).sort((x, y) => x.a - y.a || y.b - x.b);
     let cluster = [], clusterEnd = -1;
     // Side by side, the way good calendars do it: each block takes the first free lane, then stretches across
     // any lanes to its right that are free for its whole time, so nothing is squeezed narrower than it needs.
@@ -416,13 +441,15 @@ function renderDay() {
     for (const sp of spans) { if (sp.a >= clusterEnd && cluster.length) flush(); cluster.push(sp); clusterEnd = Math.max(clusterEnd, sp.b); }
     flush();
     for (const sp of spans) {
-      const el = eventBlock(sp.o.card, hourH, key, sp.o.done);
+      const el = eventBlock(sp.o.card, hourH, sp.o.on, sp.o.done, sp.o.g);
       if (sp.lanes > 1) { el.style.setProperty('--lane', sp.lane); el.style.setProperty('--lanes', sp.lanes); el.style.setProperty('--span', sp.span); el.classList.add('in-lane'); }
       grid.append(el);
     }
     const nowMins = (() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); })();
-    const addAt = (start, dur = 60) => {
-      const card = store.createCard({ type: 'event', tool: 'timely', title: 'New block', meta: { date: key, start, dur, itemType: 'task' } });
+    // `g` is minutes from 5am on this day's grid.
+    const addAt = (g, dur = 60) => {
+      const at = fromGrid(key, g);
+      const card = store.createCard({ type: 'event', tool: 'timely', title: 'New block', meta: { date: at.date, start: at.start, dur, itemType: 'task' } });
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const el = body.querySelector(`[data-id="${card.id}"]`);
         el?.classList.add('just-added');
@@ -430,13 +457,14 @@ function renderDay() {
         if (t) editInline(t, { onCommit: v => store.updateCard(card.id, { title: v }) });
       }));
     };
-    if (key === todayKey()) {
-      grid.append(h('div', { class: 'now-line', dataset: { hourH, day: key }, style: { top: (nowMins / 60) * hourH + 'px' } },
-        h('span', { class: 'now-time', 'aria-hidden': 'true' }, fmtMinutes(nowMins)),
-        h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: `Add at ${fmtMinutes(Math.floor(nowMins / 5) * 5)}`, onclick: e => { e.stopPropagation(); const at = Math.floor(nowMins / 5) * 5; if (phone) openItemForm(e.currentTarget, { type: 'task', date: key, start: at, pickDate: false }); else addAt(at, 30); } }, icon('plus'), h('span', {}, 'Now'))));
+    const nowG = gridMin(nowMins);
+    if (key === dayToday()) {
+      grid.append(h('div', { class: 'now-line', dataset: { hourH, day: key }, style: { top: (nowG / 60) * hourH + 'px' } },
+        h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: 'Add something now', onclick: e => { e.stopPropagation(); const n = new Date(), at = Math.floor((n.getHours() * 60 + n.getMinutes()) / 5) * 5; if (phone) openItemForm(e.currentTarget, { type: 'task', date: todayKey(), start: at, pickDate: false }); else addAt(gridMin(at), 30); } },
+          h('span', { class: 'now-time' }, fmtMinutes(nowMins)))));
     }
     // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
-    const startTop = key === todayKey() ? Math.max(0, (nowMins / 60 - 1.25) * hourH) : 7 * hourH;
+    const startTop = key === dayToday() ? Math.max(0, (nowG / 60 - 1.25) * hourH) : 2 * hourH; // today: right now; other days: 7am
     const wantTop = dayScroll?.key === key ? dayScroll.top : startTop;
     // Phones: the hours fill the rest of the screen and scroll on their own, under a header that stays put.
     if (phone) {
@@ -456,21 +484,21 @@ function renderDay() {
     // into adding a new one. A click adds only while the + is showing.
     const ghost = h('div', { class: 'slot-ghost', hidden: true }, h('span', { class: 'slot-ghost-pill' }, icon('plus'), h('span', { class: 'slot-ghost-time' })));
     grid.append(ghost);
-    const slotAt = e => clamp(Math.floor(((e.clientY - grid.getBoundingClientRect().top) / hourH) * 2) * 30, 0, 23 * 60 + 30);
+    const slotAt = e => clamp(Math.floor(((e.clientY - grid.getBoundingClientRect().top) / hourH) * 2) * 30, 0, 23 * 60 + 30); // grid minutes
     const onEmpty = e => e.target === grid || e.target.classList.contains('hour-row') || e.target.closest('.slot-ghost');
     const nearBlock = e => [-10, 10].some(dy => document.elementsFromPoint(e.clientX, e.clientY + dy).some(n => n.classList?.contains('event-block')));
     let armed = null, armTimer = 0, lastSlot = -1;
     const disarm = () => { clearTimeout(armTimer); armed = null; lastSlot = -1; ghost.hidden = true; };
     const arm = (start, x) => {
       // Fit the free gap: up to half an hour, stopping at the next block in that column.
-      const next = timed.map(o => o.card.meta.start).filter(t => t > start && t < start + 30).sort((p, q) => p - q)[0];
+      const next = timed.map(o => o.g).filter(t => t > start && t < start + 30).sort((p, q) => p - q)[0];
       const len = (next ?? start + 30) - start;
       if (len < 15) return;
       armed = { start, len };
       ghost.hidden = false;
       ghost.style.top = (start / 60) * hourH + 'px';
       ghost.style.height = (len / 60) * hourH + 'px';
-      ghost.querySelector('.slot-ghost-time').textContent = `Add at ${fmtMinutes(start)}`;
+      ghost.querySelector('.slot-ghost-time').textContent = `Add at ${fmtMinutes((start + DAY0) % 1440)}`;
     };
     grid.addEventListener('pointermove', e => {
       if (document.body.classList.contains('is-dragging') || resizing) return; // the drag preview owns the ghost then
@@ -493,15 +521,15 @@ function renderDay() {
       if (!p || Date.now() - lastMoveEnd < 450 || Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6 || Date.now() - p.t > 700) return;
       disarm();
       // On a phone a tap opens the add sheet with that time filled in, so a stray tap never makes an event.
-      if (phone) openItemForm(grid, { type: 'task', date: key, start: p.slot.start, pickDate: false });
+      if (phone) openItemForm(grid, { type: 'task', ...fromGrid(key, p.slot.start), pickDate: false });
       else {
         // An hour by default, or up to the next block if that comes sooner.
-        const next = timed.map(o => o.card.meta.start).filter(t => t > p.slot.start).sort((x, y) => x - y)[0];
+        const next = timed.map(o => o.g).filter(t => t > p.slot.start).sort((x, y) => x - y)[0];
         addAt(p.slot.start, Math.max(15, Math.min(60, (next ?? p.slot.start + 60) - p.slot.start)));
       }
     });
     // Phones have no hover: a tap on an empty spot opens the add sheet straight away.
-    if (phone) grid.addEventListener('click', e => { if (onEmpty(e) && !press && Date.now() - lastMoveEnd > 450) openItemForm(grid, { type: 'task', date: key, start: slotAt(e), pickDate: false }); });
+    if (phone) grid.addEventListener('click', e => { if (onEmpty(e) && !press && Date.now() - lastMoveEnd > 450) openItemForm(grid, { type: 'task', ...fromGrid(key, slotAt(e)), pickDate: false }); });
   });
 }
 
@@ -521,7 +549,7 @@ function toggleDone(id) {
 }
 const routineTag = c => h('span', { class: 'routine-tag' }, icon('repeat'), recurLabel(c.meta));
 
-function eventBlock(c, hourH, key, done) {
+function eventBlock(c, hourH, key, done, g = gridMin(c.meta.start)) {
   const m = c.meta;
   const dur = m.dur || 60;
   // Drawn at its true length, so a 15-minute block never covers the one after it.
@@ -531,7 +559,7 @@ function eventBlock(c, hourH, key, done) {
   const lines = px >= 84 ? 3 : 2;
   const el = h('article', {
     class: `event-block ${short ? 'short' : ''} ${tiny ? 'tiny' : ''} ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id },
-    style: { top: (m.start / 60) * hourH + 'px', height: px + 'px', '--lines': lines },
+    style: { top: (g / 60) * hourH + 'px', height: px + 'px', '--lines': lines },
   },
   // Anything scheduled can be ticked off: routines for the day, everything else for good.
   ITEM_TYPES[itemTypeOf(c)]?.span ? null : routineTick(c, key, done),
@@ -558,7 +586,7 @@ function eventBlock(c, hourH, key, done) {
     let ns = m.start, nd = dur;
     const move = ev => {
       const delta = Math.round((((ev.clientY - sy) / hourH) * 60) / 15) * 15;
-      if (fromTop) { ns = clamp(m.start + delta, 0, end - 15); nd = end - ns; el.style.top = (ns / 60) * hourH + 'px'; }
+      if (fromTop) { ns = clamp(m.start + delta, 0, end - 15); nd = end - ns; el.style.top = ((g + ns - m.start) / 60) * hourH + 'px'; }
       else nd = clamp(dur + delta, 15, 24 * 60 - m.start);
       el.style.height = Math.max(14, (nd / 60) * hourH - 2) + 'px';
       el.querySelector('.ev-range').textContent = `${fmtMinutes(ns)}–${fmtMinutes(ns + nd)}`;
@@ -714,9 +742,9 @@ onDragStart(d => {
     const inside = d.x >= r.left && d.x <= r.right && d.y >= sr.top && d.y <= sr.bottom;
     if (!inside) { ghost.hidden = true; ghost.classList.remove('moving'); return; }
     const hourH = parseFloat(getComputedStyle(grid).getPropertyValue('--hour')) || 48;
-    const start = clamp(Math.round((((d.y - d.gy - r.top) / hourH) * 60) / 15) * 15, 0, 24 * 60 - 15);
+    const g = clamp(Math.round((((d.y - d.gy - r.top) / hourH) * 60) / 15) * 15, 0, 24 * 60 - 15), start = (g + DAY0) % 1440;
     ghost.hidden = false; ghost.classList.add('moving');
-    ghost.style.top = (start / 60) * hourH + 'px';
+    ghost.style.top = (g / 60) * hourH + 'px';
     ghost.style.height = Math.max(13, (dur / 60) * hourH - 2) + 'px';
     ghost.querySelector('.slot-ghost-time').textContent = `${fmtMinutes(start)}–${fmtMinutes(start + dur)}`;
   };
@@ -747,10 +775,11 @@ function placeSched(id, patch, label) {
 registerDrop('timely-day', ({ id, zone, y, gy, data }) => {
   const hourH = parseFloat(getComputedStyle(zone).getPropertyValue('--hour')) || 48;
   const top = y - gy - zone.getBoundingClientRect().top;
-  const start = clamp(Math.round(((top / hourH) * 60) / 15) * 15, 0, 24 * 60 - 15);
+  const g = clamp(Math.round(((top / hourH) * 60) / 15) * 15, 0, 24 * 60 - 15);
+  const at = fromGrid(data.date, g); // past midnight on the grid lands on the next calendar date
   const c = store.getCard(id);
   const dur = isSched(c) && c.meta.dur ? c.meta.dur : 60;
-  return placeSched(id, { date: data.date, start, dur, slot: null, kind: c?.meta?.kind === 'reminder' && isSched(c) ? 'reminder' : undefined }, 'Rescheduled');
+  return placeSched(id, { date: at.date, start: at.start, dur, slot: null, kind: c?.meta?.kind === 'reminder' && isSched(c) ? 'reminder' : undefined }, 'Rescheduled');
 });
 registerDrop('timely-allday', ({ id, data }) => placeSched(id, { date: data.date, start: null, slot: null }, 'Rescheduled'));
 registerDrop('timely-cell', {
