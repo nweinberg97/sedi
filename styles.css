@@ -4397,3 +4397,9 @@ body:has(.modal-backdrop) .toasts, body:has(.popover:has(.form-pop)) .toasts { b
 .ct-builder .ct-repo { width: 100%; box-sizing: border-box; border-radius: 8px; padding: 4px 8px; }
 .ct-ship-row { min-width: 0; }
 .ct-ship-row > .chip:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ship-hint { margin: 2px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--well); color: var(--ink-2); line-height: 1.4; }
+.ship-hint.project { background: #eef7f1; color: #2f7a57; }
+.ship-hint.chat { background: #fdf6e1; color: #8a6514; }
+.ship-how { color: var(--muted); }
+.ship-how summary { cursor: pointer; color: var(--ink-2); font-weight: 600; }
+.ship-how p { margin: 6px 0 0; line-height: 1.45; }

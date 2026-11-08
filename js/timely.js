@@ -1833,7 +1833,7 @@ function containerEl(b, ct) {
   const live = () => ({ ...(boardContainers(b).find(x => x.id === ct.id) || ct), repo: repo?.value.trim() || ct.repo });
   const sendAll = builder && open ? h('button', { class: 'chip xs ct-send-all', type: 'button', title: `Ship all ${open} open tasks to ${shipLabel(ct)}`, onclick: e => ship(live(), () => listPrompt(live(), planCards(b, ct.id)), e.currentTarget, { title: `Ship ${open} task${open === 1 ? '' : 's'} to` }) }, icon('send'), `Ship all ${open}`) : null;
   const shipSet = builder ? h('button', { class: 'chip ghost xs ct-ship-to', type: 'button', title: 'Where this project ships, its repo, and standing instructions',
-    onclick: e => openShipSettings(e.currentTarget, live(), patch => { saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, ...patch } : x))); }) }, icon('gear'), ct.shipUrl ? `To ${shipLabel(ct)}` : 'Ship settings') : null;
+    onclick: e => openShipSettings(e.currentTarget, live(), patch => { saveContainers(b, boardContainers(b).map(x => (x.id === ct.id ? { ...x, ...patch } : x))); }) }, icon('gear'), ct.shipUrl ? shipLabel(ct).replace(/^your /, '').replace(/^./, ch => ch.toUpperCase()) : 'Ship settings') : null;
   // Once anything is ticked, one quiet button sweeps the finished tasks away (one Undo brings them all back).
   const clearDone = done ? h('button', { class: 'ct-clear-done', type: 'button', title: 'Delete the ticked tasks in this project (you can Undo)',
     onclick: () => clearDoneTasks(b, ct) }, icon('check'), done === cards.length ? `Clear all ${done} done` : `Clear ${done} done`) : null;

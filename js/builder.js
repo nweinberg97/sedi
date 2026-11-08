@@ -79,7 +79,7 @@ const pasteKeys = () => (touch() ? 'press and hold, then Paste' : isMac ? '⌘V'
 // After a hand-off, a small card stays on the Sedi tab: what was copied, where it went, and "Copy again" in
 // case something else landed on the clipboard in between. It goes away when you're done with it.
 let pasteCard = null;
-function showPasteCard(text, where, { failed = false, openLink = null } = {}) {
+function showPasteCard(text, where, { failed = false, openLink = null, chat = false } = {}) {
   pasteCard?.remove();
   const count = (text.match(/^\s*(?:\d+\.|- \[[ x]\])\s/gm) || []).length;
   const what = count > 1 ? `${count} tasks` : 'the message';
@@ -95,7 +95,9 @@ function showPasteCard(text, where, { failed = false, openLink = null } = {}) {
   const showBtn = h('button', { class: 'btn sm ghost', type: 'button', onclick: () => { preview.hidden = !preview.hidden; showBtn.textContent = preview.hidden ? 'Show text' : 'Hide text'; } }, failed ? 'Hide text' : 'Show text');
   const msg = h('p', { class: 'pc-msg' });
   const say = t => (msg.textContent = t);
-  say(failed ? `Your browser didn’t let Sedi copy on its own. Tap below to copy ${what}, then paste into ${where}.` : `Copied ${what}. ${pasteHow(where)}`);
+  const chatSteps = () => (touch() ? `Copied ${what}. In ${where}, tap the message box, hold, tap Paste, then send.` : `Copied ${what}. In ${where}, click the message box and press ${isMac ? '⌘V' : 'Ctrl+V'}, then send.`);
+  if (chat && !failed) { say(chatSteps()); }
+  else say(failed ? `Your browser didn’t let Sedi copy on its own. Tap below to copy ${what}, then paste into ${where}.` : `Copied ${what}. ${pasteHow(where)}`);
   pasteCard = h('div', { class: 'paste-card', role: 'status' },
     h('div', { class: 'pc-row' }, h('span', { class: 'pc-ic' }, icon('send')), msg,
       h('button', { class: 'icon-btn xs pc-x', type: 'button', 'aria-label': 'Done', onclick: () => { pasteCard?.remove(); pasteCard = null; } }, icon('x'))),
@@ -178,20 +180,44 @@ export const sendListButton = (name, getCards, cls = '') => h('button', {
 // link type into a *new* chat, so for a specific chat Sedi copies the message and you paste and send.
 // No link set: Ship works like Hand off and opens a new chat with the message typed in.
 const SAFE_LINK = /^https:\/\/[^\s/$.?#][^\s]*$/i;
+// What a ship link points at. A Claude *project* is the smooth one: Sedi starts a new chat inside it with the
+// tasks already typed in, and the chat has the project's files and instructions. A link to one particular chat
+// can't be typed into by any website (Claude only pre-fills new chats), so that one is copy, open, paste.
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+export function shipTarget(url) {
+  if (!url) return { kind: 'new' };
+  let u; try { u = new URL(url); } catch { return { kind: 'other', url }; }
+  const host = u.hostname.replace(/^www\./, '');
+  if (host === 'claude.ai') {
+    const proj = /^\/project\/([^/?#]+)/.exec(u.pathname)?.[1];
+    if (proj && UUID.test(proj)) return { kind: 'project', id: proj, url };
+    if (/^\/new\/?$/.test(u.pathname)) return { kind: 'new' };
+    return { kind: 'chat', app: 'Claude', url };
+  }
+  if (host.includes('chatgpt')) return { kind: 'chat', app: 'ChatGPT', url };
+  if (host.includes('gemini')) return { kind: 'chat', app: 'Gemini', url };
+  return { kind: 'other', url };
+}
 export const shipLabel = ct => {
-  if (!ct?.shipUrl) return 'a new chat';
-  try { const host = new URL(ct.shipUrl).hostname.replace(/^www\./, ''); return host.includes('claude') ? 'your Claude chat' : host.includes('chatgpt') ? 'your ChatGPT chat' : host.includes('gemini') ? 'your Gemini chat' : host; } catch { return 'your chat'; }
+  const t = shipTarget(ct?.shipUrl);
+  return t.kind === 'new' ? 'a new chat' : t.kind === 'project' ? 'your Claude project' : t.kind === 'chat' ? `your ${t.app} chat` : (() => { try { return new URL(t.url).hostname.replace(/^www\./, ''); } catch { return 'your chat'; } })();
 };
+const PROJECT_LIMIT = 6000; // long links get cut off by some browsers; past this, copy and paste instead
 export function ship(ct, getText, anchor, { title } = {}) {
-  if (!ct?.shipUrl) return openSendMenu(anchor, getText, { title: title || 'Ship to' });
+  const t = shipTarget(ct?.shipUrl);
+  if (t.kind === 'new') return openSendMenu(anchor, getText, { title: title || 'Ship to' });
   const text = getText();
   const where = shipLabel(ct);
-  // A link to one particular chat can't be typed into by anyone but you, so the message goes on the clipboard
-  // first (synchronously, inside this click) and stays one tap away on the Sedi tab.
-  const copied = copyPlainNow(text);
+  const copied = copyPlainNow(text); // always on the clipboard too, as a backup
+  if (t.kind === 'project' && text.length <= PROJECT_LIMIT) {
+    // A new chat in the project, with everything typed in. You check it and press send.
+    window.open(`https://claude.ai/new?q=${encodeURIComponent(text)}&project=${encodeURIComponent(t.id)}`, '_blank', 'noopener');
+    toast(`Opened a new chat in your Claude project with it typed in. Check it, then press send.${copied ? ' (It’s on your clipboard too.)' : ''}`, { duration: 7000 });
+    return;
+  }
   if (!copied) { showPasteCard(text, where, { failed: true, openLink: ct.shipUrl }); return; }
   window.open(ct.shipUrl, '_blank', 'noopener');
-  showPasteCard(text, where);
+  showPasteCard(text, where, { chat: t.kind === 'chat' });
 }
 export const shipButton = (getCt, getText, label) => h('button', {
   class: 'card-tool card-send', type: 'button', 'aria-label': label, title: label,
@@ -200,7 +226,7 @@ export const shipButton = (getCt, getText, label) => h('button', {
 /** Where a project ships, its repo, and the instructions that go with every ship. */
 export function openShipSettings(anchor, ct, onSave) {
   const repo = h('input', { class: 'field-input sm', value: ct.repo || '', placeholder: 'yourname/app', spellcheck: false });
-  const link = h('input', { class: 'field-input sm', value: ct.shipUrl || '', placeholder: 'https://claude.ai/chat/…', spellcheck: false, inputmode: 'url' });
+  const link = h('input', { class: 'field-input sm', value: ct.shipUrl || '', placeholder: 'https://claude.ai/project/…', spellcheck: false, inputmode: 'url' });
   const note = h('textarea', { class: 'field-input sm', rows: 3, placeholder: 'For example: Work on a branch. Show me a sandbox preview before merging.' });
   note.value = ct.shipNote || '';
   const err = h('p', { class: 'small ship-err', hidden: true }, 'That needs to be a full https:// link.');
@@ -212,11 +238,23 @@ export function openShipSettings(anchor, ct, onSave) {
     closePopovers();
     toast(url ? `${ct.name} now ships to ${shipLabel({ shipUrl: url })}.` : `${ct.name} ships to a new chat.`);
   };
+  const hint = h('p', { class: 'ship-hint small' });
+  const paintHint = () => {
+    const t = shipTarget(link.value.trim());
+    hint.className = `ship-hint small ${t.kind}`;
+    hint.textContent = t.kind === 'project' ? '✓ A Claude project. Ship opens a new chat in it with your tasks typed in, ready to send.'
+      : t.kind === 'chat' ? `A single ${t.app} chat. No website can type into an existing chat, so Ship copies the tasks and opens it; you paste (⌘V) and send. For no pasting, use a Claude project link instead.`
+      : t.kind === 'other' ? 'Ship will copy the tasks and open this link; you paste and send.'
+      : 'Empty: each Ship asks which app, and opens a new chat with the tasks typed in.';
+  };
+  link.addEventListener('input', paintHint); paintHint();
   popover(anchor, h('div', { class: 'ship-set' },
     h('strong', {}, `Ship settings · ${ct.name}`),
     h('label', { class: 'field-label' }, 'Repo'), repo,
-    h('label', { class: 'field-label' }, 'The chat that builds it'), link,
-    h('p', { class: 'muted small' }, 'Open the Claude chat or Claude Code session that works on this repo, copy the link from the address bar, and paste it here. Leave it empty to start a new chat each time.'),
+    h('label', { class: 'field-label' }, 'Where it ships'), link,
+    hint,
+    h('details', { class: 'ship-how small' }, h('summary', {}, 'Best setup: a Claude project'),
+      h('p', {}, 'In Claude, make a project for this repo (add the repo and any instructions there). Open it, copy the link from the address bar (claude.ai/project/…), and paste it above. Each Ship then starts a fresh chat in that project with the tasks already typed in.')),
     err,
     h('label', { class: 'field-label' }, 'Instructions for every ship'), note,
     h('div', { class: 'ship-actions' }, h('button', { class: 'btn primary sm', type: 'button', onclick: save }, 'Save'))), { className: 'ship-pop' });
