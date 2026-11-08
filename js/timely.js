@@ -651,7 +651,7 @@ function openRepeat(anchorEl, id) {
 function sidePlan(key, { onChange = render, scheduleOn = null } = {}) {
   // Beside the day: the Daily plan (Taskly's To do), or the Weekly or Monthly plan, to drag onto a time.
   const pick = store.pref('daySide', 'today');
-  const which = pick === 'week' || pick === 'month' ? pick : pick === 'plan' ? 'week' : 'today';
+  const which = pick === 'week' || pick === 'month' ? pick : 'today'; // anything else (an older "Plan" choice) shows the Daily plan
   const panel = which === 'week' ? periodPlanPanel('weekplan', null, '', '', { scheduleOn })
     : which === 'month' ? periodPlanPanel('monthplan', null, '', '', { scheduleOn }) : dayPlanPanel(key);
   const count = k => (k === 'week' ? periodCards('weekplan') : k === 'month' ? periodCards('monthplan') : todoCards()).filter(c => !c.meta?.done).length;
