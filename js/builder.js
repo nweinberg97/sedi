@@ -96,7 +96,7 @@ function showPasteCard(text, where, { failed = false, openLink = null, chat = fa
   const msg = h('p', { class: 'pc-msg' });
   const say = t => (msg.textContent = t);
   const chatSteps = () => (touch() ? `Copied ${what}. In ${where}, tap the message box, hold, tap Paste, then send.` : `Copied ${what}. In ${where}, click the message box and press ${isMac ? '⌘V' : 'Ctrl+V'}, then send.`);
-  if (chat && !failed) { say(chatSteps()); }
+  if (chat && !failed) { say(`${chatSteps()} If it’s already typed in, just check it and send.`); }
   else say(failed ? `Your browser didn’t let Sedi copy on its own. Tap below to copy ${what}, then paste into ${where}.` : `Copied ${what}. ${pasteHow(where)}`);
   pasteCard = h('div', { class: 'paste-card', role: 'status' },
     h('div', { class: 'pc-row' }, h('span', { class: 'pc-ic' }, icon('send')), msg,
@@ -202,6 +202,7 @@ export const shipLabel = ct => {
   const t = shipTarget(ct?.shipUrl);
   return t.kind === 'new' ? 'a new chat' : t.kind === 'project' ? 'your Claude project' : t.kind === 'chat' ? `your ${t.app} chat` : (() => { try { return new URL(t.url).hostname.replace(/^www\./, ''); } catch { return 'your chat'; } })();
 };
+const withQ = (url, text) => { try { const u = new URL(url); u.searchParams.set('q', text); return u.toString(); } catch { return url; } };
 const PROJECT_LIMIT = 6000; // long links get cut off by some browsers; past this, copy and paste instead
 export function ship(ct, getText, anchor, { title } = {}) {
   const t = shipTarget(ct?.shipUrl);
@@ -215,8 +216,11 @@ export function ship(ct, getText, anchor, { title } = {}) {
     toast(`Opened a new chat in your Claude project with it typed in. Check it, then press send.${copied ? ' (It’s on your clipboard too.)' : ''}`, { duration: 7000 });
     return;
   }
-  if (!copied) { showPasteCard(text, where, { failed: true, openLink: ct.shipUrl }); return; }
-  window.open(ct.shipUrl, '_blank', 'noopener');
+  // Claude's "new chat" page reads ?q= and types it in. Its chat pages aren't documented to, but it costs nothing
+  // to offer: if the chat page picks it up, the tasks are typed in; if not, they're on the clipboard.
+  const link = t.kind === 'chat' && t.app === 'Claude' && text.length <= PROJECT_LIMIT ? withQ(ct.shipUrl, text) : ct.shipUrl;
+  if (!copied) { showPasteCard(text, where, { failed: true, openLink: link }); return; }
+  window.open(link, '_blank', 'noopener');
   showPasteCard(text, where, { chat: t.kind === 'chat' });
 }
 export const shipButton = (getCt, getText, label) => h('button', {
