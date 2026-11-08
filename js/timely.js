@@ -516,22 +516,19 @@ function eventBlock(c, hourH, key, done) {
   },
   // Anything scheduled can be ticked off: routines for the day, everything else for good.
   ITEM_TYPES[itemTypeOf(c)]?.span ? null : routineTick(c, key, done),
-  h('span', { class: 'ev-title', title: 'Double-click to rename' }, catClass(c) ? h('span', {}, icon(ITEM_TYPES[itemTypeOf(c)]?.icon || 'bell', 'ev-type'), c.title) : c.title),
+  h('span', { class: 'ev-title' }, catClass(c) ? h('span', {}, icon(ITEM_TYPES[itemTypeOf(c)]?.icon || 'bell', 'ev-type'), c.title) : c.title),
   h('span', { class: 'ev-time' }, h('span', { class: 'ev-range' }, `${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)}`), isRoutine(c) ? routineTag(c) : null),
   !short && px >= 70 ? notesSnippet(c) : null,
   // Both edges stretch it: the top moves the start, the bottom moves the end. Tiny blocks are all grab.
   tiny ? null : h('div', { class: 'resize-handle top', 'aria-hidden': 'true' }),
   tiny ? null : h('div', { class: 'resize-handle', 'aria-hidden': 'true' }));
-  el.title = `${c.title} · ${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)} · double-click for details`;
+  el.title = `${c.title} · ${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)}`;
   // Roomy blocks keep their hover tools; short ones stay clean so they're easy to grab.
   if (short) el.classList.add('bare');
   else cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
   paintCat(el, c);
-  // One way in, for every block: double-click the title to rename it, anywhere else to open details.
-  // (On touch screens, which have no double-click, a tap opens details.)
-  el.querySelector('.ev-title').addEventListener('dblclick', e => { e.stopPropagation(); editInline(e.currentTarget, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
-  el.addEventListener('dblclick', e => { if (!e.target.closest('button, .resize-handle, [contenteditable="true"]')) openEventEditor(c.id); });
-  if (short) el.addEventListener('click', e => { if (matchMedia('(hover: none)').matches && !e.target.closest('button, .resize-handle')) openEventEditor(c.id); });
+  // One way in, for every block, mouse or finger: click it to open its details (rename, change, delete there).
+  if (short) el.addEventListener('click', e => { if (e.detail <= 1 && !e.target.closest('button, .resize-handle')) openEventEditor(c.id); });
   // Stretch in 15-minute steps, from either edge.
   el.querySelectorAll('.resize-handle').forEach(handle => handle.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
@@ -566,7 +563,6 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
     showTime && m.start != null ? h('span', { class: 't-chip-time' }, fmtMinutes(m.start)) : null,
     h('span', { class: 't-chip-title' }, c.title),
     isRoutine(c) && !date ? icon('repeat', 'ev-repeat') : null);
-  el.addEventListener('dblclick', () => openEventEditor(c.id));
   el.addEventListener('click', e => { if (!e.target.closest('button')) openEventEditor(c.id); });
   return paintCat(el, c);
 }
@@ -606,19 +602,16 @@ function openRepeat(anchorEl, id) {
 // Weekly and monthly plans are for deciding what; the day is for deciding when. Switching the panel lets
 // you pull something from the week or the month straight onto an hour, without leaving the day.
 function sidePlan(key, { onChange = render, scheduleOn = null } = {}) {
-  const which = store.pref('daySide', 'today');
-  const d = parseKey(key);
-  const panel = which === 'week' ? periodPlanPanel('weekplan', weekPlanKey(d), 'This week’s plan', `Week of ${fmtShortDate(parseKey(weekPlanKey(d)))}`, { scheduleOn })
-    : which === 'month' ? periodPlanPanel('monthplan', monthPlanKey(d), `${MONTH_NAMES[d.getMonth()]} plan`, 'Drag one onto a time to schedule it', { scheduleOn })
-    : dayPlanPanel(key);
-  const count = k => (k === 'week' ? periodCards('weekplan', weekPlanKey(d)) : k === 'month' ? periodCards('monthplan', monthPlanKey(d)) : todoCards()).filter(c => !c.meta?.done).length;
-  const seg = h('div', { class: 'side-switch', role: 'tablist', 'aria-label': 'Which plan' },
-    [['today', key === todayKey() ? 'Today' : 'Day'], ['week', 'Week'], ['month', 'Month']].map(([v, label]) => {
+  // Two lists beside the day: To do (Taskly's) and your Plan (things to do some time, not tied to a date).
+  const which = store.pref('daySide', 'today') === 'today' ? 'today' : 'plan';
+  const panel = which === 'plan' ? periodPlanPanel('plan', null, 'Plan', '', { scheduleOn }) : dayPlanPanel(key);
+  const count = k => (k === 'plan' ? periodCards() : todoCards()).filter(c => !c.meta?.done).length;
+  const seg = h('div', { class: 'side-switch', role: 'tablist', 'aria-label': 'Which list' },
+    [['today', key === todayKey() ? 'Today' : 'Day'], ['plan', 'Plan']].map(([v, label]) => {
       const n = count(v);
       return h('button', { class: v === which ? 'on' : '', role: 'tab', 'aria-selected': String(v === which), type: 'button', onclick: () => { store.setPref('daySide', v); onChange(); } },
         label, n ? h('small', {}, n) : null);
     }));
-  if (which !== 'today') { const tip = [...panel.querySelectorAll('p.muted.small')].pop(); if (tip && panel.querySelector('.plan-item')) tip.textContent = 'Drag one onto a time to schedule it.'; }
   return h('div', { class: 'side-plan' }, seg, panel);
 }
 
@@ -641,7 +634,6 @@ function dayPlanPanel(key) {
         h('button', { class: 'plan-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); e.currentTarget.classList.add('on'); celebrate(e.currentTarget); setTimeout(() => completeTask(c.id), 520); } }, icon('check')),
         h('div', { class: 'plan-main' }, h('span', { class: 'plan-text', title: c.title, dataset: { fit: c.title } }, c.title), notesSnippet(c)),
         h('button', { class: 'icon-btn xs', title: 'Give it a time today', 'aria-label': 'Schedule it today', onclick: e => { e.stopPropagation(); scheduleToday(c.id, key); } }, icon('clock')));
-      el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Task' }));
       return el;
     })),
     withMic(input, { label: 'Dictate a plan item' }),
@@ -843,8 +835,8 @@ function renderWeekPhone() {
       const paint = () => holder.replaceChildren(periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) }));
       paint();
       const off = store.on(() => repaintKeepingFocus(holder, paint));
-      modal({ title: 'This week’s plan', body: holder, className: 'sheet-modal', onClose: () => off() });
-    } }, icon('checklist'), 'Week plan', planN ? h('small', {}, planN) : null));
+      modal({ title: 'Plan', body: holder, className: 'sheet-modal', onClose: () => off() });
+    } }, icon('checklist'), 'Plan', planN ? h('small', {}, planN) : null));
   const list = h('div', { class: 'agenda' }, days.map(d => {
     const k = dateKey(d);
     const occ = occurrencesOn(k);
@@ -909,7 +901,7 @@ function renderWeek() {
   markTouch(layout);
   const makePlan = () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`);
   if (layout !== 'desktop') head.append(touchActions(standardAdds(today), layout === 'compact'
-    ? { planLabel: 'Week plan', planCount: periodCards('weekplan', wk).filter(c => !c.meta.done).length, openPlan: () => planSheet('This week’s plan', () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) })) } : {}));
+    ? { planLabel: 'Plan', planCount: periodCards('weekplan', wk).filter(c => !c.meta.done).length, openPlan: () => planSheet('Plan', () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) })) } : {}));
   const host = h('div', { class: 'zoom-host week-main' }, head, grid);
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(standardAdds(today), 'Dots show what’s planned. Click a block to zoom in and see it all.') : null,
@@ -962,7 +954,7 @@ function renderMonth() {
   const mk = monthPlanKey(a);
   const makePlan = () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month');
   if (layout !== 'desktop') (listMode() ? head.after.bind(head) : head.append.bind(head))(touchActions(adds(), layout === 'compact'
-    ? { planLabel: 'Month plan', planCount: periodCards('monthplan', mk).filter(c => !c.meta.done).length, openPlan: () => planSheet(`${MONTH_NAMES[a.getMonth()]} plan`, () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
+    ? { planLabel: 'Plan', planCount: periodCards('monthplan', mk).filter(c => !c.meta.done).length, openPlan: () => planSheet('Plan', () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(adds(), 'Dots show what’s planned. Click a day to zoom in.') : null,
     h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
@@ -1058,14 +1050,19 @@ registerDrop('timely-hour', {
 });
 
 // ---------- Weekly and monthly plans (separate from Taskly; only Today's plan is Taskly's To do) ----------
-const periodCards = (kind, key) => store.cardsWhere(c => c.tool === 'timely' && c.meta?.board === kind && c.meta.planKey === key).sort(byOrder);
+// Your Plan: one list of things to do some time. It isn't tied to a day, week or month: it's the same list in the
+// Daily, Weekly and Monthly views, and an item stays here until you give it a day (drag it onto one, or its clock).
+// Older plans were kept per week or month ("weekplan" / "monthplan"); they all join this one list.
+const PLAN_BOARDS = new Set(['weekplan', 'monthplan']);
+const isPlanItem = c => c.tool === 'timely' && PLAN_BOARDS.has(c.meta?.board);
+const periodCards = () => store.cardsWhere(isPlanItem).sort((a, b) => (!!a.meta.done - !!b.meta.done) || byOrder(a, b));
 function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
-  const list = periodCards(kind, key);
+  const list = periodCards();
   const done = list.filter(c => c.meta.done).length;
-  const input = h('input', { class: 'field-input sm', placeholder: kind === 'weekplan' ? 'Add to this week, then Enter' : 'Add to this month, then Enter', 'aria-label': heading, 'data-keep': `pp-${kind}-${key}` });
+  const input = h('input', { class: 'field-input sm', placeholder: 'Add to your plan, then Enter', 'aria-label': 'Add to your plan', 'data-keep': 'pp-plan' });
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !input.value.trim()) return;
-    store.createCard({ type: 'task', tool: 'timely', title: input.value.trim(), meta: { board: kind, planKey: key, order: list.length, done: false } });
+    store.createCard({ type: 'task', tool: 'timely', title: input.value.trim(), meta: { board: 'weekplan', planKey: null, order: list.length, done: false } });
     input.value = '';
   });
   const items = list.map(c => {
@@ -1080,29 +1077,35 @@ function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
       h('div', { class: 'plan-main' }, h('span', { class: 'plan-text', title: c.title, dataset: { fit: c.title } }, c.title), notesSnippet(c)),
       // Phones can't drag from a sheet onto the day, so a tap gives it the next free time instead.
       scheduleOn && !c.meta.done ? h('button', { class: 'icon-btn xs', type: 'button', title: 'Give it a time that day', 'aria-label': `Schedule “${c.title}”`, onclick: e => { e.stopPropagation(); scheduleAt(c.id, scheduleOn); } }, icon('clock')) : null);
-    el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Plan item' }));
     return cardChrome(el, c, () => openEditor(c.id, { title: 'Plan item' }), { compact: true });
   });
-  return h('aside', { class: `day-plan period-plan plan-${kind}`, dataset: { drop: 'period-plan', accept: 'card', kind, key }, 'data-list': '' },
+  const clearDone = done ? h('button', { class: 'chip xs pp-clear', type: 'button', title: 'Remove the ticked items (you can Undo)', onclick: () => {
+    const gone = list.filter(c => c.meta.done).map(c => store.deleteCard(c.id, { silent: true })).filter(Boolean);
+    store.notify({ reason: 'delete' });
+    toast(`Cleared ${gone.length} done`, { action: 'Undo', onAction: () => gone.forEach(c => store.restoreCard(c)) });
+  } }, `Clear ${done} done`) : null;
+  return h('aside', { class: 'day-plan period-plan plan-catalog', dataset: { drop: 'period-plan', accept: 'card', kind: 'weekplan', key: '' }, 'data-list': '' },
     h('div', { class: 'day-plan-head' },
-      h('div', { class: 'pp-title' }, h('h3', {}, heading), h('span', { class: 'pp-sub' }, sub)),
+      h('div', { class: 'pp-title' }, h('h3', {}, 'Plan'), h('span', { class: 'pp-sub' }, 'Things to do some time. Give each a day when you’re ready.')),
       list.length ? h('span', { class: 'pp-count', title: `${done} of ${list.length} done` }, `${done}/${list.length}`) : null),
     list.length ? h('div', { class: 'pp-progress' }, h('span', { style: { width: `${Math.round((done / list.length) * 100)}%` } })) : null,
     h('div', { class: 'day-plan-list' }, items),
     withMic(input, { label: 'Dictate a plan item' }),
-    h('p', { class: 'muted small' }, scheduleOn ? (list.length ? 'Tap the clock on an item to give it a time.' : kind === 'weekplan' ? 'What should this week include? Add a few things, then give each a time.' : 'Big things for the month. Give them a date when you’re ready.')
-      : list.length ? `Drag an item onto a ${kind === 'weekplan' ? 'day' : 'date'} to schedule it.` : kind === 'weekplan' ? 'What should this week include? Add a few things, then drag them onto days.' : 'Big things for the month. Drag them onto dates when you’re ready.'));
+    h('div', { class: 'pp-foot' },
+      h('p', { class: 'muted small' }, !list.length ? 'Add what you need to get done. It stays here as you move between days, weeks and months.'
+        : scheduleOn ? 'Tap the clock on an item to give it a day and time.' : 'Drag an item onto any day or time to schedule it.'),
+      clearDone));
 }
 const PLAN_STRIP = ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt', 'containerId', 'doneDates', 'itemType', 'columnId', 'completedAt', 'reviewUntil'];
 registerDrop('period-plan', ({ id, index, data }) => {
   const c = store.getCard(id);
   if (!c) return false;
-  const meta = { board: data.kind, planKey: data.key, order: index ?? periodCards(data.kind, data.key).length, done: false };
+  const meta = { board: 'weekplan', planKey: null, order: index ?? periodCards().length, done: false };
   if (c.tool === 'timely') {
     const m = { ...c.meta }; PLAN_STRIP.forEach(k => delete m[k]);
     store.updateCard(id, { type: 'task', meta: { ...m, ...meta } }, { replaceMeta: true, log: true, logLabel: 'Added to plan' });
   } else routeCard(id, { tool: 'timely', type: 'task', meta, log: 'Added to plan' });
-  reorder(periodCards(data.kind, data.key), id, index);
+  reorder(periodCards().filter(x => !x.meta.done), id, index);
 });
 
 /** Small time editor for the monthly view. */
@@ -1812,7 +1815,6 @@ function containerEl(b, ct) {
     }) : addRow(ct, 'Add task'),
     cards.map(c => {
       const t = h('span', { class: 'pc-title', title: c.title, dataset: { fit: c.title } }, c.title);
-      t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
       const check = h('button', {
         class: `step-check round ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? `Mark “${c.title}” not done` : `Mark “${c.title}” done`, 'aria-pressed': String(!!c.meta.done),
         onclick: e => { e.stopPropagation(); togglePlanCard(c, check, el); },
@@ -1892,7 +1894,6 @@ function goalEl(ct) {
 function stepEl(c) {
   const kind = c.meta.stepKind || 'action';
   const t = h('span', { class: 'pc-title', title: c.title, dataset: { fit: c.title } }, c.title);
-  t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }) }); });
   const el = h('div', { class: `plan-card step step-${kind} ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } },
     h('button', { class: `step-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? 'Mark not done' : 'Mark done', 'aria-pressed': String(!!c.meta.done), onclick: e => {
       e.stopPropagation();

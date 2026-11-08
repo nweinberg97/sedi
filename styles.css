@@ -4421,3 +4421,14 @@ body:has(.modal-backdrop) .toasts, body:has(.popover:has(.form-pop)) .toasts { b
 .ship-foot .btn { white-space: nowrap; flex: none; }
 .ship-dests { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .pc-drag { display: none !important; }
+/* Delete sits on the left of a details sheet, apart from Save */
+.modal-foot .btn.danger-text { color: var(--danger, #d64545); margin-right: auto; }
+.modal-foot .btn.danger-text:hover { background: color-mix(in srgb, var(--danger, #d64545) 10%, transparent); }
+@media (max-width: 700px) { .modal-foot .btn.danger-text { flex: 0 0 auto; margin-right: auto; } }
+/* Moving a whole column: an empty, column-sized slot shows where it will land */
+.col-slot { flex: none; border: 2px dashed color-mix(in srgb, var(--ink) 22%, transparent); border-radius: var(--r-lg, 18px); background: color-mix(in srgb, var(--ink) 3%, transparent); box-sizing: border-box; }
+.col-hidden { display: none !important; }
+.drag-ghost.ct, .drag-ghost.goal-ct, .drag-ghost.taskly-col { box-shadow: 0 30px 60px -20px rgba(20, 30, 60, 0.35), 0 4px 12px rgba(20, 30, 60, 0.08) !important; opacity: 0.97; }
+body.is-dragging .plan-viewport { scroll-snap-type: none !important; }
+.plan-track > .col-slot { scroll-snap-align: start; flex: 0 0 auto; }
+.drag-ghost.ct, .drag-ghost.goal-ct { background: var(--paper, #fff) !important; opacity: 1 !important; }

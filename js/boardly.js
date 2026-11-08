@@ -4,7 +4,7 @@ import * as store from './store.js';
 import { attachDots } from './dotfield.js';
 import { h, icon, uuid, clamp, toast, modal, popover, closePopovers, editInline, confirmModal, SOFT_COLORS, listMode } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, openEditor, cardChrome, openMoveDialog, notesSnippet, duplicateCard, withMic } from './cards.js';
+import { routeCard, openEditor, cardChrome, openMoveDialog, notesSnippet, duplicateCard, withMic, trashCard } from './cards.js';
 import { crunch } from './sound.js';
 import { sendListButton } from './builder.js';
 
@@ -435,7 +435,6 @@ function widthHandle(el, c) {
 
 function titleSpan(c, { fit = true } = {}) {
   const t = h('span', { class: 'tile-title', title: c.title, dataset: fit ? { fit: c.title } : {} }, c.title);
-  t.addEventListener('dblclick', e => { e.stopPropagation(); editInline(t, { onCommit: v => store.updateCard(c.id, { title: v }, { log: true }) }); });
   return t;
 }
 
@@ -522,7 +521,7 @@ export function openSmart(id) {
     body: h('div', { class: 'editor' }, title, grid, h('label', { class: 'field-label' }, 'Notes'), notes,
       h('p', { class: 'muted small' }, 'When it’s set, drag the goal to the Universal Board and into Timely’s Goals view to plan it out.')),
     // Duplicate and Move to save what you've typed first, so nothing is lost on the way.
-    actions: [{ label: 'Duplicate', kind: 'ghost', onClick: () => { saveSmart(); duplicateCard(id); } }, { label: 'Move to…', kind: 'ghost', onClick: () => { saveSmart(); setTimeout(() => openMoveDialog(id), 200); } }, { label: 'Cancel', kind: 'ghost' }, {
+    actions: [{ label: 'Delete', kind: 'ghost danger-text', onClick: () => trashCard(id) }, { label: 'Duplicate', kind: 'ghost', onClick: () => { saveSmart(); duplicateCard(id); } }, { label: 'Move to…', kind: 'ghost', onClick: () => { saveSmart(); setTimeout(() => openMoveDialog(id), 200); } }, { label: 'Cancel', kind: 'ghost' }, {
       label: 'Save goal', kind: 'primary', onClick: () => saveSmart(),
     }],
   });

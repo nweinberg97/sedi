@@ -80,7 +80,7 @@ By default, voice starts right away with your browser's speech recognition (in C
 
 1. Choose **Taskly** in the tool buttons (right edge, or the bottom bar on phones).
 2. Drag the card into another column. A full column won't accept it, except Completed.
-3. Or double-click the card, change **Column**, and click **Save**.
+3. Or click the card, change **Column**, and click **Save**.
 
 ## How to set a review timer
 
@@ -99,7 +99,7 @@ Prerequisites: The card is in the Review column.
 
 ## How to edit a card
 
-1. Double-click the card, or click its ⋯ Details button in the bottom-right corner.
+1. Click the card (on a phone, tap it). The ⋯ button also has Open details.
 2. Change the **Title** or the **Description**. The mics next to them let you dictate.
 3. Click **Save**.
 
@@ -115,7 +115,7 @@ Prerequisites: The card is in the Review column.
 
 ## How to move a card or task to another tool (Taskly, Boardly, Timely, Brainly)
 
-1. Double-click the card to open it.
+1. Click the card to open it.
 2. Under Move to…, pick a tool tab (Taskly, Boardly, Timely, Brainly or Universal), then the place inside it. The scroll arrows show more places.
 3. Click **Save**. The card changes shape to fit its new tool: a task moved to Timely becomes an event, a note moved to Taskly becomes a task.
 

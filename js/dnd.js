@@ -123,10 +123,33 @@ export function initDnd(navigate) {
     drag.el.classList.add('drag-source');
     document.body.classList.add('is-dragging');
     drag.placeholder = Object.assign(document.createElement('div'), { className: 'drop-line' });
+    // Whole columns move as a column: the original steps out, a column-sized empty slot takes its place, and
+    // the other columns glide aside as the slot moves. Much calmer than a thin line and a jumping layout.
+    if (/^(ctcol|goalcol|col)$/.test(drag.kind) || drag.el.matches('.ct, .goal-ct, .taskly-col')) {
+      drag.slot = true;
+      drag.placeholder.className = 'col-slot';
+      drag.placeholder.style.width = r.width + 'px';
+      drag.placeholder.style.height = r.height + 'px';
+      drag.el.parentElement.insertBefore(drag.placeholder, drag.el);
+      drag.el.classList.add('col-hidden');
+    }
+  }
+  // Slide the neighbours from where they were to where they are now (FLIP), using `translate` so it works even
+  // where a column's `transform` is pinned.
+  function glide(host, mutate) {
+    const kids = [...host.children].filter(n => n !== drag.placeholder && !n.classList.contains('col-hidden'));
+    const before = new Map(kids.map(n => [n, n.getBoundingClientRect().left]));
+    mutate();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const n of kids) {
+      const dx = before.get(n) - n.getBoundingClientRect().left;
+      if (Math.abs(dx) > 1 && n.animate) n.animate([{ translate: `${dx}px 0` }, { translate: '0 0' }], { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    }
   }
 
   function moveGhost() {
-    drag.ghost.style.transform = `translate(${drag.x - drag.gx}px, ${drag.y - drag.gy}px) rotate(1.5deg)`;
+    // 'important' so no layout rule on the original (columns are pinned with transform: none) can pin the copy.
+    drag.ghost.style.setProperty('transform', `translate(${drag.x - drag.gx}px, ${drag.y - drag.gy}px) rotate(${drag.ghost.classList.contains('ct') ? 1 : 1.5}deg)`, 'important');
   }
 
   function findZone() {
@@ -160,7 +183,7 @@ export function initDnd(navigate) {
         z.classList.add(ok ? 'drop-over' : 'drop-deny');
         drag.denied = !ok;
       }
-      if (!z || !z.hasAttribute('data-list')) drag.placeholder.remove();
+      if ((!z || !z.hasAttribute('data-list')) && !drag.slot) drag.placeholder.remove(); // a column's slot stays put until you're back over the row
       if (z?.dataset.list !== 'grid') clearGridMark();
     }
     // Spring-loaded navigation: hover a navigator pill while dragging to switch tools.
@@ -198,6 +221,14 @@ export function initDnd(navigate) {
     drag.placeholder.classList.toggle('vertical', z.dataset.list === 'x');
     const { before, items } = listIndex(z);
     const host = before ? before.parentElement : (items.at(-1)?.parentElement || z.querySelector('[data-list-body]') || z);
+    if (drag.slot) {
+      // Only move (and animate) when the slot's spot actually changes.
+      const ref = before || null;
+      if (drag.placeholder.parentElement === host && drag.placeholder.nextElementSibling === ref) return;
+      const last = items.at(-1);
+      glide(host, () => { if (ref) host.insertBefore(drag.placeholder, ref); else if (last) last.after(drag.placeholder); else host.append(drag.placeholder); });
+      return;
+    }
     if (before) host.insertBefore(drag.placeholder, before);
     else host.append(drag.placeholder);
   }
@@ -227,6 +258,7 @@ export function initDnd(navigate) {
     }
     z?.classList.remove('drop-over', 'drop-deny');
     drag.placeholder.remove();
+    drag.el.classList.remove('col-hidden');
     clearGridMark();
     const ghost = drag.ghost, el = drag.el;
     document.body.classList.remove('is-dragging'); delete document.body.dataset.dropKind;

@@ -107,12 +107,14 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
   el.classList.toggle('with-notes', hasNotes(card));
   if (hasNotes(card)) el.title = el.title || 'Has notes';
   el.append(moreButton(card.id, onInfo, onDuplicate, menu));
-  // On touch screens there's no hover or double-click, so a single tap opens the card.
+  // One rule everywhere, mouse or finger: click a card to open it. (Dragging never opens it, and the tick, ⋯ and
+  // other buttons do their own thing.) Shift/⌘-click is left for selecting.
   if (!el.dataset.tapOpen) {
     el.dataset.tapOpen = '1';
     el.addEventListener('click', e => {
-      if (!matchMedia('(hover: none)').matches) return;
-      if (e.defaultPrevented || e.target.closest('button, a, input, textarea, select, [contenteditable="true"], .resize-handle')) return;
+      if (e.detail > 1 || e.shiftKey || e.metaKey || e.ctrlKey) return;
+      if (String(getSelection?.() || '').trim()) return; // they were selecting text, not opening
+      if (e.defaultPrevented || e.target.closest('button, a, input, textarea, select, [contenteditable="true"], .resize-handle, .w-handle, .width-handle')) return;
       onInfo(e);
       e.sediOpened = true; // a tool's own tap handler checks this so one tap never opens a card twice
     });
@@ -259,7 +261,7 @@ export function moveDestinations() {
   return [
     ['Taskly', COLS.map(([v, l]) => [`taskly:${v}`, l])],
     ['Boardly', tabs.map(t => [`boardly:${t.id}`, t.name])],
-    ['Timely', [['timely:today', 'Today (any time)'], ['timely:reminders', 'Reminders'], ['timely:weekplan', 'This week’s plan'], ['timely:monthplan', 'This month’s plan'],
+    ['Timely', [['timely:today', 'Today (any time)'], ['timely:reminders', 'Reminders'], ['timely:weekplan', 'Plan (no date yet)'],
       ...(plan.projects || []).map(c => [`timely:plan:projects:${c.id}`, `Projects › ${c.name}`]),
       ...(plan.goals || []).map(c => [`timely:plan:goals:${c.id}`, `Goals › ${c.name}`])]],
     ['Brainly', [['brainly:canvas', 'Canvas'], ...folders.map(f => [`brainly:folder:${f.id}`, `Folder › ${fpath(f)}`]),
@@ -272,7 +274,7 @@ export function currentDestination(card) {
   const m = card.meta || {};
   if (card.tool === 'taskly') return `taskly:${m.columnId || 'todo'}`;
   if (card.tool === 'boardly') return `boardly:${m.tabId}`;
-  if (card.tool === 'timely') return m.board === 'weekplan' || m.board === 'monthplan' ? `timely:${m.board}` : m.board ? `timely:plan:${m.board}:${m.containerId}` : m.kind === 'reminder' ? 'timely:reminders' : 'timely:today';
+  if (card.tool === 'timely') return m.board === 'weekplan' || m.board === 'monthplan' ? 'timely:weekplan' : m.board ? `timely:plan:${m.board}:${m.containerId}` : m.kind === 'reminder' ? 'timely:reminders' : 'timely:today';
   if (card.tool === 'brainly') return card.type === 'link' ? `brainly:links:${m.linkFolderId || ''}` : m.folderId ? `brainly:folder:${m.folderId}` : 'brainly:canvas';
   return 'universal';
 }
@@ -422,6 +424,8 @@ export function openEditor(id, { extra, collect, title = 'Edit card', readOnlyDe
     session?.stop();
     if (!settled && store.getCard(id) && snapshot() !== before) { save(); toast('Saved your changes'); }
   }, actions: [
+    // Delete lives here too, so nothing has to be dragged to the bin. One Undo brings it back.
+    { label: 'Delete', kind: 'ghost danger-text', onClick: () => { settled = true; trashCard(id); } },
     { label: 'Duplicate', kind: 'ghost', onClick: () => { settled = true; save(); duplicateCard(id); } },
     { label: 'Cancel', kind: 'ghost', onClick: () => { settled = true; } }, { label: 'Save', kind: 'primary', onClick: () => { settled = true; save(); } }] });
   requestAnimationFrame(() => { before = snapshot(); });

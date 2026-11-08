@@ -409,7 +409,6 @@ export function renderUniversal() {
     const el = h('div', { class: 'uni-card', dataset: { drag: 'card', id: c.id } },
       h('div', { class: 'uni-row' }, typeIcon(c.type), h('span', { class: 'uni-title', title: c.title }, c.title)));
     cardChrome(el, c, () => openEditor(c.id, { title: 'Universal card' }));
-    el.addEventListener('dblclick', () => openEditor(c.id, { title: 'Universal card' }));
     return el;
   }));
   if (!list.length) uniList.append(h('div', { class: 'empty-hint' }, 'Nothing in transit.'));

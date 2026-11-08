@@ -250,11 +250,11 @@ export function ship(ct, getText, anchor, { title } = {}) {
     h('p', { class: 'muted small' }, ct?.repo ? `${ct.name} · ${ct.repo}` : ct?.name || ''),
     box,
     h('label', { class: 'field-label' }, 'Open in'), opts,
-    h('div', { class: 'ship-foot' }, h('span', { class: 'muted small' }, 'Nothing is sent until you press send in the chat.'), h('span', { class: 'head-spacer' }), go));
-  // Enter opens it from anywhere in the sheet; inside the message, ⌘/Ctrl+Enter (plain Enter adds a line).
+    h('div', { class: 'ship-foot' }, h('span', { class: 'muted small' }, 'Enter opens it · Shift+Enter for a new line. Nothing is sent until you press send in the chat.'), h('span', { class: 'head-spacer' }), go));
+  // Enter opens it from anywhere in the sheet, like sending in a chat app; Shift+Enter adds a new line.
   const onKey = e => {
     if (e.key !== 'Enter' || e.isComposing || !body.isConnected) return;
-    if (e.target === box && !(e.metaKey || e.ctrlKey)) return;
+    if (e.target === box && e.shiftKey) return;
     if (e.target.closest?.('.ship-dest')) return; // Enter on a destination picks it
     e.preventDefault(); e.stopPropagation(); open();
   };

@@ -33,7 +33,7 @@ export function seedIfEmpty() {
 
   // Taskly: the first card is the top task, so it's also what Home shows under Next up.
   c({ type: 'task', tool: 'taskly', title: '1 · Start here', description: 'Drag me to In progress. These cards are a short tour: each one teaches one move, then tells you where to go next. Next: 2, just below where I was.', meta: { columnId: 'todo', order: 0 } });
-  c({ type: 'task', tool: 'taskly', title: T('2 · Tap me', '2 · Double-click me'), description: 'Change my title to one real thing you want to do today, then Save. Next: 3.', meta: { columnId: 'todo', order: 1 } });
+  c({ type: 'task', tool: 'taskly', title: T('2 · Tap me', '2 · Click me'), description: 'Change my title to one real thing you want to do today, then Save. Next: 3.', meta: { columnId: 'todo', order: 1 } });
   c({ type: 'task', tool: 'taskly', title: '3 · Tick my circle', description: T('Tap', 'Click') + ' the round check on my left. Done cards slide into Completed, with a little cheer. Next: 4.', meta: { columnId: 'todo', order: 2 } });
   c({ type: 'task', tool: 'taskly', title: '4 · Trash me', description: T('Hold and drag me: a bin appears at the bottom. Drop me in it to hear the crunch. Changed your mind? Hit Undo. Next: 5, in Backlog.', 'Drop me on the bin in the bottom-right corner to hear the crunch. Changed your mind? Hit Undo. Next: 5, in Backlog.'), meta: { columnId: 'todo', order: 3 } });
   c({ type: 'task', tool: 'taskly', title: '5 · Why so small?', description: 'Columns hold what fits on screen, on purpose. When one fills up, finish, move or drop something. Small lists get done. Next: open Boardly for 6.', meta: { columnId: 'backlog', order: 0 } });

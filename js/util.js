@@ -270,7 +270,9 @@ export function modal({ title, body, actions = [], wide = false, onClose, classN
     box.append(foot);
   }
   backdrop.append(box);
-  backdrop.addEventListener('pointerdown', e => { if (e.target === backdrop) close(); });
+  // A double-click that opened this shouldn't close it with its second click, so the backdrop waits a moment.
+  const openedTime = performance.now();
+  backdrop.addEventListener('pointerdown', e => { if (e.target === backdrop && performance.now() - openedTime > 450) close(); });
   document.body.append(backdrop);
   document.addEventListener('keydown', onKey, true);
   modalStack.push(close);

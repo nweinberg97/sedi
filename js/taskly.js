@@ -173,7 +173,6 @@ function cardEl(c) {
       col === 'review' ? null : notesSnippet(c),
       col === 'review' ? reviewTimer(c) : null));
   cardChrome(el, c, () => edit(c.id));
-  el.addEventListener('dblclick', () => edit(c.id));
   el.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === el) edit(c.id); });
   return el;
 }
