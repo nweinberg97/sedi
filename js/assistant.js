@@ -715,7 +715,7 @@ const whenLabel = w => {
 function where(c) {
   if (c.tool === 'taskly') return `Taskly${c.column ? `, ${COLUMNS.find(x => x.id === c.column)?.name}` : ''}`;
   if (c.tool === 'boardly') return `Boardly${c.tabName ? `, ${c.tabName}` : ''}`;
-  if (c.tool === 'timely' && c.plan) return 'your plan';
+  if (c.tool === 'timely' && c.plan) return c.plan === 'monthplan' ? 'your monthly plan' : 'your weekly plan';
   if (c.tool === 'timely' && c.board) return `Timely ${c.board === 'goals' ? 'goal' : 'project'} “${c.containerName}”`;
   if (c.tool === 'timely') return `Timely${c.when ? ` ${whenLabel(c.when)}` : c.reminder ? ' reminders' : ''}${c.dur ? `, ${c.dur >= 60 ? `${+(c.dur / 60).toFixed(1)} hr` : `${c.dur} min`}` : ''}`;
   return TOOL_NAMES[c.tool] || c.tool;

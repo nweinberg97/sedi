@@ -261,7 +261,7 @@ export function moveDestinations() {
   return [
     ['Taskly', COLS.map(([v, l]) => [`taskly:${v}`, l])],
     ['Boardly', tabs.map(t => [`boardly:${t.id}`, t.name])],
-    ['Timely', [['timely:today', 'Today (any time)'], ['timely:reminders', 'Reminders'], ['timely:weekplan', 'Plan (no date yet)'],
+    ['Timely', [['timely:today', 'Today (any time)'], ['timely:reminders', 'Reminders'], ['timely:weekplan', 'Weekly plan'], ['timely:monthplan', 'Monthly plan'],
       ...(plan.projects || []).map(c => [`timely:plan:projects:${c.id}`, `Projects › ${c.name}`]),
       ...(plan.goals || []).map(c => [`timely:plan:goals:${c.id}`, `Goals › ${c.name}`])]],
     ['Brainly', [['brainly:canvas', 'Canvas'], ...folders.map(f => [`brainly:folder:${f.id}`, `Folder › ${fpath(f)}`]),
@@ -274,7 +274,7 @@ export function currentDestination(card) {
   const m = card.meta || {};
   if (card.tool === 'taskly') return `taskly:${m.columnId || 'todo'}`;
   if (card.tool === 'boardly') return `boardly:${m.tabId}`;
-  if (card.tool === 'timely') return m.board === 'weekplan' || m.board === 'monthplan' ? 'timely:weekplan' : m.board ? `timely:plan:${m.board}:${m.containerId}` : m.kind === 'reminder' ? 'timely:reminders' : 'timely:today';
+  if (card.tool === 'timely') return m.board === 'weekplan' || m.board === 'monthplan' ? `timely:${m.board}` : m.board ? `timely:plan:${m.board}:${m.containerId}` : m.kind === 'reminder' ? 'timely:reminders' : 'timely:today';
   if (card.tool === 'brainly') return card.type === 'link' ? `brainly:links:${m.linkFolderId || ''}` : m.folderId ? `brainly:folder:${m.folderId}` : 'brainly:canvas';
   return 'universal';
 }
@@ -297,7 +297,7 @@ export function moveCardTo(id, key, { quiet = false } = {}) {
       const now = new Date();
       const wk = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
       const planKey = a === 'weekplan' ? `${wk.getFullYear()}-${String(wk.getMonth() + 1).padStart(2, '0')}-${String(wk.getDate()).padStart(2, '0')}` : todayStr().slice(0, 7);
-      dest = { tool, type: 'task', meta: { board: a, planKey, done: false, order: count(x => x.tool === 'timely' && x.meta?.board === a && x.meta?.planKey === planKey) } };
+      dest = { tool, type: 'task', meta: { board: a, planKey: null, done: false, order: count(x => x.tool === 'timely' && x.meta?.board === a) } }; void planKey;
     }
     else dest = { tool, type: b === 'goals' ? 'goal' : 'task', meta: { board: b, containerId: c, order: count(x => x.tool === 'timely' && x.meta?.containerId === c) } };
   } else if (tool === 'brainly') {

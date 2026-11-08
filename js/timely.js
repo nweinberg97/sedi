@@ -356,7 +356,7 @@ function renderDay() {
   markTouch(layout);
   const phoneActions = onPhone ? h('div', { class: 'm-day-actions' },
     key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
-    h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plan', todoCards().length ? h('small', {}, todoCards().length) : null),
+    h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plans', todoCards().length ? h('small', {}, todoCards().length) : null),
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
   const tabletAdd = layout === 'tablet' ? h('div', { class: 'm-day-actions' },
     key !== todayKey() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(todayKey()); } }, 'Today') : null,
@@ -602,12 +602,14 @@ function openRepeat(anchorEl, id) {
 // Weekly and monthly plans are for deciding what; the day is for deciding when. Switching the panel lets
 // you pull something from the week or the month straight onto an hour, without leaving the day.
 function sidePlan(key, { onChange = render, scheduleOn = null } = {}) {
-  // Two lists beside the day: To do (Taskly's) and your Plan (things to do some time, not tied to a date).
-  const which = store.pref('daySide', 'today') === 'today' ? 'today' : 'plan';
-  const panel = which === 'plan' ? periodPlanPanel('plan', null, 'Plan', '', { scheduleOn }) : dayPlanPanel(key);
-  const count = k => (k === 'plan' ? periodCards() : todoCards()).filter(c => !c.meta?.done).length;
-  const seg = h('div', { class: 'side-switch', role: 'tablist', 'aria-label': 'Which list' },
-    [['today', key === todayKey() ? 'Today' : 'Day'], ['plan', 'Plan']].map(([v, label]) => {
+  // Beside the day: the Daily plan (Taskly's To do), or the Weekly or Monthly plan, to drag onto a time.
+  const pick = store.pref('daySide', 'today');
+  const which = pick === 'week' || pick === 'month' ? pick : pick === 'plan' ? 'week' : 'today';
+  const panel = which === 'week' ? periodPlanPanel('weekplan', null, '', '', { scheduleOn })
+    : which === 'month' ? periodPlanPanel('monthplan', null, '', '', { scheduleOn }) : dayPlanPanel(key);
+  const count = k => (k === 'week' ? periodCards('weekplan') : k === 'month' ? periodCards('monthplan') : todoCards()).filter(c => !c.meta?.done).length;
+  const seg = h('div', { class: 'side-switch', role: 'tablist', 'aria-label': 'Which plan' },
+    [['today', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']].map(([v, label]) => {
       const n = count(v);
       return h('button', { class: v === which ? 'on' : '', role: 'tab', 'aria-selected': String(v === which), type: 'button', onclick: () => { store.setPref('daySide', v); onChange(); } },
         label, n ? h('small', {}, n) : null);
@@ -627,7 +629,7 @@ function dayPlanPanel(key) {
   });
   return h('aside', { class: 'day-plan', dataset: { drop: 'day-plan', accept: 'card' }, 'data-list': '' },
     h('div', { class: 'day-plan-head' },
-      h('h3', {}, key === todayKey() ? 'Today’s plan' : 'Plan'),
+      h('h3', {}, 'Daily plan'),
       h('span', { class: 'sync-tag', title: 'This list is Taskly’s To do column. Changes show up in both places.' }, icon('sync'), 'Taskly To do')),
     h('div', { class: 'day-plan-list' }, list.map(c => {
       const el = h('div', { class: 'plan-item', dataset: { drag: 'card', id: c.id } },
@@ -827,7 +829,7 @@ function renderWeekPhone() {
   const label = days[0].getMonth() === days[6].getMonth() ? `${fmtShortDate(days[0])} – ${days[6].getDate()}` : `${fmtShortDate(days[0])} – ${fmtShortDate(days[6])}`;
   const today = todayKey();
   const head = navControl(label, n => dateKey(addDays(ws, 7 * n)), { sub: '' });
-  const wk = weekPlanKey(ws), planN = periodCards('weekplan', wk).filter(c => !c.meta.done).length;
+  const wk = weekPlanKey(ws), planN = periodCards('weekplan').filter(c => !c.meta.done).length;
   const actions = h('div', { class: 'm-day-actions' },
     anchor() !== today ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; setAnchor(today); } }, 'Today') : null,
     h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => {
@@ -835,8 +837,8 @@ function renderWeekPhone() {
       const paint = () => holder.replaceChildren(periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) }));
       paint();
       const off = store.on(() => repaintKeepingFocus(holder, paint));
-      modal({ title: 'Plan', body: holder, className: 'sheet-modal', onClose: () => off() });
-    } }, icon('checklist'), 'Plan', planN ? h('small', {}, planN) : null));
+      modal({ title: 'Weekly plan', body: holder, className: 'sheet-modal', onClose: () => off() });
+    } }, icon('checklist'), 'Weekly plan', planN ? h('small', {}, planN) : null));
   const list = h('div', { class: 'agenda' }, days.map(d => {
     const k = dateKey(d);
     const occ = occurrencesOn(k);
@@ -901,7 +903,7 @@ function renderWeek() {
   markTouch(layout);
   const makePlan = () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`);
   if (layout !== 'desktop') head.append(touchActions(standardAdds(today), layout === 'compact'
-    ? { planLabel: 'Plan', planCount: periodCards('weekplan', wk).filter(c => !c.meta.done).length, openPlan: () => planSheet('Plan', () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) })) } : {}));
+    ? { planLabel: 'Weekly plan', planCount: periodCards('weekplan').filter(c => !c.meta.done).length, openPlan: () => planSheet('Weekly plan', () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) })) } : {}));
   const host = h('div', { class: 'zoom-host week-main' }, head, grid);
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(standardAdds(today), 'Dots show what’s planned. Click a block to zoom in and see it all.') : null,
@@ -954,7 +956,7 @@ function renderMonth() {
   const mk = monthPlanKey(a);
   const makePlan = () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month');
   if (layout !== 'desktop') (listMode() ? head.after.bind(head) : head.append.bind(head))(touchActions(adds(), layout === 'compact'
-    ? { planLabel: 'Plan', planCount: periodCards('monthplan', mk).filter(c => !c.meta.done).length, openPlan: () => planSheet('Plan', () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
+    ? { planLabel: 'Monthly plan', planCount: periodCards('monthplan').filter(c => !c.meta.done).length, openPlan: () => planSheet('Monthly plan', () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(adds(), 'Dots show what’s planned. Click a day to zoom in.') : null,
     h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
@@ -1050,19 +1052,21 @@ registerDrop('timely-hour', {
 });
 
 // ---------- Weekly and monthly plans (separate from Taskly; only Today's plan is Taskly's To do) ----------
-// Your Plan: one list of things to do some time. It isn't tied to a day, week or month: it's the same list in the
-// Daily, Weekly and Monthly views, and an item stays here until you give it a day (drag it onto one, or its clock).
-// Older plans were kept per week or month ("weekplan" / "monthplan"); they all join this one list.
+// Daily, Weekly and Monthly plans: three lists of things to do, by how big they are. None is tied to one
+// particular date: the Weekly plan is the same list whichever week you're looking at, and the same for the
+// Monthly plan. An item stays in its plan until you give it a day (drag it onto one, or tap its clock).
 const PLAN_BOARDS = new Set(['weekplan', 'monthplan']);
 const isPlanItem = c => c.tool === 'timely' && PLAN_BOARDS.has(c.meta?.board);
-const periodCards = () => store.cardsWhere(isPlanItem).sort((a, b) => (!!a.meta.done - !!b.meta.done) || byOrder(a, b));
+const periodCards = (kind = 'weekplan') => store.cardsWhere(c => isPlanItem(c) && c.meta.board === kind).sort((a, b) => (!!a.meta.done - !!b.meta.done) || byOrder(a, b));
 function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
-  const list = periodCards();
+  kind = kind === 'monthplan' ? 'monthplan' : 'weekplan';
+  const label = kind === 'monthplan' ? 'Monthly plan' : 'Weekly plan';
+  const list = periodCards(kind);
   const done = list.filter(c => c.meta.done).length;
-  const input = h('input', { class: 'field-input sm', placeholder: 'Add to your plan, then Enter', 'aria-label': 'Add to your plan', 'data-keep': 'pp-plan' });
+  const input = h('input', { class: 'field-input sm', placeholder: `Add to your ${label.toLowerCase()}, then Enter`, 'aria-label': `Add to your ${label.toLowerCase()}`, 'data-keep': `pp-${kind}` });
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !input.value.trim()) return;
-    store.createCard({ type: 'task', tool: 'timely', title: input.value.trim(), meta: { board: 'weekplan', planKey: null, order: list.length, done: false } });
+    store.createCard({ type: 'task', tool: 'timely', title: input.value.trim(), meta: { board: kind, planKey: null, order: list.length, done: false } });
     input.value = '';
   });
   const items = list.map(c => {
@@ -1084,15 +1088,15 @@ function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
     store.notify({ reason: 'delete' });
     toast(`Cleared ${gone.length} done`, { action: 'Undo', onAction: () => gone.forEach(c => store.restoreCard(c)) });
   } }, `Clear ${done} done`) : null;
-  return h('aside', { class: 'day-plan period-plan plan-catalog', dataset: { drop: 'period-plan', accept: 'card', kind: 'weekplan', key: '' }, 'data-list': '' },
+  return h('aside', { class: `day-plan period-plan plan-catalog plan-${kind}`, dataset: { drop: 'period-plan', accept: 'card', kind, key: '' }, 'data-list': '' },
     h('div', { class: 'day-plan-head' },
-      h('div', { class: 'pp-title' }, h('h3', {}, 'Plan'), h('span', { class: 'pp-sub' }, 'Things to do some time. Give each a day when you’re ready.')),
+      h('div', { class: 'pp-title' }, h('h3', {}, label), h('span', { class: 'pp-sub' }, kind === 'monthplan' ? 'Bigger things. The same list every month.' : 'This week’s kind of things. The same list every week.')),
       list.length ? h('span', { class: 'pp-count', title: `${done} of ${list.length} done` }, `${done}/${list.length}`) : null),
     list.length ? h('div', { class: 'pp-progress' }, h('span', { style: { width: `${Math.round((done / list.length) * 100)}%` } })) : null,
     h('div', { class: 'day-plan-list' }, items),
     withMic(input, { label: 'Dictate a plan item' }),
     h('div', { class: 'pp-foot' },
-      h('p', { class: 'muted small' }, !list.length ? 'Add what you need to get done. It stays here as you move between days, weeks and months.'
+      h('p', { class: 'muted small' }, !list.length ? 'Add what you need to get done. It stays here as you move between days, weeks and months, until you give it a day.'
         : scheduleOn ? 'Tap the clock on an item to give it a day and time.' : 'Drag an item onto any day or time to schedule it.'),
       clearDone));
 }
@@ -1100,12 +1104,13 @@ const PLAN_STRIP = ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archi
 registerDrop('period-plan', ({ id, index, data }) => {
   const c = store.getCard(id);
   if (!c) return false;
-  const meta = { board: 'weekplan', planKey: null, order: index ?? periodCards().length, done: false };
+  const kind = data.kind === 'monthplan' ? 'monthplan' : 'weekplan';
+  const meta = { board: kind, planKey: null, order: index ?? periodCards(kind).length, done: false };
   if (c.tool === 'timely') {
     const m = { ...c.meta }; PLAN_STRIP.forEach(k => delete m[k]);
     store.updateCard(id, { type: 'task', meta: { ...m, ...meta } }, { replaceMeta: true, log: true, logLabel: 'Added to plan' });
   } else routeCard(id, { tool: 'timely', type: 'task', meta, log: 'Added to plan' });
-  reorder(periodCards().filter(x => !x.meta.done), id, index);
+  reorder(periodCards(kind).filter(x => !x.meta.done), id, index);
 });
 
 /** Small time editor for the monthly view. */
