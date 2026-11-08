@@ -111,27 +111,29 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
   if (!compact && actions.length) el.append(h('div', { class: 'card-tools' }, ...actions));
   return el;
 }
-// Two gestures, everywhere: click a card to open its details; double-click its title to rename it right there.
-// A click on the title waits a beat to see whether a second click follows, so a double-click never opens the card.
+// Two gestures, everywhere: click a card to open its details; double-click anywhere on it to rename it right
+// there. With a mouse, a click waits a beat to see whether a second click follows, so a double-click never opens
+// the card first. (Touch screens have no double-click, so a tap opens it straight away.)
 export const TITLE_SEL = '.task-title, .tile-title, .ev-title, .plan-text, .pc-title, .t-chip-title, .sticky-title, .uni-title';
+const SKIP = 'button, a, input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"], .editing, .resize-handle, .w-handle, .width-handle';
 export function clickToOpen(el, card, onInfo) {
   let timer = null;
   el.addEventListener('click', e => {
     if (e.shiftKey || e.metaKey || e.ctrlKey) return; // left for selecting
-    if (e.defaultPrevented || e.target.closest('button, a, input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"], .editing, .resize-handle, .w-handle, .width-handle')) return;
-    if (e.detail > 1) { clearTimeout(timer); return; }
+    if (e.defaultPrevented || e.target.closest(SKIP)) return;
+    clearTimeout(timer);
+    if (e.detail > 1) return; // the second click of a double-click: renaming, not opening
     if (String(getSelection?.() || '').trim()) return; // they were selecting text, not opening
     e.sediOpened = true; // a tool's own tap handler checks this so one tap never opens a card twice
-    const onTitle = e.target.closest(TITLE_SEL) && !matchMedia('(hover: none)').matches;
-    clearTimeout(timer);
-    if (onTitle) timer = setTimeout(() => { if (el.isConnected) onInfo(e); }, 260);
-    else onInfo(e);
+    if (matchMedia('(hover: none)').matches) return onInfo(e);
+    timer = setTimeout(() => { if (el.isConnected && !el.querySelector('.editing')) onInfo(e); }, 230);
   });
   el.addEventListener('dblclick', e => {
-    const t = e.target.closest(TITLE_SEL);
-    if (!t || !el.contains(t) || t.isContentEditable) return;
+    if (e.target.closest('button, a, input, textarea, select, .resize-handle, .w-handle, .width-handle')) return;
+    const t = e.target.closest(TITLE_SEL) || el.querySelector(TITLE_SEL);
+    if (!t || t.isContentEditable) return;
     clearTimeout(timer);
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     getSelection()?.removeAllRanges();
     editInline(t, { onCommit: v => { if (v && v !== store.getCard(card.id)?.title) store.updateCard(card.id, { title: v }, { log: true }); } });
   });
