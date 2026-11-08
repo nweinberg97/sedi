@@ -4379,3 +4379,21 @@ body:has(.modal-backdrop) .toasts, body:has(.popover:has(.form-pop)) .toasts { b
   .modal-foot .btn { white-space: nowrap; flex: 1 1 auto; }
 }
 .taskly-col .col-head h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* Builder hand-off: a small card that stays on the Sedi tab with what was copied, and "Copy again" */
+.paste-card { position: fixed; right: 20px; bottom: 24px; z-index: 180; width: min(380px, calc(100vw - 32px)); background: var(--paper, #fff); border: 1px solid var(--line); border-radius: 18px; padding: 12px 12px 10px 14px; box-shadow: 0 18px 40px -16px rgba(20, 30, 60, 0.35), 0 2px 6px rgba(20, 30, 60, 0.06); display: flex; flex-direction: column; gap: 8px; animation: pcIn .28s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes pcIn { from { opacity: 0; transform: translateY(10px); } }
+.pc-row { display: flex; align-items: flex-start; gap: 10px; }
+.pc-ic { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #eef3fb; color: #3c6aa3; }
+.pc-ic svg { width: 15px; height: 15px; }
+.pc-msg { flex: 1; margin: 3px 0 0; font-size: var(--fs-sm); line-height: 1.4; }
+.pc-x { flex: none; }
+.pc-text { width: 100%; font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 10px; resize: vertical; background: var(--well); color: var(--ink); }
+.pc-actions { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  .paste-card { left: 50%; right: auto; translate: -50% 0; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom, 0px) + 84px); }
+  .pc-actions .btn { min-height: 40px; flex: 1; }
+}
+.ct-builder { padding: 0 10px 8px; }
+.ct-builder .ct-repo { width: 100%; box-sizing: border-box; border-radius: 8px; padding: 4px 8px; }
+.ct-ship-row { min-width: 0; }
+.ct-ship-row > .chip:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

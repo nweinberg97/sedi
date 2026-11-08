@@ -1819,7 +1819,9 @@ function containerEl(b, ct) {
       }, icon('check'));
       const el = h('div', { class: `plan-card ${c.meta.done ? 'done' : ''}`, dataset: { drag: 'card', id: c.id } }, check, h('div', { class: 'pc-main' }, t, notesSnippet(c)));
       const actions = builder ? [shipButton(() => boardContainers(b).find(x => x.id === ct.id) || ct, () => taskPrompt(store.getCard(c.id) || c, boardContainers(b).find(x => x.id === ct.id) || ct), `Ship “${c.title}” to ${shipLabel(ct)}`)] : [];
-      return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }), { actions });
+      // On touch screens there's no hover, so Ship also lives in the card's ⋯ menu.
+      const menu = builder ? [{ icon: 'send', label: `Ship to ${shipLabel(ct)}`, fn: (ev, anchor) => { const cur = boardContainers(b).find(x => x.id === ct.id) || ct; ship(cur, () => taskPrompt(store.getCard(c.id) || c, cur), anchor); } }] : [];
+      return cardChrome(el, c, () => openEditor(c.id, { title: 'Task' }), { actions, menu });
     }));
   if (!cards.length && !adding) listEl.append(h('p', { class: 'ct-empty' }, 'No tasks yet.'));
   const done = cards.filter(c => c.meta.done).length;

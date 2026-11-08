@@ -102,11 +102,11 @@ export function notesSnippet(card, cls = '') {
 /** Adds the shared chrome to a card element. One quiet ⋯ in the corner opens Details, Duplicate and Delete,
  *  so there are never two small targets side by side to mis-click. A tool's own quick actions (calendar,
  *  repeat, ship…) sit along the bottom on hover. Small cards ({ compact: true }) keep only the ⋯. */
-export function cardChrome(el, card, onInfo, { compact = false, actions = [], onDuplicate = null } = {}) {
+export function cardChrome(el, card, onInfo, { compact = false, actions = [], onDuplicate = null, menu = [] } = {}) {
   el.classList.add('has-chrome');
   el.classList.toggle('with-notes', hasNotes(card));
   if (hasNotes(card)) el.title = el.title || 'Has notes';
-  el.append(moreButton(card.id, onInfo, onDuplicate));
+  el.append(moreButton(card.id, onInfo, onDuplicate, menu));
   // On touch screens there's no hover or double-click, so a single tap opens the card.
   if (!el.dataset.tapOpen) {
     el.dataset.tapOpen = '1';
@@ -121,13 +121,15 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
   return el;
 }
 /** The card's ⋯ menu: Details first, Delete last and apart, in red. */
-export const moreButton = (id, onInfo, onDuplicate) => h('button', {
+export const moreButton = (id, onInfo, onDuplicate, extra = []) => h('button', {
   class: 'card-more', type: 'button', 'aria-label': 'More: details, duplicate, delete', title: 'Details, duplicate, delete',
   onclick: e => {
     e.stopPropagation();
-    const item = (ic, label, fn, cls = '') => h('button', { class: `cm-item ${cls}`, type: 'button', onclick: ev => { ev.stopPropagation(); closePopovers(); fn(ev); } }, icon(ic), label);
+    const anchor = e.currentTarget; // stays on the page after the menu closes, for anything that opens next to it
+    const item = (ic, label, fn, cls = '') => h('button', { class: `cm-item ${cls}`, type: 'button', onclick: ev => { ev.stopPropagation(); closePopovers(); fn(ev, anchor); } }, icon(ic), label);
     popover(e.currentTarget, h('div', { class: 'card-menu', role: 'menu' },
       item('expand', 'Open details', onInfo),
+      ...extra.map(x => item(x.icon, x.label, x.fn)),
       item('move', 'Move to…', () => openMoveDialog(id)), // the way to move things on a phone, no dragging needed
       item('copy', 'Duplicate', () => (onDuplicate || duplicateCard)(id)),
       turnIntoRow(id),

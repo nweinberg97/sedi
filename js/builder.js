@@ -19,14 +19,27 @@ const TARGETS = [
 ];
 
 const repoLine = ct => (ct?.repo ? ` (repo: ${ct.repo})` : '');
-const details = c => {
-  const d = flatten(c).replace(/\s+/g, ' ').trim();
-  return d && d !== c.title ? d : '';
-};
+// A long title is shortened on its card ("Fix the thing that…") with the rest carried into the notes
+// ("…breaks on Safari"). An AI should read the whole sentence, so the two halves are joined back up here.
+function parts(c) {
+  let title = c.title || '';
+  let d = flatten(c);
+  if (/…$/.test(title)) {
+    const lines = d.split(/\n|<\/div>|<br\s*\/?>/).map(x => x.replace(/<[^>]+>/g, '').trim());
+    if (lines[0]?.startsWith('…')) {
+      title = `${title.slice(0, -1)} ${lines[0].slice(1)}`.replace(/\s+/g, ' ').trim();
+      d = lines.slice(1).join(' ');
+    }
+  }
+  d = d.replace(/\s+/g, ' ').trim();
+  return { title, d: d && d !== title ? d : '' };
+}
+const details = c => parts(c).d;
+const fullTitle = c => parts(c).title;
 /** One task, written so the AI has what it needs. */
 export function taskPrompt(c, ct) {
   const d = details(c);
-  return `I'm working on ${ct?.name || 'a project'}${repoLine(ct)}. Please help with this task:\n\n${c.title}${d ? `\n${d}` : ''}\n\n`
+  return `I'm working on ${ct?.name || 'a project'}${repoLine(ct)}. Please help with this task:\n\n${fullTitle(c)}${d ? `\n${d}` : ''}\n\n`
     + `${ct?.repo ? 'Work in that repo. ' : ''}When you're done, summarize what you changed and anything I should check.${standing(ct)}`;
 }
 // A project's standing instructions ride along with every ship ("work on a branch, sandbox preview first").
@@ -34,22 +47,76 @@ const standing = ct => (ct?.shipNote?.trim() ? `\n\n${ct.shipNote.trim()}` : '')
 /** Every open task in a list, in order. */
 export function listPrompt(ct, cards) {
   const open = cards.filter(c => !c.meta?.done);
-  const lines = open.map((c, i) => { const d = details(c); return `${i + 1}. ${c.title}${d ? ` - ${d}` : ''}`; }).join('\n');
+  const lines = open.map((c, i) => { const d = details(c); return `${i + 1}. ${fullTitle(c)}${d ? `\n   ${d}` : ''}`; }).join('\n');
   return `I'm working on ${ct.name}${repoLine(ct)}. Here are the open tasks, in order:\n\n${lines}\n\n`
     + `${ct.repo ? 'Work in that repo. ' : ''}Go through them one at a time. After each one, summarize what you changed and anything I should check before moving on.${standing(ct)}`;
 }
 
-/** Copy right away, inside the click, so it works in every browser. */
-function copyText(text) {
-  try { navigator.clipboard?.writeText(text).catch(() => {}); return true; } catch { return false; }
+/** Copy right now, inside the click, before a new tab takes focus. The async clipboard API finishes *after*
+ *  the click, and by then the new tab has focus, so Safari and others quietly drop it. execCommand('copy') on a
+ *  selected text box is synchronous and works everywhere; the async API is only the fallback. */
+export function copyPlainNow(text) {
+  const box = h('textarea', { 'aria-hidden': 'true', readonly: true, style: { position: 'fixed', left: '-9999px', top: '0', opacity: '0', width: '1px', height: '1px' } });
+  box.value = text;
+  document.body.append(box);
+  const prev = document.activeElement;
+  box.focus({ preventScroll: true }); box.select(); box.setSelectionRange(0, text.length);
+  let ok = false;
+  const onCopy = e => { if (!e.clipboardData) return; e.clipboardData.setData('text/plain', text); e.preventDefault(); };
+  document.addEventListener('copy', onCopy, { once: true });
+  try { ok = document.execCommand('copy'); } catch {}
+  document.removeEventListener('copy', onCopy);
+  box.remove();
+  prev?.focus?.({ preventScroll: true });
+  if (!ok) { try { navigator.clipboard?.writeText(text).then(() => {}, () => {}); } catch {} }
+  return ok;
 }
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const touch = () => matchMedia('(hover: none)').matches;
+const pasteHow = where => (touch() ? `Open ${where}, press and hold in the message box, tap Paste, then send.` : `Paste it into ${where} (${isMac ? '⌘V' : 'Ctrl+V'}), check it, then send.`);
+const pasteKeys = () => (touch() ? 'press and hold, then Paste' : isMac ? '⌘V' : 'Ctrl+V');
+
+// After a hand-off, a small card stays on the Sedi tab: what was copied, where it went, and "Copy again" in
+// case something else landed on the clipboard in between. It goes away when you're done with it.
+let pasteCard = null;
+function showPasteCard(text, where, { failed = false, openLink = null } = {}) {
+  pasteCard?.remove();
+  const count = (text.match(/^\s*(?:\d+\.|- \[[ x]\])\s/gm) || []).length;
+  const what = count > 1 ? `${count} tasks` : 'the message';
+  const preview = h('textarea', { class: 'pc-text', readonly: true, rows: 6, 'aria-label': 'The message' });
+  preview.value = text;
+  preview.hidden = !failed;
+  const copyBtn = h('button', { class: `btn sm ${failed ? 'primary' : 'ghost'}`, type: 'button', onclick: () => {
+    const ok = copyPlainNow(text);
+    if (failed && openLink) window.open(openLink, '_blank', 'noopener');
+    say(ok ? `Copied ${what}. ${pasteHow(where)}` : 'Your browser blocked copying. Select the text below and copy it.');
+    if (!ok) { preview.hidden = false; preview.focus(); preview.select(); }
+  } }, icon('copy'), failed && openLink ? `Copy and open ${where}` : 'Copy again');
+  const showBtn = h('button', { class: 'btn sm ghost', type: 'button', onclick: () => { preview.hidden = !preview.hidden; showBtn.textContent = preview.hidden ? 'Show text' : 'Hide text'; } }, failed ? 'Hide text' : 'Show text');
+  const msg = h('p', { class: 'pc-msg' });
+  const say = t => (msg.textContent = t);
+  say(failed ? `Your browser didn’t let Sedi copy on its own. Tap below to copy ${what}, then paste into ${where}.` : `Copied ${what}. ${pasteHow(where)}`);
+  pasteCard = h('div', { class: 'paste-card', role: 'status' },
+    h('div', { class: 'pc-row' }, h('span', { class: 'pc-ic' }, icon('send')), msg,
+      h('button', { class: 'icon-btn xs pc-x', type: 'button', 'aria-label': 'Done', onclick: () => { pasteCard?.remove(); pasteCard = null; } }, icon('x'))),
+    preview,
+    h('div', { class: 'pc-actions' }, copyBtn, showBtn));
+  document.body.append(pasteCard);
+  clearTimeout(showPasteCard.t);
+  showPasteCard.t = setTimeout(() => { pasteCard?.remove(); pasteCard = null; }, 5 * 60e3);
+}
+
 function sendTo(target, text) {
   store.setPref('builderTarget', target.id);
-  copyText(text);
-  if (!target.base) { toast('Copied. Paste it wherever you like.'); return; }
+  const copied = copyPlainNow(text);
+  if (!target.base) { if (copied) toast('Copied. Paste it wherever you like.'); else showPasteCard(text, 'the app you use', { failed: true }); return; }
   const fits = target.open && text.length <= LIMIT;
-  window.open(fits ? target.open(text) : target.base, '_blank', 'noopener');
-  toast(fits ? `Opened ${target.label} with it typed in. Check it, then press send there.` : `Copied. Paste it into ${target.label}, check it, then press send.`, { duration: 6000 });
+  const link = fits ? target.open(text) : target.base;
+  // If the copy failed and the app can't be pre-filled, don't open a blank chat: copy with the next click first.
+  if (!copied && !fits) { showPasteCard(text, target.label, { failed: true, openLink: link }); return; }
+  window.open(link, '_blank', 'noopener');
+  if (fits) toast(`Opened ${target.label} with it typed in. If the box is empty, paste it (${pasteKeys()}). Then send.`, { duration: 7000 });
+  else showPasteCard(text, target.label);
 }
 
 /** The "Hand off to…" menu. The last choice comes first, so it's one tap next time. */
@@ -89,7 +156,7 @@ export function toggleBuilder(onChange) {
 export function listMarkdown(name, cards) {
   const lines = cards.map(c => {
     const d = details(c);
-    return `- [${c.meta?.done ? 'x' : ' '}] ${c.title}${d ? `\n  ${d}` : ''}`;
+    return `- [${c.meta?.done ? 'x' : ' '}] ${fullTitle(c)}${d ? `\n  ${d}` : ''}`;
   }).join('\n');
   return `Here is my list "${name}" from Sedi:\n\n${lines}\n\n`;
 }
@@ -118,9 +185,13 @@ export const shipLabel = ct => {
 export function ship(ct, getText, anchor, { title } = {}) {
   if (!ct?.shipUrl) return openSendMenu(anchor, getText, { title: title || 'Ship to' });
   const text = getText();
-  copyText(text);
+  const where = shipLabel(ct);
+  // A link to one particular chat can't be typed into by anyone but you, so the message goes on the clipboard
+  // first (synchronously, inside this click) and stays one tap away on the Sedi tab.
+  const copied = copyPlainNow(text);
+  if (!copied) { showPasteCard(text, where, { failed: true, openLink: ct.shipUrl }); return; }
   window.open(ct.shipUrl, '_blank', 'noopener');
-  toast(`Copied and opened ${shipLabel(ct)}. Paste it in (⌘V or Ctrl V), check it, then send.`, { duration: 7000 });
+  showPasteCard(text, where);
 }
 export const shipButton = (getCt, getText, label) => h('button', {
   class: 'card-tool card-send', type: 'button', 'aria-label': label, title: label,
