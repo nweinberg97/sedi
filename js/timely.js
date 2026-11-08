@@ -9,7 +9,7 @@ import {
   dateKey, parseKey, todayKey, addDays, addMonths, startOfWeek, fmtMinutes, fmtShortDate, MONTH_NAMES, DAY_NAMES, pad,
 } from './util.js';
 import { registerDrop, onDragStart, onDragEnd } from './dnd.js';
-import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet, withMic, truncate } from './cards.js';
+import { routeCard, reorder, byOrder, openEditor, typeIcon, trashCard, cardChrome, notesSnippet, withMic, truncate, clickToOpen } from './cards.js';
 import { todoCards, todoCapacity, completeTask } from './taskly.js';
 import { tick, checkSound } from './sound.js';
 import { celebrate } from './celebrate.js';
@@ -528,7 +528,7 @@ function eventBlock(c, hourH, key, done) {
   else cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
   paintCat(el, c);
   // One way in, for every block, mouse or finger: click it to open its details (rename, change, delete there).
-  if (short) el.addEventListener('click', e => { if (e.detail <= 1 && !e.target.closest('button, .resize-handle')) openEventEditor(c.id); });
+  if (short) clickToOpen(el, c, () => openEventEditor(c.id)); // short blocks skip the card chrome but open and rename the same way
   // Stretch in 15-minute steps, from either edge.
   el.querySelectorAll('.resize-handle').forEach(handle => handle.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;

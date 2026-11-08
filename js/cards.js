@@ -1,7 +1,7 @@
 // Sedi — the universal card: polymorphic routing between tools, ordering, and the shared editor.
 
 import * as store from './store.js';
-import { h, icon, modal, stripHtml, toast, popover, closePopovers } from './util.js';
+import { h, icon, modal, stripHtml, toast, popover, closePopovers, editInline } from './util.js';
 import { crunch } from './sound.js';
 import { dictate as listen, canListen } from './speech.js'; // card mics: instant browser dictation
 
@@ -107,20 +107,34 @@ export function cardChrome(el, card, onInfo, { compact = false, actions = [], on
   el.classList.toggle('with-notes', hasNotes(card));
   if (hasNotes(card)) el.title = el.title || 'Has notes';
   el.append(moreButton(card.id, onInfo, onDuplicate, menu));
-  // One rule everywhere, mouse or finger: click a card to open it. (Dragging never opens it, and the tick, ⋯ and
-  // other buttons do their own thing.) Shift/⌘-click is left for selecting.
-  if (!el.dataset.tapOpen) {
-    el.dataset.tapOpen = '1';
-    el.addEventListener('click', e => {
-      if (e.detail > 1 || e.shiftKey || e.metaKey || e.ctrlKey) return;
-      if (String(getSelection?.() || '').trim()) return; // they were selecting text, not opening
-      if (e.defaultPrevented || e.target.closest('button, a, input, textarea, select, [contenteditable="true"], .resize-handle, .w-handle, .width-handle')) return;
-      onInfo(e);
-      e.sediOpened = true; // a tool's own tap handler checks this so one tap never opens a card twice
-    });
-  }
+  if (!el.dataset.tapOpen) { el.dataset.tapOpen = '1'; clickToOpen(el, card, onInfo); }
   if (!compact && actions.length) el.append(h('div', { class: 'card-tools' }, ...actions));
   return el;
+}
+// Two gestures, everywhere: click a card to open its details; double-click its title to rename it right there.
+// A click on the title waits a beat to see whether a second click follows, so a double-click never opens the card.
+export const TITLE_SEL = '.task-title, .tile-title, .ev-title, .plan-text, .pc-title, .t-chip-title, .sticky-title, .uni-title';
+export function clickToOpen(el, card, onInfo) {
+  let timer = null;
+  el.addEventListener('click', e => {
+    if (e.shiftKey || e.metaKey || e.ctrlKey) return; // left for selecting
+    if (e.defaultPrevented || e.target.closest('button, a, input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"], .editing, .resize-handle, .w-handle, .width-handle')) return;
+    if (e.detail > 1) { clearTimeout(timer); return; }
+    if (String(getSelection?.() || '').trim()) return; // they were selecting text, not opening
+    e.sediOpened = true; // a tool's own tap handler checks this so one tap never opens a card twice
+    const onTitle = e.target.closest(TITLE_SEL) && !matchMedia('(hover: none)').matches;
+    clearTimeout(timer);
+    if (onTitle) timer = setTimeout(() => { if (el.isConnected) onInfo(e); }, 260);
+    else onInfo(e);
+  });
+  el.addEventListener('dblclick', e => {
+    const t = e.target.closest(TITLE_SEL);
+    if (!t || !el.contains(t) || t.isContentEditable) return;
+    clearTimeout(timer);
+    e.stopPropagation();
+    getSelection()?.removeAllRanges();
+    editInline(t, { onCommit: v => { if (v && v !== store.getCard(card.id)?.title) store.updateCard(card.id, { title: v }, { log: true }); } });
+  });
 }
 /** The card's ⋯ menu: Details first, Delete last and apart, in red. */
 export const moreButton = (id, onInfo, onDuplicate, extra = []) => h('button', {

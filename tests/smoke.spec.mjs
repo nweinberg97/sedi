@@ -172,8 +172,17 @@ test('create, edit, drag between tools via the Universal Board, delete with Undo
   await page.locator('.task-input').press('Enter');
   await expect(page.locator('.task-card', { hasText: 'Smoke task' })).toBeVisible();
 
-  // Edit it
-  await page.locator('.task-card', { hasText: 'Smoke task' }).dblclick();
+  // Double-click its title to rename it in place (no sheet opens)
+  await page.locator('.task-card', { hasText: 'Smoke task' }).locator('.task-title').dblclick();
+  await expect(page.locator('.task-card .task-title.editing')).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Smoke task renamed');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.task-card', { hasText: 'Smoke task renamed' })).toBeVisible();
+  await expect(page.locator('.modal-backdrop')).toHaveCount(0);
+
+  // Click it to open its details and edit there
+  await page.locator('.task-card', { hasText: 'Smoke task renamed' }).click();
   const dlg = page.getByRole('dialog', { name: 'Edit task' });
   await dlg.locator('.title-input').fill('Smoke task edited');
   await dlg.getByRole('button', { name: 'Save' }).click();
