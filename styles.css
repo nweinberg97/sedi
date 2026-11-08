@@ -4432,3 +4432,10 @@ body:has(.modal-backdrop) .toasts, body:has(.popover:has(.form-pop)) .toasts { b
 body.is-dragging .plan-viewport { scroll-snap-type: none !important; }
 .plan-track > .col-slot { scroll-snap-align: start; flex: 0 0 auto; }
 .drag-ghost.ct, .drag-ghost.goal-ct { background: var(--paper, #fff) !important; opacity: 1 !important; }
+/* The "now" line: unmistakable on every screen, and it moves by itself */
+.now-line { border-top: 2px solid var(--danger, #e5484d) !important; z-index: 6 !important; transition: top 0.6s ease; }
+.now-line::before { display: block !important; content: ""; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger, #e5484d); box-shadow: 0 0 0 3px var(--paper, #fff); }
+.now-time { position: absolute; right: calc(100% + 8px); top: -9px; font-size: 11px; font-weight: 700; color: var(--danger, #e5484d); background: var(--paper, #fff); padding: 1px 4px; border-radius: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
+/* With a mouse, the "+ Now" pill sits in the gutter, so the time label hides behind it */
+@media (hover: hover) { .now-line:has(.now-add) .now-time { display: none; } }
+@media (hover: none) { .now-add { display: none !important; } .now-time { display: block !important; } }

@@ -43,6 +43,10 @@ Ideas agreed on but not built yet. Newest first.
 - Reminders on phones: the right column of notes may touch the corkboard frame.
 - Taskly on a sideways iPad: column names like "In progress" get cut off.
 
+## Phones and tablets: press and hold to open details
+
+*Added Nov 8, 2026.* A tap already opens a card's details on touch screens. Press-and-hold currently picks a card up to drag it. Option: hold without moving opens details (with a gentle haptic), and hold-then-move drags. Needs a careful timing pass so dragging still feels instant.
+
 ## Builder mode: "Mark shipped"
 
 After a ship, offer a quiet tick so handed-off tasks look different from ones you haven't sent yet.

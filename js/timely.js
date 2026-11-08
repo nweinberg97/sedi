@@ -325,6 +325,24 @@ function markTouch(layout) {
   v?.classList.toggle('day-compact', layout === 'compact');
   v?.classList.toggle('day-wide-touch', layout === 'tablet');
 }
+// The red "now" line moves by itself: every 20 seconds it slides to the current minute and its label updates.
+// When the date rolls over (past midnight, or the laptop was asleep), the view redraws so "today" is right.
+let lastToday = null;
+setInterval(() => {
+  if (document.hidden) return;
+  const t = todayKey();
+  if (lastToday && t !== lastToday && root?.isConnected) { lastToday = t; render(); return; }
+  lastToday = t;
+  const n = new Date(), mins = n.getHours() * 60 + n.getMinutes();
+  document.querySelectorAll('.now-line').forEach(line => {
+    const hh = +line.dataset.hourH;
+    if (!hh) return;
+    line.style.top = (mins / 60) * hh + 'px';
+    const lab = line.querySelector('.now-time');
+    if (lab) lab.textContent = fmtMinutes(mins);
+  });
+}, 20000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && root?.isConnected && lastToday && lastToday !== todayKey()) { lastToday = todayKey(); render(); } });
 /** Which day layout fits this screen: 'compact' (phones, portrait tablets), 'tablet' (landscape touch), or 'desktop'. */
 function dayLayout() {
   if (listMode()) return 'compact';
@@ -413,7 +431,8 @@ function renderDay() {
       }));
     };
     if (key === todayKey()) {
-      grid.append(h('div', { class: 'now-line', style: { top: (nowMins / 60) * hourH + 'px' } },
+      grid.append(h('div', { class: 'now-line', dataset: { hourH, day: key }, style: { top: (nowMins / 60) * hourH + 'px' } },
+        h('span', { class: 'now-time', 'aria-hidden': 'true' }, fmtMinutes(nowMins)),
         h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: `Add at ${fmtMinutes(Math.floor(nowMins / 5) * 5)}`, onclick: e => { e.stopPropagation(); const at = Math.floor(nowMins / 5) * 5; if (phone) openItemForm(e.currentTarget, { type: 'task', date: key, start: at, pickDate: false }); else addAt(at, 30); } }, icon('plus'), h('span', {}, 'Now'))));
     }
     // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
