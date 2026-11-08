@@ -98,15 +98,10 @@ function showPasteCard(text, where, { failed = false, openLink = null, chat = fa
   const chatSteps = () => (touch() ? `Copied ${what}. In ${where}, tap the message box, hold, tap Paste, then send.` : `Copied ${what}. In ${where}, click the message box and press ${isMac ? '⌘V' : 'Ctrl+V'}, then send.`);
   if (chat && !failed) { say(`${chatSteps()} If it’s already typed in, just check it and send.`); }
   else say(failed ? `Your browser didn’t let Sedi copy on its own. Tap below to copy ${what}, then paste into ${where}.` : `Copied ${what}. ${pasteHow(where)}`);
-  // Drag-and-drop works between any two sites with no permissions: drag this into the chat's message box
-  // (in Chrome, hover over the chat's tab to switch to it, then drop). It lands as text; you still press send.
-  const drag = touch() ? null : h('div', { class: 'pc-drag', draggable: 'true', title: 'Drag this into the chat’s message box' }, icon('grip'), h('span', {}, `Drag ${what} into the chat`));
-  drag?.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', text); e.dataTransfer.effectAllowed = 'copy'; drag.classList.add('dragging'); });
-  drag?.addEventListener('dragend', () => drag.classList.remove('dragging'));
   pasteCard = h('div', { class: 'paste-card', role: 'status' },
     h('div', { class: 'pc-row' }, h('span', { class: 'pc-ic' }, icon('send')), msg,
       h('button', { class: 'icon-btn xs pc-x', type: 'button', 'aria-label': 'Done', onclick: () => { pasteCard?.remove(); pasteCard = null; } }, icon('x'))),
-    drag, preview,
+    preview,
     h('div', { class: 'pc-actions' }, copyBtn, showBtn));
   document.body.append(pasteCard);
   clearTimeout(showPasteCard.t);
@@ -123,7 +118,7 @@ function sendTo(target, text) {
   if (!copied && !fits) { showPasteCard(text, target.label, { failed: true, openLink: link }); return; }
   window.open(link, '_blank', 'noopener');
   if (fits) toast(`Opened ${target.label} with it typed in. If the box is empty, paste it (${pasteKeys()}). Then send.`, { duration: 7000 });
-  else showPasteCard(text, target.label);
+  else toast(`Copied. In ${target.label}, press ${isMac ? '⌘V' : 'Ctrl+V'} and send.`, { duration: 6000 });
 }
 
 /** The "Hand off to…" menu. The last choice comes first, so it's one tap next time. */
@@ -223,7 +218,7 @@ export function ship(ct, getText, anchor, { title } = {}) {
     t.kind === 'project' && { id: 'project', label: 'New chat in your Claude project', note: 'Typed in, with the project’s files and instructions.', url: q => `https://claude.ai/new?q=${encodeURIComponent(q)}&project=${encodeURIComponent(t.id)}`, typed: true },
     { id: 'claude', label: 'New Claude chat', note: 'Typed in.', url: q => `https://claude.ai/new?q=${encodeURIComponent(q)}`, typed: true },
     { id: 'chatgpt', label: 'New ChatGPT chat', note: 'Typed in.', url: q => `https://chatgpt.com/?q=${encodeURIComponent(q)}`, typed: true },
-    (t.kind === 'chat' || t.kind === 'other') && { id: 'chat', label: `${shipLabel(ct).replace(/^your /, 'Your ')}`, note: 'Opens that exact chat; you paste (⌘V). Chat apps only type into new chats.', url: () => ct.shipUrl, typed: false },
+    (t.kind === 'chat' || t.kind === 'other') && { id: 'chat', label: `${shipLabel(ct).replace(/^your /, 'Your ')}`, note: `Opens your saved chat. You paste it in (${isMac ? '⌘V' : 'Ctrl+V'}).`, url: () => ct.shipUrl, typed: false },
   ].filter(Boolean);
   const remembered = store.pref('shipDest', {})[ct?.id];
   let dest = dests.find(d => d.id === remembered) || dests[0];
@@ -246,7 +241,7 @@ export function ship(ct, getText, anchor, { title } = {}) {
       toast('Opened with it typed in. Check it there and press send.', { duration: 5000 });
     } else if (copied) {
       window.open(dest.url(q), '_blank', 'noopener');
-      showPasteCard(q, dest.typed ? dest.label : shipLabel(ct), { chat: true });
+      toast(`Copied. In the chat, press ${isMac ? '⌘V' : 'Ctrl+V'} and send.`, { duration: 6000 });
     } else showPasteCard(q, shipLabel(ct), { failed: true, openLink: dest.url(q) });
     m?.close();
   };
@@ -260,7 +255,7 @@ export function ship(ct, getText, anchor, { title } = {}) {
   const onKey = e => {
     if (e.key !== 'Enter' || e.isComposing || !body.isConnected) return;
     if (e.target === box && !(e.metaKey || e.ctrlKey)) return;
-    if (e.target !== box && e.target.closest?.('button') && e.target !== go) return; // Enter on a destination picks it
+    if (e.target.closest?.('.ship-dest')) return; // Enter on a destination picks it
     e.preventDefault(); e.stopPropagation(); open();
   };
   document.addEventListener('keydown', onKey, true);

@@ -4420,3 +4420,4 @@ body:has(.modal-backdrop) .toasts, body:has(.popover:has(.form-pop)) .toasts { b
 .ship-kbd { margin-left: 8px; padding: 0 6px; border-radius: 5px; background: rgba(255, 255, 255, 0.2); font: inherit; font-size: 12px; }
 .ship-foot .btn { white-space: nowrap; flex: none; }
 .ship-dests { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.pc-drag { display: none !important; }
