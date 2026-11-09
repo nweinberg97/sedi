@@ -4445,11 +4445,27 @@ body.is-dragging .plan-viewport { scroll-snap-type: none !important; }
 .timely .now-add .now-time { display: inline !important; }
 @media (max-width: 700px) { .timely .now-add { display: inline-flex !important; left: -56px !important; } }
 /* Timely: selecting several things and moving them together */
-.timely .event-block.selected, .timely .allday .t-chip.selected { outline: 2px solid var(--ink); outline-offset: 1px; z-index: 5; }
-.timely.selecting .event-block:not(.selected) { opacity: 0.85; }
+/* Selected: a soft glow in the block's own color (its category, or Timely's gold), a gentle lift and a small
+   check in the corner. Calm, and clearly "picked". */
+.timely .event-block.selected, .timely .allday .t-chip.selected {
+  --sel: var(--cat, var(--timely, #c29a5b));
+  outline: none !important; z-index: 5;
+  background: color-mix(in srgb, var(--sel) 22%, white) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sel) 75%, white), 0 10px 22px -10px color-mix(in srgb, var(--sel) 70%, transparent) !important;
+  transform: translateY(-1px); transition: box-shadow .18s ease, background .18s ease, transform .18s ease;
+}
+.timely .event-block.selected::after, .timely .allday .t-chip.selected::after {
+  content: ""; position: absolute; top: 5px; right: 6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--sel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 11px no-repeat;
+  pointer-events: none;
+}
+.timely .event-block.selected.short::after, .timely .allday .t-chip.selected::after { top: 50%; translate: 0 -50%; }
+.timely .event-block.selected .card-more { right: 26px; }
+.timely .allday .t-chip.selected { position: relative; }
+.timely.selecting .event-block:not(.selected) { opacity: 0.8; }
 .timely .following { opacity: 0.35; transition: opacity .15s; }
-.day-marquee { position: absolute; z-index: 7; border: 1.5px solid color-mix(in srgb, var(--ink) 55%, transparent); background: color-mix(in srgb, var(--ink) 6%, transparent); border-radius: 6px; pointer-events: none; }
-.drag-ghost .group-badge { position: absolute; top: -10px; right: -10px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.day-marquee { position: absolute; z-index: 7; border: 1.5px solid color-mix(in srgb, var(--timely, #c29a5b) 70%, transparent); background: color-mix(in srgb, var(--timely, #c29a5b) 12%, transparent); border-radius: 8px; pointer-events: none; }
+.drag-ghost .group-badge { position: absolute; top: -10px; right: -10px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--cat, var(--timely, #c29a5b)); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
 .sel-bar { position: fixed; left: 50%; translate: -50% 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); z-index: 150; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: calc(100vw - 24px); padding: 8px 10px 8px 16px; border-radius: 18px; background: var(--paper, #fff); border: 1px solid var(--line); box-shadow: 0 18px 40px -16px rgba(20, 30, 60, 0.35), 0 2px 6px rgba(20, 30, 60, 0.06); animation: pcIn .25s cubic-bezier(.2,.8,.2,1) both; }
 .sel-bar strong { font-size: var(--fs-sm); }
 .sel-sep { width: 1px; height: 20px; background: var(--line); }
