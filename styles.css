@@ -4444,3 +4444,21 @@ body.is-dragging .plan-viewport { scroll-snap-type: none !important; }
 
 .timely .now-add .now-time { display: inline !important; }
 @media (max-width: 700px) { .timely .now-add { display: inline-flex !important; left: -56px !important; } }
+/* Timely: selecting several things and moving them together */
+.timely .event-block.selected, .timely .allday .t-chip.selected { outline: 2px solid var(--ink); outline-offset: 1px; z-index: 5; }
+.timely.selecting .event-block:not(.selected) { opacity: 0.85; }
+.timely .following { opacity: 0.35; transition: opacity .15s; }
+.day-marquee { position: absolute; z-index: 7; border: 1.5px solid color-mix(in srgb, var(--ink) 55%, transparent); background: color-mix(in srgb, var(--ink) 6%, transparent); border-radius: 6px; pointer-events: none; }
+.drag-ghost .group-badge { position: absolute; top: -10px; right: -10px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.sel-bar { position: fixed; left: 50%; translate: -50% 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); z-index: 150; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: calc(100vw - 24px); padding: 8px 10px 8px 16px; border-radius: 18px; background: var(--paper, #fff); border: 1px solid var(--line); box-shadow: 0 18px 40px -16px rgba(20, 30, 60, 0.35), 0 2px 6px rgba(20, 30, 60, 0.06); animation: pcIn .25s cubic-bezier(.2,.8,.2,1) both; }
+.sel-bar strong { font-size: var(--fs-sm); }
+.sel-sep { width: 1px; height: 20px; background: var(--line); }
+.sel-bar .chip { height: 32px; }
+.sel-pick { position: relative; cursor: pointer; gap: 6px; }
+.sel-pick svg { width: 14px; height: 14px; }
+.sel-date { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.sel-bar .danger-text { color: var(--danger, #d64545); }
+.spring-arming { box-shadow: 0 0 0 3px color-mix(in srgb, var(--timely, #c29a5b) 55%, transparent) !important; background: color-mix(in srgb, var(--timely, #c29a5b) 18%, white) !important; transition: box-shadow .2s; }
+.cal-arrow.drop-over, .cal-today.drop-over { box-shadow: 0 0 0 3px var(--ink) !important; }
+@media (max-width: 700px) { .sel-bar { bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom, 0px) + 84px); } .sel-sep { display: none; } }
+body[data-drop-kind="timely-shiftday"] .drag-ghost { scale: 0.45; opacity: 0.9; }

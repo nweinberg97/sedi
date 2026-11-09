@@ -126,6 +126,88 @@ const isPlan = c => c.tool === 'timely' && !!c.meta?.board;
 const live = c => isSched(c) && !c.meta?.archivedAt;
 const isRoutine = c => !!c.meta?.recurrence;
 
+// ---------- Selecting several things in the day, and moving them together ----------
+// Like a good calendar: ⌘/Shift-click blocks, drag a box around them, or ⌘A for the whole day. Then drag any of
+// them (they all move, keeping their spacing), drop them on ‹ › or Today (hold there to flip to that day), or use
+// the bar: Move to Today / Tomorrow / a date, or Delete. Times stay the same. One Undo puts it all back.
+const daySel = new Set();
+let selectMode = false; // touch screens: after "Select", a tap picks instead of opening
+const dayDiff = (a, b) => Math.round((parseKey(a) - parseKey(b)) / 86400000);
+// The day (5am–5am) an item belongs to, and the earliest such day among several: "move to Tuesday" moves the
+// group so its first day lands on Tuesday, whatever day you happen to be looking at.
+const logicalDay = c => (c.meta.start != null && c.meta.start < DAY0 ? dateKey(addDays(parseKey(c.meta.date), -1)) : c.meta.date);
+const baseDay = ids => ids.map(id => store.getCard(id)).filter(c => c?.meta?.date).map(logicalDay).sort()[0] || anchor();
+function toggleDaySel(id) { daySel.has(id) ? daySel.delete(id) : daySel.add(id); paintDaySel(); }
+function clearDaySel() { daySel.clear(); selectMode = false; paintDaySel(); }
+function selectWholeDay() {
+  const key = anchor(), nextKey = dateKey(addDays(parseKey(key), 1));
+  occurrencesOn(key).filter(o => o.card.meta.start == null || o.card.meta.start >= DAY0).forEach(o => daySel.add(o.card.id));
+  occurrencesOn(nextKey).filter(o => o.card.meta.start != null && o.card.meta.start < DAY0).forEach(o => daySel.add(o.card.id));
+  paintDaySel();
+}
+function paintDaySel() {
+  document.querySelectorAll('.timely .event-block, .timely .allday .t-chip').forEach(el => el.classList.toggle('selected', daySel.has(el.dataset.id)));
+  document.querySelector('.timely')?.classList.toggle('selecting', selectMode || daySel.size > 0);
+  let bar = document.querySelector('.sel-bar');
+  if (!daySel.size && !selectMode) { bar?.remove(); return; }
+  const n = daySel.size, from = n ? baseDay([...daySel]) : anchor(), today = dayToday();
+  const to = k => h('button', { class: 'chip', type: 'button', disabled: !n, onclick: () => shiftItems([...daySel], dayDiff(k, baseDay([...daySel]))) });
+  const date = h('input', { type: 'date', class: 'sel-date', 'aria-label': 'Move to a date', value: '' });
+  date.addEventListener('change', () => { if (date.value) shiftItems([...daySel], dayDiff(date.value, baseDay([...daySel]))); });
+  const next = h('div', { class: 'sel-bar', role: 'toolbar', 'aria-label': 'Selected items' },
+    h('strong', {}, n ? `${n} selected` : 'Tap items to select'),
+    h('span', { class: 'sel-sep' }),
+    h('span', { class: 'muted small' }, 'Move to'),
+    from !== today ? Object.assign(to(today), { textContent: 'Today' }) : null,
+    Object.assign(to(dateKey(addDays(parseKey(from === today ? today : from), 1))), { textContent: from === today ? 'Tomorrow' : 'Next day' }),
+    h('label', { class: 'chip sel-pick', title: 'Pick a date' }, icon('calendar'), 'Date…', date),
+    h('span', { class: 'sel-sep' }),
+    h('button', { class: 'chip', type: 'button', onclick: selectWholeDay }, 'Select all'),
+    h('button', { class: 'chip danger-text', type: 'button', disabled: !n, onclick: () => deleteItems([...daySel]) }, icon('trash'), 'Delete'),
+    h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': 'Done selecting', onclick: clearDaySel }, icon('x')));
+  if (bar) bar.replaceWith(next); else document.body.append(next);
+}
+/** Move items by whole days (and optionally minutes), keeping their times. Routines keep their schedule. */
+function shiftItems(ids, days, minutes = 0) {
+  const prev = [], skipped = [];
+  for (const id of ids) {
+    const c = store.getCard(id);
+    if (!c || !isSched(c)) continue;
+    if (isRoutine(c)) { skipped.push(c); continue; }
+    prev.push({ id, meta: { ...c.meta } });
+    const m = c.meta, base = m.date || anchor();
+    let date = base, start = m.start;
+    if (m.start != null) {
+      const abs = days * 1440 + m.start + minutes, shift = Math.floor(abs / 1440);
+      date = dateKey(addDays(parseKey(base), shift)); start = abs - shift * 1440;
+    } else date = dateKey(addDays(parseKey(base), days + Math.round(minutes / 1440)));
+    const patch = { date, start };
+    if (m.endDate) patch.endDate = dateKey(addDays(parseKey(m.endDate), dayDiff(date, base)));
+    store.updateCard(id, { meta: patch }, { silent: true });
+  }
+  if (!prev.length) { if (skipped.length) toast('Routines stay on their schedule. Open one to change it.'); return; }
+  store.notify({ reason: 'move' });
+  const n = prev.length, first = store.getCard(prev[0].id)?.meta.date;
+  daySel.clear(); selectMode = false; paintDaySel();
+  toast(`Moved ${n} item${n === 1 ? '' : 's'}${days || Math.abs(minutes) >= 1440 ? ` to ${first === todayKey() ? 'today' : fmtShortDate(parseKey(first))}` : ''}${skipped.length ? ` (routines stay put)` : ''}`,
+    { action: 'Undo', onAction: () => { prev.forEach(p => store.updateCard(p.id, { meta: p.meta }, { silent: true, replaceMeta: true })); store.notify({ reason: 'move' }); } });
+}
+function deleteItems(ids) {
+  const gone = ids.map(id => store.deleteCard(id, { silent: true })).filter(Boolean);
+  store.notify({ reason: 'delete' });
+  daySel.clear(); selectMode = false; paintDaySel();
+  toast(`Deleted ${gone.length}`, { action: 'Undo', onAction: () => gone.forEach(c => store.restoreCard(c)) });
+}
+document.addEventListener('keydown', e => {
+  if (!root?.isConnected || view() !== 'day' || mode() !== 'schedule' || document.querySelector('.modal-backdrop')) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); selectWholeDay(); }
+  else if (e.key === 'Escape' && (daySel.size || selectMode)) { clearDaySel(); }
+  else if ((e.key === 'Backspace' || e.key === 'Delete') && daySel.size) { e.preventDefault(); deleteItems([...daySel]); }
+});
+addEventListener('hashchange', () => { if (daySel.size || selectMode) clearDaySel(); });
+
+
 const slotOfMinutes = m => (m < 5 * 60 ? 'night' : m < 11 * 60 ? 'morning' : m < 13 * 60 ? 'noon' : m < 17 * 60 ? 'afternoon' : m < 21 * 60 ? 'evening' : 'night');
 
 function recursOn(meta, key) {
@@ -298,7 +380,7 @@ export function render() {
 
 /** The date header that sits right above a calendar: big title, then ‹ › and Today. */
 function navControl(label, step, { sub = '' } = {}) {
-  const a = anchor(), atToday = view() === 'day' || view() === 'week' ? a === todayKey()
+  const a = anchor(), atToday = view() === 'day' ? a === dayToday() : view() === 'week' ? a === todayKey()
     : parseKey(a).getMonth() === new Date().getMonth() && parseKey(a).getFullYear() === new Date().getFullYear();
   const go = k => { zoom = null; dayScroll = null; setAnchor(k); };
   const archive = archiveButton();
@@ -306,9 +388,11 @@ function navControl(label, step, { sub = '' } = {}) {
   return h('div', { class: 'cal-head' },
     h('div', { class: 'cal-title' }, h('h2', {}, label), sub ? h('span', { class: 'cal-sub' }, sub) : null),
     h('div', { class: 'cal-nav' },
-      h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Previous', disabled: atToday, onclick: () => go(step(-1)) }, icon('chevL')),
-      h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Next', onclick: () => go(step(1)) }, icon('chevR')),
-      h('button', { class: 'chip cal-today', disabled: atToday, onclick: () => go(todayKey()) }, 'Today')));
+      // In the day view, dragging onto ‹ › or Today moves things to that day (keeping their times); hold there
+      // and the view flips to that day, so you can drop at an exact time.
+      h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Previous', disabled: atToday, onclick: () => go(step(-1)), ...(view() === 'day' ? { dataset: { drop: 'timely-shiftday', accept: 'card', to: step(-1), springClick: '' } } : {}) }, icon('chevL')),
+      h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Next', onclick: () => go(step(1)), ...(view() === 'day' ? { dataset: { drop: 'timely-shiftday', accept: 'card', to: step(1), springClick: '' } } : {}) }, icon('chevR')),
+      h('button', { class: 'chip cal-today', disabled: atToday, onclick: () => go(view() === 'day' ? dayToday() : todayKey()), ...(view() === 'day' ? { dataset: { drop: 'timely-shiftday', accept: 'card', to: dayToday(), springClick: '' } } : {}) }, 'Today')));
 }
 function archiveButton() {
   const n = store.cardsWhere(c => isSched(c) && c.meta?.archivedAt).length;
@@ -397,8 +481,10 @@ function renderDay() {
   const phoneActions = onPhone ? h('div', { class: 'm-day-actions' },
     key !== dayToday() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(dayToday()); } }, 'Today') : null,
     h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plans', todoCards().length ? h('small', {}, todoCards().length) : null),
+    h('button', { class: 'chip m-select-btn', type: 'button', 'aria-label': 'Select items to move', onclick: () => { selectMode = !selectMode; if (!selectMode) daySel.clear(); paintDaySel(); } }, icon('check'), 'Select'),
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
   const tabletAdd = layout === 'tablet' ? h('div', { class: 'm-day-actions' },
+    h('button', { class: 'chip m-select-btn', type: 'button', onclick: () => { selectMode = !selectMode; if (!selectMode) daySel.clear(); paintDaySel(); } }, icon('check'), 'Select'),
     key !== dayToday() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(dayToday()); } }, 'Today') : null,
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
   if (tabletAdd) head.append(tabletAdd); // landscape tablets: Add sits on the date line, no extra row
@@ -528,6 +614,29 @@ function renderDay() {
         addAt(p.slot.start, Math.max(15, Math.min(60, (next ?? p.slot.start + 60) - p.slot.start)));
       }
     });
+    // Drag a box across empty time to select every block it touches (with a mouse).
+    if (!phone) grid.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || !onEmpty(e)) return;
+      const gr = grid.getBoundingClientRect(), sx = e.clientX - gr.left, sy = e.clientY - gr.top;
+      const keep = e.shiftKey || e.metaKey || e.ctrlKey ? new Set(daySel) : new Set();
+      let box = null;
+      const mv = ev => {
+        const x = ev.clientX - gr.left, y = ev.clientY - gr.top;
+        if (!box && Math.hypot(x - sx, y - sy) < 8) return;
+        if (!box) { box = h('div', { class: 'day-marquee' }); grid.append(box); disarm(); press = null; }
+        const L = Math.min(x, sx), T = Math.min(y, sy), W = Math.abs(x - sx), H = Math.abs(y - sy);
+        Object.assign(box.style, { left: L + 'px', top: T + 'px', width: W + 'px', height: H + 'px' });
+        daySel.clear(); keep.forEach(id => daySel.add(id));
+        grid.querySelectorAll('.event-block').forEach(b => {
+          const r = b.getBoundingClientRect(), bl = r.left - gr.left, bt = r.top - gr.top;
+          if (bl < L + W && bl + r.width > L && bt < T + H && bt + r.height > T) daySel.add(b.dataset.id);
+        });
+        paintDaySel();
+      };
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); if (box) { box.remove(); lastMoveEnd = Date.now(); } };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+    paintDaySel();
     // Phones have no hover: a tap on an empty spot opens the add sheet straight away.
     if (phone) grid.addEventListener('click', e => { if (onEmpty(e) && !press && Date.now() - lastMoveEnd > 450) openItemForm(grid, { type: 'task', ...fromGrid(key, slotAt(e)), pickDate: false }); });
   });
@@ -574,6 +683,7 @@ function eventBlock(c, hourH, key, done, g = gridMin(c.meta.start)) {
   if (short) el.classList.add('bare');
   else cardChrome(el, c, () => openEventEditor(c.id), { actions: quickActions(c) });
   paintCat(el, c);
+  selectable(el, c);
   // One way in, for every block, mouse or finger: click it to open its details (rename, change, delete there).
   if (short) clickToOpen(el, c, () => openEventEditor(c.id)); // short blocks skip the card chrome but open and rename the same way
   // Stretch in 15-minute steps, from either edge.
@@ -603,6 +713,16 @@ function eventBlock(c, hourH, key, done, g = gridMin(c.meta.start)) {
   return el;
 }
 
+/** ⌘/Ctrl/Shift-click picks a block for moving together; in select mode (touch) a plain tap does. */
+function selectable(el, c) {
+  el.addEventListener('click', e => {
+    const pick = e.metaKey || e.ctrlKey || e.shiftKey || selectMode;
+    if (!pick || e.target.closest('button, .resize-handle, .editing') || view() !== 'day') return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    toggleDaySel(c.id);
+  }, true);
+  if (daySel.has(c.id)) el.classList.add('selected');
+}
 function chip(c, { showTime = false, date = null, done = false } = {}) {
   const m = c.meta || {};
   const el = h('div', { class: `t-chip ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id }, title: c.title },
@@ -610,6 +730,7 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
     showTime && m.start != null ? h('span', { class: 't-chip-time' }, fmtMinutes(m.start)) : null,
     h('span', { class: 't-chip-title' }, c.title),
     isRoutine(c) && !date ? icon('repeat', 'ev-repeat') : null);
+  if (date) selectable(el, c);
   el.addEventListener('click', e => { if (!e.target.closest('button')) openEventEditor(c.id); });
   return paintCat(el, c);
 }
@@ -731,6 +852,14 @@ registerDrop('day-plan', ({ id, index }) => {
 // ---------- Moving things on the day: see exactly where it will land ----------
 let resizing = false, lastMoveEnd = 0, preview = null;
 onDragStart(d => {
+  if (!daySel.has(d.id) || daySel.size < 2) return;
+  requestAnimationFrame(() => {
+    d.ghost?.append(h('span', { class: 'group-badge' }, `${daySel.size}`));
+    daySel.forEach(id => { if (id !== d.id) document.querySelectorAll(`.timely [data-id="${CSS.escape(id)}"]`).forEach(el => el.classList.add('following')); });
+  });
+});
+onDragEnd(() => document.querySelectorAll('.timely .following').forEach(el => el.classList.remove('following')));
+onDragStart(d => {
   if (d.kind !== 'card') return;
   const c = store.getCard(d.id);
   const dur = isSched(c) && c.meta.dur ? c.meta.dur : 60;
@@ -778,8 +907,20 @@ registerDrop('timely-day', ({ id, zone, y, gy, data }) => {
   const g = clamp(Math.round(((top / hourH) * 60) / 15) * 15, 0, 24 * 60 - 15);
   const at = fromGrid(data.date, g); // past midnight on the grid lands on the next calendar date
   const c = store.getCard(id);
+  // Several selected: they all move by the same amount, keeping their spacing.
+  if (daySel.has(id) && daySel.size > 1 && c?.meta?.date && c.meta.start != null) {
+    shiftItems([...daySel], 0, dayDiff(at.date, c.meta.date) * 1440 + at.start - c.meta.start);
+    return true;
+  }
   const dur = isSched(c) && c.meta.dur ? c.meta.dur : 60;
   return placeSched(id, { date: at.date, start: at.start, dur, slot: null, kind: c?.meta?.kind === 'reminder' && isSched(c) ? 'reminder' : undefined }, 'Rescheduled');
+});
+registerDrop('timely-shiftday', ({ id, data }) => {
+  const c = store.getCard(id);
+  if (!c || !isSched(c) || !c.meta.date) return false;
+  const ids = daySel.has(id) ? [...daySel] : [id];
+  shiftItems(ids, dayDiff(data.to, baseDay(ids)));
+  return true;
 });
 registerDrop('timely-allday', ({ id, data }) => placeSched(id, { date: data.date, start: null, slot: null }, 'Rescheduled'));
 registerDrop('timely-cell', {

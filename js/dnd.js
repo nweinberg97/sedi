@@ -193,6 +193,25 @@ export function initDnd(navigate) {
       drag.spring = spring;
       if (spring) drag.springTimer = setTimeout(() => { keepTouchSource(); navigate(spring.dataset.springRoute); }, 550);
     }
+    // Spring-loaded buttons (Timely's ‹ › and Today): hold over one and it's pressed, so the view flips while you
+    // keep dragging; keep holding and it flips again.
+    const sc = document.elementsFromPoint(drag.x, drag.y).find(n => n.closest?.('[data-spring-click]'))?.closest('[data-spring-click]');
+    if (sc !== drag.springBtn) {
+      clearInterval(drag.springBtnTimer); clearTimeout(drag.springBtnTimer);
+      drag.springBtn = sc;
+      sc?.classList.add('spring-arming');
+      if (sc) drag.springBtnTimer = setTimeout(function press() {
+        if (!drag || drag.springBtn !== sc) return;
+        keepTouchSource();
+        const rect = sc.getBoundingClientRect(), label = sc.getAttribute('aria-label') || sc.textContent;
+        sc.click();
+        // The view redrew: find the same button again, so holding keeps flipping.
+        const again = [...document.querySelectorAll('[data-spring-click]')].find(b => (b.getAttribute('aria-label') || b.textContent) === label && Math.abs(b.getBoundingClientRect().left - rect.left) < 40);
+        drag.springBtn = again || null; drag.zone = null;
+        if (again && !again.disabled) drag.springBtnTimer = setTimeout(press, 900);
+      }, 650);
+    }
+    document.querySelectorAll('.spring-arming').forEach(b => { if (b !== drag.springBtn) b.classList.remove('spring-arming'); });
     if (z?.hasAttribute('data-list') && !drag.denied) placeLine(z);
   }
 
@@ -248,7 +267,8 @@ export function initDnd(navigate) {
   }
 
   function end(cancelled) {
-    clearTimeout(drag.springTimer);
+    clearTimeout(drag.springTimer); clearTimeout(drag.springBtnTimer);
+    document.querySelectorAll('.spring-arming').forEach(b => b.classList.remove('spring-arming'));
     clearInterval(drag.scrollTimer);
     const z = drag.zone;
     let accepted = false;
