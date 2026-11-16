@@ -4724,3 +4724,21 @@ body.is-dragging .timely .allday.empty { display: flex; }
 .plan-tabbed .plan-tab.on { color: color-mix(in srgb, var(--tint) 55%, var(--ink)); font-weight: 600; }
 .plan-tabbed .plan-tab.on::after { transform: scaleX(1); }
 .plan-tabbed .plan-sheet-page > .day-plan { border-radius: var(--r-lg, 18px); }
+
+/* Plans, take 5: the open plan in front (its own panel, as it always looked); the other two lie straight behind it,
+   same top and bottom, peeking out to the right with their names down the edge. Soft periwinkle / sky / lilac. */
+.plan-stack { --spine: 34px; }
+.plan-stack .plan-page.pp-today { --tint: var(--taskly, #7584c4); }
+.plan-stack .plan-page.pp-week { --tint: #6f9fcb; }
+.plan-stack .plan-page.pp-month { --tint: #9a88cc; }
+.plan-stack .plan-page-front { padding: 0; border: 0; background: transparent; box-shadow: none; overflow: visible; }
+.plan-stack .plan-page-front::before { display: none; }
+.plan-stack .plan-page-front > .day-plan { height: 100%; box-shadow: 6px 0 16px -12px rgba(30, 40, 80, .28); }
+.plan-stack .plan-spine { top: 0 !important; bottom: 0 !important; border-radius: var(--r-lg, 18px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tint) 13%, white), color-mix(in srgb, var(--tint) 6%, white));
+  border: 1px solid color-mix(in srgb, var(--tint) 28%, var(--line)); color: color-mix(in srgb, var(--tint) 75%, var(--ink)); padding-top: 18px; }
+.plan-stack .plan-spine small { background: color-mix(in srgb, var(--tint) 16%, white); border-radius: 9px; width: 20px; height: 18px; display: grid; place-items: center; margin-right: 7px; }
+.plan-stack .plan-spine:hover, .plan-stack .plan-spine.drop-over { transform: translateX(4px); background: linear-gradient(180deg, color-mix(in srgb, var(--tint) 20%, white), color-mix(in srgb, var(--tint) 10%, white)); }
+.day-layout:has(> .plan-stack) { grid-template-columns: minmax(0, 620px) minmax(300px, 368px); }
+.period-layout:has(> .plan-stack) { grid-template-columns: minmax(0, 1fr) 330px; }
+.timely .day-head:has(+ .day-layout > .plan-stack) { max-width: none; }

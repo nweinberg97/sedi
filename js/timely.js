@@ -783,7 +783,7 @@ function renderDay() {
     layout === 'desktop' ? actionRow(standardAdds(key), dayTools(key)) : null,
     h('div', { class: 'day-layout' },
       h('div', { class: 'day-col' }, head, phoneActions, nudge, dayNotesStrip(key), allDay, scroll),
-      onPhone || (focusOn() && layout === 'desktop') ? null : sidePlan(key))].filter(Boolean));
+      onPhone || (focusOn() && layout === 'desktop') ? null : sidePlan(key, { stack: layout === 'desktop' }))].filter(Boolean));
 
   // Size hours so 6am–8pm fills the visible window exactly.
   requestAnimationFrame(() => {
@@ -1087,20 +1087,18 @@ function sidePlan(key, { onChange = render, scheduleOn = null, stack = false, si
         dataset: v === which ? {} : { drop: 'plan-spine', accept: 'card', plan: v, springClick: '' },
         onclick: () => { if (v !== which) { store.setPref(side, v); onChange(); } } }, h('span', { class: 'pt-label' }, label), n ? h('small', {}, n) : null);
     }));
-  if (!stack || true) return h('div', { class: 'side-plan plan-tabbed' }, tabs, h('div', { class: `plan-sheet-page pp-${which}` }, panel));
+  if (!stack) return h('div', { class: 'side-plan plan-tabbed' }, tabs, h('div', { class: `plan-sheet-page pp-${which}` }, panel));
   // Computers: the three plans sit like sections of a notebook. The open one is in front; the other two peek out
   // behind it on the right, each with its name on the edge. Click one and it comes to the front.
   const behind = ['today', 'week', 'month'].filter(v => v !== which);
   const flip = v => {
     const wrap = document.querySelector('.plan-stack');
     wrap?.classList.add('flipping');
-    store.setPref('daySide', v);
+    store.setPref(side, v);
     setTimeout(onChange, wrap ? 140 : 0);
   };
   return h('div', { class: `side-plan plan-stack front-${which}` },
-    h('div', { class: `plan-page plan-page-front pp-${which}` },
-      h('div', { class: 'plan-page-head' }, h('span', { class: 'plan-page-name' }, PLAN_NAMES[which]), count(which) ? h('small', {}, `${count(which)} to do`) : null),
-      panel),
+    h('div', { class: `plan-page plan-page-front pp-${which}` }, panel),
     behind.map((v, i) => h('button', { class: `plan-page plan-spine pp-${v}`, type: 'button', style: { '--i': i }, title: `Open your ${PLAN_NAMES[v].toLowerCase()}`, 'aria-label': `Open ${PLAN_NAMES[v]}`, onclick: () => flip(v), dataset: { drop: 'plan-spine', accept: 'card', plan: v, springClick: '' } },
       h('span', { class: 'spine-label' }, PLAN_NAMES[v].replace(' plan', '')), count(v) ? h('small', {}, count(v)) : null)));
 }
@@ -1456,7 +1454,7 @@ function renderWeek() {
   const host = h('div', { class: 'zoom-host week-main' }, head, grid);
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(standardAdds(today), [sendTool(anchor())]) : null,
-    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(today, { side: 'weekSide', first: 'week' }))].filter(Boolean));
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(today, { side: 'weekSide', first: 'week', stack: layout === 'desktop' }))].filter(Boolean));
   if (zoom?.view === 'week') host.append(zoomPanel());
 }
 export const weekPlanKey = d => dateKey(startOfWeek(d instanceof Date ? d : parseKey(d)));
@@ -1508,7 +1506,7 @@ function renderMonth() {
     ? { planLabel: 'Monthly plan', planCount: periodCards('monthplan').filter(c => !c.meta.done).length, openPlan: () => planSheet('Monthly plan', () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(adds(), [sendTool(anchor())]) : null,
-    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(dayToday(), { side: 'monthSide', first: 'month' }))].filter(Boolean));
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(dayToday(), { side: 'monthSide', first: 'month', stack: layout === 'desktop' }))].filter(Boolean));
   if (layout !== 'desktop' && !listMode()) requestAnimationFrame(() => fitBottom(grid, 360));
   if (zoom?.view === 'month') host.append(zoomPanel());
 }
