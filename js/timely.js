@@ -161,6 +161,7 @@ function paintDaySel() {
     from !== today ? Object.assign(to(today), { textContent: 'Today' }) : null,
     Object.assign(to(dateKey(addDays(parseKey(from === today ? today : from), 1))), { textContent: from === today ? 'Tomorrow' : 'Next day' }),
     h('label', { class: 'chip sel-pick', title: 'Pick a date' }, icon('calendar'), 'Date…', date),
+    h('button', { class: 'chip', type: 'button', disabled: !n, title: 'Move the selected later or earlier (⌥↓ / ⌥↑ nudges 15 minutes)', onclick: e => openPushBack(e.currentTarget) }, icon('clock'), 'Push…'),
     h('span', { class: 'sel-sep' }),
     h('button', { class: 'chip', type: 'button', onclick: selectWholeDay }, 'Select all'),
     h('button', { class: 'chip danger-text', type: 'button', disabled: !n, onclick: () => deleteItems([...daySel]) }, icon('trash'), 'Delete'),
@@ -198,12 +199,108 @@ function deleteItems(ids) {
   daySel.clear(); selectMode = false; paintDaySel();
   toast(`Deleted ${gone.length}`, { action: 'Undo', onAction: () => gone.forEach(c => store.restoreCard(c)) });
 }
+
+// ---------- Push back: running late? Slide the day later (or earlier) in one go ----------
+// "I woke up late": pick how much, and everything you haven't done yet moves by that much, keeping its spacing.
+// Done things stay where they happened. A routine moves just for that day: the day is skipped on the routine and a
+// one-off copy sits at the new time, so tomorrow's routine is untouched. One Undo puts it all back.
+/** The timed things on a day's 5am–5am grid, with the calendar date each one sits on. */
+function timedOnDay(key) {
+  const nextKey = dateKey(addDays(parseKey(key), 1));
+  return [
+    ...occurrencesOn(key).filter(o => o.card.meta.start != null && o.card.meta.start >= DAY0 && !o.card.meta.endDate).map(o => ({ ...o, on: key, g: o.card.meta.start - DAY0 })),
+    ...occurrencesOn(nextKey).filter(o => o.card.meta.start != null && o.card.meta.start < DAY0 && !o.card.meta.endDate).map(o => ({ ...o, on: nextKey, g: o.card.meta.start + 1440 - DAY0 })),
+  ].sort((a, b) => a.g - b.g);
+}
+const fmtShift = m => { const a = Math.abs(m), hr = Math.floor(a / 60), mn = a % 60; return `${hr ? `${hr}h` : ''}${mn ? `${hr ? ' ' : ''}${mn}m` : ''}` || '0m'; };
+/** Which items a push would move. scope: 'left' (not done), 'now' (not done and not over yet), 'sel' (the selection). */
+function pushTargets(key, scope) {
+  const all = timedOnDay(key);
+  if (scope === 'sel') return all.filter(o => daySel.has(o.card.id));
+  const nowG = gridMin(new Date().getHours() * 60 + new Date().getMinutes());
+  return all.filter(o => !o.done && (scope !== 'now' || o.g + (o.card.meta.dur || 60) > nowG));
+}
+function pushBack(list, minutes) {
+  if (!list.length || !minutes) return;
+  const created = [], prev = [], swapped = new Map();
+  for (const o of list) {
+    let c = store.getCard(o.card.id);
+    if (!c) continue;
+    if (isRoutine(c)) {
+      // Just this day: skip it on the routine, and put a one-off copy in its place.
+      prev.push({ id: c.id, meta: { ...c.meta } });
+      store.updateCard(c.id, { meta: { skipDates: [...new Set([...(c.meta.skipDates || []), o.on])].sort() } }, { silent: true });
+      const { recurrence, repeat, doneDates, skipDates, ...rest } = c.meta;
+      c = store.createCard({ type: c.type, tool: 'timely', title: c.title, description: c.description || '', emoji: c.emoji,
+        meta: { ...rest, date: o.on, done: !!doneDates?.includes(o.on), fromRoutine: c.id } }, { silent: true, log: false });
+      created.push(c.id); swapped.set(o.card.id, c.id);
+    } else prev.push({ id: c.id, meta: { ...c.meta } });
+    const abs = c.meta.start + minutes, shift = Math.floor(abs / 1440);
+    store.updateCard(c.id, { meta: { date: dateKey(addDays(parseKey(c.meta.date), shift)), start: abs - shift * 1440 } }, { silent: true });
+  }
+  store.notify({ reason: 'move' });
+  daySel.clear(); selectMode = false; paintDaySel();
+  const n = list.length;
+  toast(`Pushed ${n} item${n === 1 ? '' : 's'} ${minutes > 0 ? 'back' : 'earlier'} ${fmtShift(minutes)}`, { action: 'Undo', onAction: () => {
+    created.forEach(id => store.deleteCard(id, { silent: true }));
+    prev.forEach(p => store.updateCard(p.id, { meta: p.meta }, { silent: true, replaceMeta: true }));
+    store.notify({ reason: 'move' });
+  } });
+  return swapped;
+}
+const PUSH_STEPS = [15, 30, 45, 60, 90, 120, 180];
+/** The Push back panel: how much, which things, a preview of what moves, and one button. */
+function openPushBack(anchorEl, key = anchor()) {
+  const isToday = key === dayToday();
+  let scope = daySel.size ? 'sel' : 'left', amount = store.pref('pushAmount', 60), dir = 1;
+  const box = h('div', { class: 'push-pop', role: 'dialog', 'aria-label': 'Push back' });
+  const paint = () => {
+    const list = pushTargets(key, scope), m = amount * dir;
+    const scopes = [
+      daySel.size ? ['sel', `Selected (${daySel.size})`] : null,
+      ['left', 'Everything not done'],
+      isToday ? ['now', 'From now on'] : null].filter(Boolean);
+    const stepper = d => () => { amount = clamp(amount + d, 5, 12 * 60); paint(); };
+    const preview = list.slice(0, 4).map(o => {
+      const from = o.card.meta.start, to = ((from + m) % 1440 + 1440) % 1440;
+      return h('li', {}, h('span', { class: 'pp-t' }, truncate(o.card.title, 26)), h('span', { class: 'pp-times' }, h('s', {}, fmtMinutes(from)), ' → ', fmtMinutes(to)));
+    });
+    const last = list[list.length - 1], lastEnd = last ? last.g + (last.card.meta.dur || 60) + m : 0;
+    const routines = list.filter(o => isRoutine(o.card)).length;
+    box.replaceChildren(...[
+      h('strong', { class: 'pp-h' }, 'Push back'),
+      h('div', { class: 'segmented pp-dir', role: 'tablist' },
+        [[1, 'Later'], [-1, 'Earlier']].map(([v, l]) => h('button', { class: dir === v ? 'on' : '', type: 'button', onclick: () => { dir = v; paint(); } }, l))),
+      h('div', { class: 'pp-steps' }, PUSH_STEPS.map(s => h('button', { class: `chip ${s === amount ? 'on' : ''}`, type: 'button', onclick: () => { amount = s; paint(); } }, fmtShift(s)))),
+      h('div', { class: 'pp-custom' },
+        h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': '5 minutes less', onclick: stepper(-5) }, '−'),
+        h('span', { class: 'pp-amount' }, `${dir > 0 ? '+' : '−'}${fmtShift(amount)}`),
+        h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': '5 minutes more', onclick: stepper(5) }, icon('plus'))),
+      h('div', { class: 'pp-scope' }, scopes.map(([v, l]) => h('button', { class: `chip ${scope === v ? 'on' : ''}`, type: 'button', onclick: () => { scope = v; paint(); } }, l))),
+      list.length ? h('ul', { class: 'pp-list' }, preview, list.length > 4 ? h('li', { class: 'muted small' }, `and ${list.length - 4} more`) : null)
+        : h('p', { class: 'muted small' }, 'Nothing to move here.'),
+      lastEnd > 1440 ? h('p', { class: 'pp-note' }, `The last one would end ${fmtMinutes((lastEnd + DAY0) % 1440)}, past the end of the day.`) : null,
+      routines ? h('p', { class: 'pp-note muted' }, `Routines move just for this day.`) : null,
+      h('button', { class: 'btn primary pp-go', type: 'button', disabled: !list.length, onclick: () => {
+        store.setPref('pushAmount', amount); closePopovers(); pushBack(list, m);
+      } }, list.length ? `Move ${list.length} ${dir > 0 ? 'later' : 'earlier'} by ${fmtShift(amount)}` : 'Move')].filter(Boolean));
+  };
+  paint();
+  popover(anchorEl, box, { className: 'push-popover' });
+}
 document.addEventListener('keydown', e => {
   if (!root?.isConnected || view() !== 'day' || mode() !== 'schedule' || document.querySelector('.modal-backdrop')) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); selectWholeDay(); }
   else if (e.key === 'Escape' && (daySel.size || selectMode)) { clearDaySel(); }
   else if ((e.key === 'Backspace' || e.key === 'Delete') && daySel.size) { e.preventDefault(); deleteItems([...daySel]); }
+  else if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && daySel.size) {
+    // ⌥↓ / ⌥↑ nudge the selection 15 minutes later or earlier (add Shift for an hour). The selection stays.
+    e.preventDefault();
+    const keep = [...daySel], list = pushTargets(anchor(), 'sel');
+    const swapped = pushBack(list, (e.key === 'ArrowDown' ? 1 : -1) * (e.shiftKey ? 60 : 15)) || new Map();
+    keep.forEach(id => daySel.add(swapped.get(id) || id)); paintDaySel();
+  }
 });
 addEventListener('hashchange', () => { if (daySel.size || selectMode) clearDaySel(); });
 
@@ -286,7 +383,7 @@ function customRepeatFields(initial = {}, baseDate = todayKey()) {
 /** Everything happening on a day. Routine occurrences carry `done` when that day was ticked. */
 export function occurrencesOn(key) {
   const spans = m => m.endDate && m.date && key > m.date && key <= m.endDate; // trips and conferences cover every day in between
-  const out = store.cardsWhere(c => live(c) && !(c.meta.kind === 'reminder' && c.meta.done && !c.meta.recurrence) && (c.meta.date === key || spans(c.meta) || recursOn(c.meta, key)))
+  const out = store.cardsWhere(c => live(c) && !(c.meta.kind === 'reminder' && c.meta.done && !c.meta.recurrence) && (c.meta.date === key || spans(c.meta) || recursOn(c.meta, key)) && !(c.meta.recurrence && c.meta.skipDates?.includes(key)))
     .map(card => ({ card, date: key, done: card.meta.recurrence ? !!card.meta.doneDates?.includes(key) : !!card.meta.done }));
   const slotIdx = s => (s ? SLOTS.indexOf(s) : 9);
   return out.sort((a, b) => {
@@ -388,6 +485,7 @@ function navControl(label, step, { sub = '' } = {}) {
   return h('div', { class: 'cal-head' },
     h('div', { class: 'cal-title' }, h('h2', {}, label), sub ? h('span', { class: 'cal-sub' }, sub) : null),
     h('div', { class: 'cal-nav' },
+      view() === 'day' && pushTargets(a, 'left').length ? h('button', { class: 'chip ghost push-btn', type: 'button', title: 'Running late? Move the rest of the day later', onclick: e => openPushBack(e.currentTarget, a) }, icon('clock'), h('span', { class: 'push-label' }, 'Push back')) : null,
       // In the day view, dragging onto ‹ › or Today moves things to that day (keeping their times); hold there
       // and the view flips to that day, so you can drop at an exact time.
       h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Previous', disabled: atToday, onclick: () => go(step(-1)), ...(view() === 'day' ? { dataset: { drop: 'timely-shiftday', accept: 'card', to: step(-1), springClick: '' } } : {}) }, icon('chevL')),

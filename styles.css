@@ -4478,3 +4478,23 @@ body.is-dragging .plan-viewport { scroll-snap-type: none !important; }
 .cal-arrow.drop-over, .cal-today.drop-over { box-shadow: 0 0 0 3px var(--ink) !important; }
 @media (max-width: 700px) { .sel-bar { bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom, 0px) + 84px); } .sel-sep { display: none; } }
 body[data-drop-kind="timely-shiftday"] .drag-ghost { scale: 0.45; opacity: 0.9; }
+
+/* ---------- Timely: Push back ---------- */
+.cal-nav .push-btn { gap: 6px; color: var(--ink-2, var(--ink)); }
+.push-popover { width: 320px; max-width: calc(100vw - 24px); }
+.push-pop { display: grid; gap: 12px; padding: 4px; }
+.push-pop .pp-h { font-size: var(--fs-md, 15px); }
+.push-pop .pp-dir { justify-self: start; }
+.push-pop .pp-steps, .push-pop .pp-scope { display: flex; flex-wrap: wrap; gap: 6px; }
+.push-pop .chip.on { background: color-mix(in srgb, var(--timely, #c29a5b) 18%, white); border-color: color-mix(in srgb, var(--timely, #c29a5b) 60%, white); color: var(--ink); font-weight: 600; }
+.push-pop .pp-custom { display: flex; align-items: center; gap: 10px; }
+.push-pop .pp-amount { min-width: 72px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+.push-pop .pp-list { list-style: none; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--wash, rgba(0,0,0,.03)); display: grid; gap: 6px; font-size: var(--fs-sm, 13px); }
+.push-pop .pp-list li { display: flex; justify-content: space-between; gap: 10px; }
+.push-pop .pp-times { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.push-pop .pp-times s { opacity: .5; }
+.push-pop .pp-note { margin: 0; font-size: var(--fs-xs, 12px); }
+.push-pop .pp-go { width: 100%; justify-content: center; }
+@media (max-width: 820px) { .cal-nav .push-btn .push-label { display: none; } }
+.cal-head .push-btn { grid-column: 1; grid-row: 1; justify-self: start; }
+@media (max-width: 700px) { .cal-head .push-btn { grid-column: 3; grid-row: 2; justify-self: end; } }
