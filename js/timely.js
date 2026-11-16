@@ -162,6 +162,12 @@ function paintDaySel() {
     from !== today ? Object.assign(to(today), { textContent: 'Today' }) : null,
     Object.assign(to(dateKey(addDays(parseKey(from === today ? today : from), 1))), { textContent: from === today ? 'Tomorrow' : 'Next day' }),
     h('label', { class: 'chip sel-pick', title: 'Pick a date' }, icon('calendar'), 'Date…', date),
+    h('button', { class: 'chip', type: 'button', disabled: !n, title: 'Star them: they stay when you Focus', onclick: () => {
+      const ids = [...daySel], allOn = ids.every(id => starred(store.getCard(id) || {}));
+      ids.forEach(id => store.updateCard(id, { meta: { priority: allOn ? null : true } }, { silent: true }));
+      store.notify({ reason: 'update' }); paintDaySel();
+      toast(allOn ? `Unstarred ${ids.length}` : `Starred ${ids.length}. They stay when you Focus.`);
+    } }, icon('star'), 'Star'),
     h('button', { class: 'chip', type: 'button', disabled: !n, title: 'Move the selected later or earlier (⌥↓ / ⌥↑ nudges 15 minutes)', onclick: e => openPushBack(e.currentTarget) }, icon('clock'), 'Push…'),
     h('span', { class: 'sel-sep' }),
     h('button', { class: 'chip', type: 'button', onclick: selectWholeDay }, 'Select all'),
@@ -249,6 +255,63 @@ function pushBack(list, minutes) {
   } });
   return swapped;
 }
+// ---------- Focus: hide the noise, keep what matters ----------
+// One switch (or F). What stays is decided for you, so there's nothing to sort first:
+//   · anything you starred (one tap on the ☆), and
+//   · things with a fixed time and other people or a promise in them: meetings, appointments, focus blocks, reminders,
+//   · and whatever is happening right now.
+// Everything else (plain tasks, events, routines, done things) fades back to a faint outline that still holds its
+// time, so the day's shape stays honest. Star something to keep it; un-star a meeting to let it fade.
+const FIXED_TYPES = new Set(['meeting', 'appointment', 'work', 'reminder']);
+const focusOn = () => !!store.pref('dayFocus', false);
+const starred = c => c.meta?.priority === true;
+function matters(c, done, key) {
+  if (done) return false;
+  if (c.meta.priority === true) return true;
+  if (c.meta.priority === false) return false;
+  if (FIXED_TYPES.has(itemTypeOf(c))) return true;
+  if (key === dayToday() && c.meta.start != null) {
+    const n = new Date(), now = gridMin(n.getHours() * 60 + n.getMinutes()), g = gridMin(c.meta.start);
+    if (g <= now && now < g + (c.meta.dur || 60)) return true;
+  }
+  return false;
+}
+const hiddenCount = key => [...timedOnDay(key), ...occurrencesOn(key).filter(o => o.card.meta.start == null)].filter(o => !matters(o.card, o.done, key)).length;
+function focusButton(key, { compact = false } = {}) {
+  const on = focusOn(), n = on ? hiddenCount(key) : 0;
+  return h('button', { class: `chip ${compact ? '' : 'ghost'} focus-btn ${on ? 'on' : ''}`, type: 'button', role: 'switch', 'aria-checked': String(on), 'aria-label': 'Focus', title: on ? 'Show everything again (F)' : 'Focus: hide what can wait (F)', onclick: toggleFocus },
+    icon('focus'), compact ? (on && n ? h('small', {}, n) : null) : h('span', { class: 'focus-label' }, on && n ? `Focus · ${n} hidden` : 'Focus'));
+}
+/** Touch screens: the day's other tools in one ⋯ menu, so the date and the main buttons keep their room. */
+function openDayMore(anchorEl, key) {
+  const item = (ic, label, run) => h('button', { class: 'menu-item', type: 'button', onclick: () => { closePopovers(); run(); } }, icon(ic), label);
+  popover(anchorEl, h('div', { class: 'day-more' },
+    item('check', 'Select items', () => { selectMode = true; paintDaySel(); }),
+    pushTargets(key, 'left').length ? item('clock', 'Push back…', () => openPushBack(anchorEl, key)) : null,
+    item('calendar', 'Send to calendar…', () => openSendToCalendar(anchorEl, key))), { className: 'day-more-pop' });
+}
+function toggleFocus() {
+  const on = !focusOn();
+  store.setPref('dayFocus', on);
+  render();
+  if (on) {
+    const hidden = hiddenCount(anchor());
+    toast(hidden ? `Focus: ${hidden} thing${hidden === 1 ? '' : 's'} tucked away. Star (☆) anything you want to keep.` : 'Focus is on. Everything here already matters.', { duration: 4200 });
+  }
+}
+/** Star / un-star: the one-tap way to say "this matters". On a meeting (which counts already), un-starring lets it fade. */
+function togglePriority(id) {
+  const c = store.getCard(id);
+  if (!c) return;
+  const auto = FIXED_TYPES.has(itemTypeOf(c));
+  const next = c.meta.priority === true ? (auto ? false : null) : c.meta.priority === false ? null : true;
+  store.updateCard(id, { meta: { priority: next } }, { log: next === true, logLabel: 'Starred' });
+}
+function starButton(c) {
+  const on = starred(c);
+  return h('button', { class: `card-tool star-tool ${on ? 'on' : ''}`, type: 'button', 'aria-pressed': String(on), 'aria-label': on ? 'Starred: tap to unstar' : 'Star: keep it in Focus', title: on ? 'Starred (stays in Focus)' : 'Star it: stays when you Focus', onclick: e => { e.stopPropagation(); togglePriority(c.id); } }, icon('star'));
+}
+
 // ---------- Daily reminders: a line that stays on top of the day ----------
 // A quote, an intention, something to remember. It isn't a task: nothing to tick, and it never moves or archives.
 // Each one shows every day by default; its ⋯ lets it show only on some weekdays, or only on one date.
@@ -380,6 +443,7 @@ document.addEventListener('keydown', e => {
   if (!root?.isConnected || view() !== 'day' || mode() !== 'schedule' || document.querySelector('.modal-backdrop')) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); selectWholeDay(); }
+  else if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFocus(); }
   else if (e.key === 'Escape' && (daySel.size || selectMode)) { clearDaySel(); }
   else if ((e.key === 'Backspace' || e.key === 'Delete') && daySel.size) { e.preventDefault(); deleteItems([...daySel]); }
   else if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && daySel.size) {
@@ -570,15 +634,17 @@ function navControl(label, step, { sub = '' } = {}) {
   const go = k => { zoom = null; dayScroll = null; setAnchor(k); };
   const archive = archiveButton();
   if (archive) tbRight.append(archive);
-  // Phones hide the toolbar, so the same button sits by the date there (icon only).
-  const sendMini = view() === 'day' || view() === 'week' ? h('button', { class: 'chip ghost send-cal-mini', type: 'button', hidden: true, 'aria-label': 'Send to calendar', title: 'Send to calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar')) : null;
+  // Day tools live in the toolbar on a computer. Touch screens hide the toolbar: the day gets them in its own
+  // action row (see renderDay), and the week keeps Send as an icon by the date.
+  const desk = dayLayout() === 'desktop';
+  if (view() === 'day' && desk) tbRight.append(focusButton(a), ...(pushTargets(a, 'left').length ? [h('button', { class: 'chip ghost push-btn', type: 'button', title: 'Running late? Move the rest of the day later', onclick: e => openPushBack(e.currentTarget, a) }, icon('clock'), 'Push back')] : []));
+  const sendMini = view() === 'week' && !desk ? h('button', { class: 'chip ghost send-cal-mini', type: 'button', hidden: true, 'aria-label': 'Send to calendar', title: 'Send to calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar')) : null;
   if (sendMini) requestAnimationFrame(() => { sendMini.hidden = !tbRight.isConnected || getComputedStyle(tbRight).display !== 'none'; });
-  if (view() === 'day' || view() === 'week') tbRight.append(h('button', { class: 'chip ghost send-cal-btn', type: 'button', title: 'Put this schedule in Google or Apple Calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar'), h('span', { class: 'send-label' }, 'Send to calendar')));
+  if ((view() === 'day' && desk) || view() === 'week') tbRight.append(h('button', { class: 'chip ghost send-cal-btn', type: 'button', title: 'Put this schedule in Google or Apple Calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar'), h('span', { class: 'send-label' }, 'Send to calendar')));
   return h('div', { class: 'cal-head' },
     h('div', { class: 'cal-title' }, h('h2', {}, label), sub ? h('span', { class: 'cal-sub' }, sub) : null),
     h('div', { class: 'cal-nav' },
       sendMini,
-      view() === 'day' && pushTargets(a, 'left').length ? h('button', { class: 'chip ghost push-btn', type: 'button', title: 'Running late? Move the rest of the day later', onclick: e => openPushBack(e.currentTarget, a) }, icon('clock'), h('span', { class: 'push-label' }, 'Push back')) : null,
       // In the day view, dragging onto ‹ › or Today moves things to that day (keeping their times); hold there
       // and the view flips to that day, so you can drop at an exact time.
       h('button', { class: 'icon-btn cal-arrow', 'aria-label': 'Previous', disabled: atToday, onclick: () => go(step(-1)), ...(view() === 'day' ? { dataset: { drop: 'timely-shiftday', accept: 'card', to: step(-1), springClick: '' } } : {}) }, icon('chevL')),
@@ -645,7 +711,7 @@ function dayLayout() {
 function renderDay() {
   const key = anchor();
   const d = parseKey(key);
-  const label = `${key === dayToday() ? 'Today, ' : ''}${DAY_NAMES[d.getDay()]} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
+  const label = `${key === dayToday() ? 'Today, ' : ''}${dayLayout() === 'compact' ? DAY_NAMES[d.getDay()].slice(0, 3) : DAY_NAMES[d.getDay()]} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
   const occ = occurrencesOn(key);
   const nextKey = dateKey(addDays(d, 1)), nd = addDays(d, 1);
   // 5am today through 4:59am tomorrow. Things before 5am today belong to yesterday's day.
@@ -669,13 +735,16 @@ function renderDay() {
   const layout = dayLayout();
   const onPhone = layout === 'compact';
   markTouch(layout);
+  root.querySelector('.timely')?.classList.toggle('focus-on', focusOn());
   const phoneActions = onPhone ? h('div', { class: 'm-day-actions' },
     key !== dayToday() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(dayToday()); } }, 'Today') : null,
     h('button', { class: 'chip m-plan-btn', type: 'button', onclick: () => openPlanSheet(key) }, icon('checklist'), 'Plans', todoCards().length ? h('small', {}, todoCards().length) : null),
-    h('button', { class: 'chip m-select-btn', type: 'button', 'aria-label': 'Select items to move', onclick: () => { selectMode = !selectMode; if (!selectMode) daySel.clear(); paintDaySel(); } }, icon('check'), 'Select'),
+    focusButton(key, { compact: true }),
+    h('button', { class: 'chip m-more-btn', type: 'button', 'aria-label': 'More: select, push back, send to calendar', onclick: e => openDayMore(e.currentTarget, key) }, icon('more')),
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
   const tabletAdd = layout === 'tablet' ? h('div', { class: 'm-day-actions' },
-    h('button', { class: 'chip m-select-btn', type: 'button', onclick: () => { selectMode = !selectMode; if (!selectMode) daySel.clear(); paintDaySel(); } }, icon('check'), 'Select'),
+    focusButton(key),
+    h('button', { class: 'chip m-more-btn', type: 'button', 'aria-label': 'More: select, push back, send to calendar', onclick: e => openDayMore(e.currentTarget, key) }, icon('more')),
     key !== dayToday() ? h('button', { class: 'chip m-today-btn', type: 'button', onclick: () => { zoom = null; dayScroll = null; setAnchor(dayToday()); } }, 'Today') : null,
     h('button', { class: 'btn sm primary m-add-btn', type: 'button', onclick: e => openItemForm(e.currentTarget, { type: 'task', date: key, pickDate: false }) }, icon('plus'), 'Add')) : null;
   if (tabletAdd) head.append(tabletAdd); // landscape tablets: Add sits on the date line, no extra row
@@ -858,12 +927,12 @@ function eventBlock(c, hourH, key, done, g = gridMin(c.meta.start)) {
   const short = px < 40, tiny = px < 24;
   const lines = px >= 84 ? 3 : 2;
   const el = h('article', {
-    class: `event-block ${short ? 'short' : ''} ${tiny ? 'tiny' : ''} ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id },
+    class: `event-block ${short ? 'short' : ''} ${tiny ? 'tiny' : ''} ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''} ${starred(c) ? 'is-starred' : ''} ${matters(c, done, key) ? '' : 'low'}`, dataset: { drag: 'card', id: c.id },
     style: { top: (g / 60) * hourH + 'px', height: px + 'px', '--lines': lines },
   },
   // Anything scheduled can be ticked off: routines for the day, everything else for good.
   ITEM_TYPES[itemTypeOf(c)]?.span ? null : routineTick(c, key, done),
-  h('span', { class: 'ev-title' }, catClass(c) ? h('span', {}, icon(ITEM_TYPES[itemTypeOf(c)]?.icon || 'bell', 'ev-type'), c.title) : c.title),
+  h('span', { class: 'ev-title' }, starred(c) ? icon('star', 'ev-star') : null, catClass(c) ? h('span', {}, icon(ITEM_TYPES[itemTypeOf(c)]?.icon || 'bell', 'ev-type'), c.title) : c.title),
   h('span', { class: 'ev-time' }, h('span', { class: 'ev-range' }, `${fmtMinutes(m.start)}–${fmtMinutes(m.start + dur)}`), isRoutine(c) ? routineTag(c) : null),
   !short && px >= 70 ? notesSnippet(c) : null,
   // Both edges stretch it: the top moves the start, the bottom moves the end. Tiny blocks are all grab.
@@ -916,9 +985,10 @@ function selectable(el, c) {
 }
 function chip(c, { showTime = false, date = null, done = false } = {}) {
   const m = c.meta || {};
-  const el = h('div', { class: `t-chip ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id }, title: c.title },
+  const el = h('div', { class: `t-chip ${catClass(c)} it-${itemTypeOf(c)} ${isRoutine(c) ? 'is-routine' : ''} ${done ? 'is-done' : ''} ${starred(c) ? 'is-starred' : ''} ${date && !matters(c, done, date) ? 'low' : ''}`, dataset: { drag: 'card', id: c.id }, title: c.title },
     date && !ITEM_TYPES[itemTypeOf(c)]?.span ? routineTick(c, date, done) : null,
     showTime && m.start != null ? h('span', { class: 't-chip-time' }, fmtMinutes(m.start)) : null,
+    starred(c) ? icon('star', 'ev-star') : null,
     h('span', { class: 't-chip-title' }, c.title),
     isRoutine(c) && !date ? icon('repeat', 'ev-repeat') : null);
   if (date) selectable(el, c);
@@ -929,6 +999,7 @@ function chip(c, { showTime = false, date = null, done = false } = {}) {
 /** Hover actions for Timely cards: add to calendar, and repeat (turn it into a routine). */
 function quickActions(c) {
   return [
+    starButton(c),
     h('button', { class: 'card-tool', type: 'button', 'aria-label': 'Add to calendar', title: 'Add to your calendar…', onclick: e => { e.stopPropagation(); addToCalendar(e.currentTarget, c.id, { choose: true }); } }, icon('calendar')),
     h('button', { class: `card-tool ${isRoutine(c) ? 'on-routine' : ''}`, type: 'button', 'aria-label': 'Repeat', title: isRoutine(c) ? `Repeats ${recurLabel(c.meta).toLowerCase()}` : 'Repeat: make it a routine', onclick: e => { e.stopPropagation(); openRepeat(e.currentTarget, c.id); } }, icon('repeat')),
   ];
@@ -1782,6 +1853,7 @@ export function openEventEditor(id) {
   const c = store.getCard(id);
   if (!c) return;
   let f = {};
+  let prio = c.meta?.priority ?? null; // the Star button in the details; saved with everything else
   const isRem = c.meta?.kind === 'reminder';
   openEditor(id, {
     title: isRem ? 'Reminder' : isRoutine(c) ? 'Routine' : 'Scheduled item',
@@ -1880,6 +1952,14 @@ export function openEventEditor(id) {
         f.custom.el,
         isRoutine(card) ? h('p', { class: 'muted small' }, 'Changes apply from today on. Days you already ticked stay ticked.') : null,
         h('div', { class: 'ical-actions' },
+          (() => {
+            const b = h('button', { class: `chip star-chip ${prio === true ? 'on' : ''}`, type: 'button', 'aria-pressed': String(prio === true), onclick: () => {
+              prio = prio === true ? (FIXED_TYPES.has(itemTypeOf(card)) ? false : null) : true;
+              b.classList.toggle('on', prio === true); b.setAttribute('aria-pressed', String(prio === true));
+              b.lastChild.textContent = prio === true ? 'Starred' : 'Star';
+            } }, icon('star'), prio === true ? 'Starred' : 'Star');
+            return b;
+          })(),
           h('button', { class: 'chip', type: 'button', onclick: e => addToCalendar(e.currentTarget, id, { choose: true }) }, icon('calendar'), 'Add to calendar…'),
           // SD-T12: Send to Reminders only for reminders.
           isRem ? h('button', { class: 'chip', type: 'button', onclick: () => sendToReminders(store.getCard(id)) }, icon('bell'), 'Send to Reminders') : null));
@@ -1892,7 +1972,7 @@ export function openEventEditor(id) {
           ...card.meta, date: f.date.value || (card.meta.kind === 'reminder' ? null : card.meta.date),
           endDate: f.end.value && f.end.value > (f.date.value || card.meta.date) ? f.end.value : null,
           start, dur: start != null ? +f.dur.value : card.meta.dur, slot: start != null ? null : f.slot.value || null,
-          recurrence: f.rec.value || null, repeat: f.rec.value === 'custom' ? f.custom.read() : null, ...(f.type ? { itemType: f.type.value } : {}), cat: f.cat.value || null,
+          recurrence: f.rec.value || null, repeat: f.rec.value === 'custom' ? f.custom.read() : null, ...(f.type ? { itemType: f.type.value } : {}), cat: f.cat.value || null, priority: prio,
         },
       };
     },

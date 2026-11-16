@@ -357,6 +357,8 @@ export const ICONS = {
   // Universal Board: one clean launch swoosh with a star at its tip.
   galaxy: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="uni-swoosh" d="M2.2 17.4C7.6 9.6 14.4 5.6 22.2 4.6c-6.9 2.2-12.6 6.6-16.7 13.3-1.3.4-2.4.3-3.3-.5z"/><path class="uni-star" d="M19.6 2.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z"/></svg>',
   flag: S('<path d="M6 20.5V4.5"/><path d="M6 5h11l-2.5 4L17 13H6"/>'),
+  star: S('<path d="M12 4.2l2.35 4.76 5.25.77-3.8 3.7.9 5.23L12 16.2l-4.7 2.46.9-5.23-3.8-3.7 5.25-.77z"/>'),
+  focus: S('<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3"/>'),
   arrowR: S('<path d="M5 12h12M13 7.5 17.5 12 13 16.5"/>'),
   sparkle: S('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M7 17l2-2M15 9l2-2"/>'),
   grip: S('<circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/>'),
