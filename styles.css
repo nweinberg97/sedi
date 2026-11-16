@@ -4566,3 +4566,56 @@ body[data-drop-kind="timely-shiftday"] .drag-ghost { scale: 0.45; opacity: 0.9; 
 .t-chip .ev-star { margin-right: 0; }
 .card-tool.star-tool.on svg, .star-chip.on svg { color: var(--timely, #c29a5b); fill: currentColor; }
 .star-chip.on { border-color: color-mix(in srgb, var(--timely, #c29a5b) 60%, white); background: color-mix(in srgb, var(--timely, #c29a5b) 14%, white); }
+
+/* ---------- Timely day, revealed in stages: one calm header, the rest when it's useful ---------- */
+.timely .day-head { display: flex !important; align-items: center; gap: 12px; padding: 4px 2px 14px; width: 100%; max-width: 936px; margin-inline: auto; }
+.timely .day-head .cal-title { order: 2; align-items: flex-start !important; text-align: left !important; flex: 1; min-width: 0; }
+.timely .day-head .cal-nav { display: flex !important; order: 1; gap: 4px; }
+.timely .day-head .cal-today { order: 3; }
+.timely .day-head .day-head-tools { order: 4; display: flex; align-items: center; gap: 6px; }
+.timely .day-head .day-head-tools .day-more-btn { width: 34px; padding: 0; justify-content: center; }
+.timely .day-head .cal-arrow, .timely .day-head .cal-today { grid-column: auto !important; grid-row: auto !important; }
+.timely .day-head .cal-nav .cal-today { margin-left: 6px; }
+.behind-nudge { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: none; margin: 0 0 8px; padding: 8px 8px 8px 14px; border-radius: var(--r, 12px);
+  background: color-mix(in srgb, #e5484d 6%, white); border: 1px solid color-mix(in srgb, #e5484d 18%, white); font-size: var(--fs-sm, 13px); color: var(--ink); animation: pcIn .3s cubic-bezier(.2,.8,.2,1) both; }
+.behind-nudge > svg { width: 15px; height: 15px; color: #d33a3f; flex: none; }
+.behind-nudge .bn-text { flex: 1; min-width: 160px; }
+.behind-nudge .chip { height: 28px; }
+.timely .allday.empty { display: none; }
+body.is-dragging .timely .allday.empty { display: flex; }
+.day-notes:empty { display: none; }
+/* Focus calms the whole page: no toolbar, no side plan; just the day. */
+.timely.focus-on .timely-toolbar { display: none; }
+.timely.focus-on .day-layout { grid-template-columns: minmax(0, 720px); }
+.timely.focus-on .day-head { max-width: 720px; }
+
+/* ---------- Plans beside the day, calmer: just the list, a quiet add line, done items folded away ---------- */
+.side-plan .day-plan { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 2px 0 0 !important; gap: 6px; }
+.side-plan .day-plan-list { gap: 6px; }
+.side-plan .plan-item { background: var(--paper, #fff); border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); box-shadow: none; }
+.side-plan .plan-item:hover { border-color: var(--line); }
+.side-plan .plan-item .card-snippet { display: none; }
+@media (hover: hover) {
+  .side-plan .plan-item > .icon-btn { opacity: 0; transition: opacity .15s; }
+  .side-plan .plan-item:hover > .icon-btn, .side-plan .plan-item > .icon-btn:focus-visible { opacity: 1; }
+}
+.side-plan .plan-add-line { border: 1px dashed transparent; background: transparent; color: var(--ink); }
+.side-plan .plan-add-line::placeholder { color: var(--muted); }
+.side-plan .plan-add-line:hover { border-color: var(--line); }
+.side-plan .plan-add-line:focus { border: 1px solid var(--line); background: var(--paper, #fff); }
+.side-plan .field-mic-inline { opacity: 0; transition: opacity .15s; }
+.side-plan :hover > .field-mic-inline, .side-plan :focus-within > .field-mic-inline { opacity: 1; }
+@media (hover: none) { .side-plan .field-mic-inline { opacity: 1; } }
+.side-plan .plan-empty { margin: 4px 2px; line-height: 1.45; }
+.side-plan .pp-progress { height: 3px; margin: 0 2px 4px; }
+.side-plan .pp-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pp-done { flex: 1; }
+.pp-done summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs, 12px); color: var(--muted); padding: 4px 6px; border-radius: 8px; }
+.pp-done summary::-webkit-details-marker { display: none; }
+.pp-done summary:hover { color: var(--ink); background: var(--well); }
+.pp-done summary svg { width: 12px; height: 12px; }
+.pp-done[open] { display: grid; gap: 6px; }
+.pp-done .plan-item { opacity: .6; }
+.pp-done .pp-clear { justify-self: start; }
+.pp-done summary { width: fit-content; }
+.side-plan .day-plan > .mic-field, .side-plan .day-plan > .pp-foot, .side-plan .day-plan > .pp-progress, .side-plan .day-plan > .plan-empty { flex: none; }
