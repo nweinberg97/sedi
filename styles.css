@@ -4712,3 +4712,15 @@ body.is-dragging .timely .allday.empty { display: flex; }
 .plan-tab.on { color: color-mix(in srgb, var(--tint) 70%, var(--ink)); font-weight: 600;
   background: color-mix(in srgb, var(--tint) 7%, white); border-color: color-mix(in srgb, var(--tint) 28%, var(--line)); }
 .plan-tab.on small { background: color-mix(in srgb, var(--tint) 16%, white); }
+
+/* Plan tabs on the side: small binder tabs down the right edge of the plan, the open one joined to its page. */
+.side-plan.plan-tabbed { flex-direction: row !important; align-items: stretch; }
+.plan-tabbed .plan-sheet-page { order: 1; min-width: 0; }
+.plan-tabbed .plan-tabs { order: 2; flex-direction: column; justify-content: flex-start; gap: 6px; padding: 18px 0 0; margin: 0 0 0 -1px; width: 30px; flex: none; }
+.plan-tabbed .plan-tab { flex: none; width: 30px; height: auto; min-height: 92px; padding: 12px 0 10px; flex-direction: column; gap: 8px; border-radius: 0 12px 12px 0; border: 1px solid transparent; border-left: 0; }
+.plan-tabbed .plan-tab .pt-label { writing-mode: vertical-rl; letter-spacing: .01em; }
+.plan-tabbed .plan-tab { align-items: center; justify-content: flex-start; }
+.plan-tabbed .plan-tab:not(.on) { background: color-mix(in srgb, var(--tint) 6%, white); border-color: color-mix(in srgb, var(--tint) 14%, var(--line)); }
+.plan-tabbed .plan-tab.on { background: color-mix(in srgb, var(--tint) 6%, white); border-color: color-mix(in srgb, var(--tint) 28%, var(--line)); margin-left: -1px; padding-left: 1px; }
+.plan-tabbed .plan-sheet-page > .day-plan { border-top-left-radius: var(--r-lg, 18px); border-top-right-radius: var(--r-lg, 18px); }
+.day-layout:has(> .plan-tabbed) { grid-template-columns: minmax(0, 620px) minmax(270px, 330px); }

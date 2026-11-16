@@ -1085,7 +1085,7 @@ function sidePlan(key, { onChange = render, scheduleOn = null, stack = false, si
       const n = count(v);
       return h('button', { class: `plan-tab pp-${v} ${v === which ? 'on' : ''}`, role: 'tab', 'aria-selected': String(v === which), type: 'button', title: PLAN_NAMES[v],
         dataset: v === which ? {} : { drop: 'plan-spine', accept: 'card', plan: v, springClick: '' },
-        onclick: () => { if (v !== which) { store.setPref(side, v); onChange(); } } }, label, n ? h('small', {}, n) : null);
+        onclick: () => { if (v !== which) { store.setPref(side, v); onChange(); } } }, h('span', { class: 'pt-label' }, label), n ? h('small', {}, n) : null);
     }));
   if (!stack || true) return h('div', { class: 'side-plan plan-tabbed' }, tabs, h('div', { class: `plan-sheet-page pp-${which}` }, panel));
   // Computers: the three plans sit like sections of a notebook. The open one is in front; the other two peek out
