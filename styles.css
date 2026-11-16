@@ -4648,3 +4648,43 @@ body.is-dragging .timely .allday.empty { display: flex; }
 @keyframes pageIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .plan-page-front, .plan-stack.flipping .plan-page-front { animation: none; transition: none; transform: none; } }
 .plan-page-front .pp-progress span { background: var(--tint) !important; }
+
+/* ---------- One action row in every view: add buttons left, the view's tools right ---------- */
+.action-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.action-tools { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.day-tool { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-sm, 13px); cursor: pointer; transition: background .15s, color .15s; }
+.day-tool svg { width: 15px; height: 15px; }
+.day-tool:hover, .day-tool:focus-visible { background: var(--well); color: var(--ink); }
+.tool-sep { width: 1px; height: 20px; background: var(--line); margin: 0 8px; }
+.focus-switch { display: inline-flex; align-items: center; gap: 10px; padding: 4px 10px 4px 6px; border: 0; border-radius: 12px; background: transparent; cursor: pointer; font: inherit; text-align: left; }
+.focus-switch:hover { background: var(--well); }
+.focus-switch .fs-text { display: flex; flex-direction: column; line-height: 1.15; }
+.focus-switch .fs-text b { font-size: var(--fs-sm, 13px); font-weight: 600; color: var(--ink); }
+.focus-switch .fs-text small { font-size: 11px; color: var(--muted); }
+.focus-switch.on .bs-track { background: var(--timely, #c29a5b); }
+.focus-switch.on .bs-knob { translate: 12px 0; }
+.timely.focus-on .timely-toolbar { display: flex !important; }
+/* The now line: hover the time to see Push back beside it. */
+.now-line .now-push { position: absolute; left: 86px; top: 50%; translate: 0 -50%; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #e5484d 30%, white); background: var(--paper, #fff); color: #c9383d; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  opacity: 0; pointer-events: none; transition: opacity .15s, translate .15s; z-index: 6; }
+.now-line .now-push svg { width: 13px; height: 13px; }
+.now-line:hover .now-push, .now-line .now-push:focus-visible { opacity: 1; pointer-events: auto; }
+@media (hover: none) { .now-line .now-push { display: none; } }
+/* Plans: three tabs on one level, attached to one page. */
+.plan-tabbed { gap: 0 !important; }
+.plan-tabs { display: flex; gap: 4px; padding: 0 10px; position: relative; z-index: 1; margin-bottom: -1px; }
+.plan-tab { --tint: #c29a5b; flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border: 1px solid transparent; border-bottom: 0; border-radius: 12px 12px 0 0;
+  background: color-mix(in srgb, var(--tint) 10%, var(--paper, #fff)); color: color-mix(in srgb, var(--tint) 55%, var(--ink)); font: inherit; font-size: var(--fs-sm, 13px); cursor: pointer; transition: background .15s; }
+.plan-tab.pp-week { --tint: #6f9e86; } .plan-tab.pp-month { --tint: #8a7fc4; }
+.plan-tab small { font-size: 11px; font-weight: 600; opacity: .75; }
+.plan-tab:hover:not(.on), .plan-tab.drop-over { background: color-mix(in srgb, var(--tint) 20%, var(--paper, #fff)); }
+.plan-tab.on { background: var(--paper, #fff); border-color: color-mix(in srgb, var(--tint) 30%, var(--line)); color: var(--ink); font-weight: 600; box-shadow: inset 0 3px 0 color-mix(in srgb, var(--tint) 75%, white); }
+.plan-sheet-page { --tint: #c29a5b; flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--paper, #fff); border: 1px solid color-mix(in srgb, var(--tint) 30%, var(--line)); border-radius: 16px; padding: 12px; overflow: hidden; }
+.plan-sheet-page.pp-week { --tint: #6f9e86; } .plan-sheet-page.pp-month { --tint: #8a7fc4; }
+.plan-sheet-page > .day-plan { flex: 1; min-height: 0; overflow-y: auto; }
+.plan-sheet-page .pp-progress span { background: var(--tint) !important; }
+.action-row .action-tools { flex: none; flex-wrap: nowrap; }
+.action-row .action-adds { flex: 0 1 auto; min-width: 0; }
+.day-tool, .day-tool span { white-space: nowrap; flex: none; }
+.focus-switch { flex: none; white-space: nowrap; }

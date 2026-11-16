@@ -277,6 +277,13 @@ function matters(c, done, key) {
   return false;
 }
 const hiddenCount = key => [...timedOnDay(key), ...occurrencesOn(key).filter(o => o.card.meta.start == null)].filter(o => !matters(o.card, o.done, key)).length;
+/** Focus, as a real on/off switch that says what it does. */
+function focusSwitch(key) {
+  const on = focusOn(), n = on ? hiddenCount(key) : 0;
+  return h('button', { class: `focus-switch ${on ? 'on' : ''}`, type: 'button', role: 'switch', 'aria-checked': String(on), title: on ? 'Show everything again (F)' : 'Hide what can wait; keep meetings, deep work, reminders and starred things (F)', onclick: toggleFocus },
+    h('span', { class: 'bs-track' }, h('span', { class: 'bs-knob' })),
+    h('span', { class: 'fs-text' }, h('b', {}, 'Focus'), h('small', {}, on ? (n ? `on · ${n} hidden` : 'on') : 'show only what matters')));
+}
 function focusButton(key, { compact = false } = {}) {
   const on = focusOn(), n = on ? hiddenCount(key) : 0;
   return h('button', { class: `chip ${compact ? '' : 'ghost'} focus-btn ${on ? 'on' : ''}`, type: 'button', role: 'switch', 'aria-checked': String(on), 'aria-label': 'Focus', title: on ? 'Show everything again (F)' : 'Focus: hide what can wait (F)', onclick: toggleFocus },
@@ -657,9 +664,9 @@ function navControl(label, step, { sub = '' } = {}) {
   // Day tools live in the toolbar on a computer. Touch screens hide the toolbar: the day gets them in its own
   // action row (see renderDay), and the week keeps Send as an icon by the date.
   const desk = dayLayout() === 'desktop';
-  const sendMini = view() === 'week' && !desk ? h('button', { class: 'chip ghost send-cal-mini', type: 'button', hidden: true, 'aria-label': 'Send to calendar', title: 'Send to calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar')) : null;
+  const sendMini = (view() === 'week' || view() === 'month') && !desk ? h('button', { class: 'chip ghost send-cal-mini', type: 'button', hidden: true, 'aria-label': 'Send to calendar', title: 'Send to calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar')) : null;
   if (sendMini) requestAnimationFrame(() => { sendMini.hidden = !tbRight.isConnected || getComputedStyle(tbRight).display !== 'none'; });
-  if (view() === 'week') tbRight.append(h('button', { class: 'chip ghost send-cal-btn', type: 'button', title: 'Put this schedule in Google or Apple Calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar'), h('span', { class: 'send-label' }, 'Send to calendar')));
+  if (false) tbRight.append(h('button', { class: 'chip ghost send-cal-btn', type: 'button', title: 'Put this schedule in Google or Apple Calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar'), h('span', { class: 'send-label' }, 'Send to calendar')));
   return h('div', { class: 'cal-head' },
     h('div', { class: 'cal-title' }, h('h2', {}, label), sub ? h('span', { class: 'cal-sub' }, sub) : null),
     h('div', { class: 'cal-nav' },
@@ -770,20 +777,12 @@ function renderDay() {
   // Computers: one calm header across the top: the date on the left; Today, Focus, ⋯ and + Add on the right.
   // Everything else waits in ⋯ or shows up when it's useful (Push back when you're behind, the selection bar
   // when you select, Any time when something has no time).
-  if (layout === 'desktop') {
-    head.classList.add('day-head');
-    const addEl = h('button', { class: 'btn sm primary day-add', type: 'button', onclick: () => popover(addEl, h('div', { class: 'add-menu' }, standardAdds(key)), { className: 'add-menu-pop' }) }, icon('plus'), 'Add');
-    head.append(h('div', { class: 'day-head-tools' },
-      focusButton(key),
-      h('button', { class: 'chip ghost day-more-btn', type: 'button', 'aria-label': 'More: push back, send to calendar, daily reminder, select', title: 'More', onclick: e => openDayMore(e.currentTarget, key) }, icon('more')),
-      addEl));
-  }
   const nudge = behindNudge(key);
   body.replaceChildren(...[
-    layout === 'desktop' ? head : null,
+    layout === 'desktop' ? actionRow(standardAdds(key), dayTools(key)) : null,
     h('div', { class: 'day-layout' },
-      h('div', { class: 'day-col' }, layout === 'desktop' ? null : head, phoneActions, nudge, dayNotesStrip(key), allDay, scroll),
-      onPhone || (focusOn() && layout === 'desktop') ? null : sidePlan(key, { stack: layout === 'desktop' }))].filter(Boolean));
+      h('div', { class: 'day-col' }, head, phoneActions, nudge, dayNotesStrip(key), allDay, scroll),
+      onPhone || (focusOn() && layout === 'desktop') ? null : sidePlan(key))].filter(Boolean));
 
   // Size hours so 6am–8pm fills the visible window exactly.
   requestAnimationFrame(() => {
@@ -838,7 +837,9 @@ function renderDay() {
     if (key === dayToday()) {
       grid.append(h('div', { class: 'now-line', dataset: { hourH, day: key }, style: { top: (nowG / 60) * hourH + 'px' } },
         h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: 'Add something now', onclick: e => { e.stopPropagation(); const n = new Date(), at = Math.floor((n.getHours() * 60 + n.getMinutes()) / 5) * 5; if (phone) openItemForm(e.currentTarget, { type: 'task', date: todayKey(), start: at, pickDate: false }); else addAt(gridMin(at), 30); } },
-          h('span', { class: 'now-time' }, fmtMinutes(nowMins)))));
+          h('span', { class: 'now-time' }, fmtMinutes(nowMins))),
+        // Where you look when you're late: hover the time and Push back is right there.
+        h('button', { class: 'now-push', type: 'button', title: 'Running late? Push the rest of the day back', onclick: e => { e.stopPropagation(); openPushBack(e.currentTarget, key); } }, icon('clock'), 'Push back')));
     }
     // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
     const startTop = key === dayToday() ? Math.max(0, (nowG / 60 - 1.25) * hourH) : 2 * hourH; // today: right now; other days: 7am
@@ -1063,9 +1064,10 @@ function openRepeat(anchorEl, id) {
 // Weekly and monthly plans are for deciding what; the day is for deciding when. Switching the panel lets
 // you pull something from the week or the month straight onto an hour, without leaving the day.
 const PLAN_NAMES = { today: 'Daily plan', week: 'Weekly plan', month: 'Monthly plan' };
-function sidePlan(key, { onChange = render, scheduleOn = null, stack = false } = {}) {
-  // Beside the day: the Daily plan (Taskly's To do), or the Weekly or Monthly plan, to drag onto a time.
-  const pick = store.pref('daySide', 'today');
+function sidePlan(key, { onChange = render, scheduleOn = null, stack = false, side = 'daySide', first = 'today' } = {}) {
+  // Beside the day (and the week and month): the Daily plan (Taskly's To do), or the Weekly or Monthly plan.
+  // Each view remembers its own tab, and opens on its own plan the first time.
+  const pick = store.pref(side, first);
   const which = pick === 'week' || pick === 'month' ? pick : 'today'; // anything else (an older "Plan" choice) shows the Daily plan
   const panel = which === 'week' ? periodPlanPanel('weekplan', null, '', '', { scheduleOn })
     : which === 'month' ? periodPlanPanel('monthplan', null, '', '', { scheduleOn }) : dayPlanPanel(key);
@@ -1076,7 +1078,15 @@ function sidePlan(key, { onChange = render, scheduleOn = null, stack = false } =
       return h('button', { class: v === which ? 'on' : '', role: 'tab', 'aria-selected': String(v === which), type: 'button', title: { today: 'Your Daily plan: the same list as Taskly’s To do', week: 'Your Weekly plan: stays the same week to week', month: 'Your Monthly plan: bigger things, the same every month' }[v], onclick: () => { store.setPref('daySide', v); onChange(); } },
         label, n ? h('small', {}, n) : null);
     }));
-  if (!stack) return h('div', { class: 'side-plan' }, seg, panel);
+  // Three tabs on the same level, attached to the top of one page (like a notebook's sections), each its own soft color.
+  const tabs = h('div', { class: 'plan-tabs', role: 'tablist', 'aria-label': 'Which plan' },
+    [['today', 'Daily'], ['week', 'Weekly'], ['month', 'Monthly']].map(([v, label]) => {
+      const n = count(v);
+      return h('button', { class: `plan-tab pp-${v} ${v === which ? 'on' : ''}`, role: 'tab', 'aria-selected': String(v === which), type: 'button', title: PLAN_NAMES[v],
+        dataset: v === which ? {} : { drop: 'plan-spine', accept: 'card', plan: v, springClick: '' },
+        onclick: () => { if (v !== which) { store.setPref(side, v); onChange(); } } }, label, n ? h('small', {}, n) : null);
+    }));
+  if (!stack || true) return h('div', { class: 'side-plan plan-tabbed' }, tabs, h('div', { class: `plan-sheet-page pp-${which}` }, panel));
   // Computers: the three plans sit like sections of a notebook. The open one is in front; the other two peek out
   // behind it on the right, each with its name on the edge. Click one and it comes to the front.
   const behind = ['today', 'week', 'month'].filter(v => v !== which);
@@ -1295,9 +1305,20 @@ function cellItems(list, key, { max = 2, showTime = true } = {}) {
   if (rest.length > max) out.push(h('span', { class: 'cell-more' }, `+${rest.length - max} more`));
   return out;
 }
-/** The add buttons sit on the left of their own row; a quiet hint sits on the right. */
-function actionRow(buttons, hint) {
-  return h('div', { class: 'action-row' }, h('div', { class: 'action-adds' }, buttons), hint ? h('span', { class: 'action-hint' }, hint) : null);
+/** One row, in the same place in every view: the add buttons on the left, that view's tools on the right. */
+function actionRow(buttons, tools = []) {
+  return h('div', { class: 'action-row' }, h('div', { class: 'action-adds' }, buttons), h('div', { class: 'action-tools' }, tools.filter(Boolean)));
+}
+const toolBtn = (ic, label, onclick, title = '') => h('button', { class: 'day-tool', type: 'button', title: title || label, onclick }, icon(ic), h('span', {}, label));
+const sendTool = key => toolBtn('calendar', 'Send to calendar', e => openSendToCalendar(e.currentTarget, key), 'Put this schedule in Google or Apple Calendar');
+/** The Daily view's tools: what you'd reach for about the day, then the Focus switch. */
+function dayTools(key) {
+  return [
+    toolBtn('clock', 'Push back', e => openPushBack(e.currentTarget, key), 'Running late? Move the rest of the day later (or earlier)'),
+    toolBtn('sparkle', 'Daily reminder', () => document.querySelector('.day-notes')?._add?.(), 'A line on top of every day: a quote, an intention, something to remember'),
+    sendTool(key),
+    h('span', { class: 'tool-sep', 'aria-hidden': 'true' }),
+    focusSwitch(key)];
 }
 /** The same one-word add buttons in Daily and Weekly. */
 function standardAdds(date, slot = null) {
@@ -1418,8 +1439,8 @@ function renderWeek() {
     ? { planLabel: 'Weekly plan', planCount: periodCards('weekplan').filter(c => !c.meta.done).length, openPlan: () => planSheet('Weekly plan', () => periodPlanPanel('weekplan', wk, 'This week’s plan', `Week of ${fmtShortDate(parseKey(wk))}`, { scheduleOn: dateKey(ws) < today ? today : dateKey(ws) })) } : {}));
   const host = h('div', { class: 'zoom-host week-main' }, head, grid);
   body.replaceChildren(...[
-    layout === 'desktop' ? actionRow(standardAdds(today), 'Dots show what’s planned. Click a block to zoom in and see it all.') : null,
-    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
+    layout === 'desktop' ? actionRow(standardAdds(today), [sendTool(anchor())]) : null,
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(today, { side: 'weekSide', first: 'week' }))].filter(Boolean));
   if (zoom?.view === 'week') host.append(zoomPanel());
 }
 export const weekPlanKey = d => dateKey(startOfWeek(d instanceof Date ? d : parseKey(d)));
@@ -1470,8 +1491,8 @@ function renderMonth() {
   if (layout !== 'desktop') (listMode() ? head.after.bind(head) : head.append.bind(head))(touchActions(adds(), layout === 'compact'
     ? { planLabel: 'Monthly plan', planCount: periodCards('monthplan').filter(c => !c.meta.done).length, openPlan: () => planSheet('Monthly plan', () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
   body.replaceChildren(...[
-    layout === 'desktop' ? actionRow(adds(), 'Dots show what’s planned. Click a day to zoom in.') : null,
-    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
+    layout === 'desktop' ? actionRow(adds(), [sendTool(anchor())]) : null,
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(dayToday(), { side: 'monthSide', first: 'month' }))].filter(Boolean));
   if (layout !== 'desktop' && !listMode()) requestAnimationFrame(() => fitBottom(grid, 360));
   if (zoom?.view === 'month') host.append(zoomPanel());
 }
