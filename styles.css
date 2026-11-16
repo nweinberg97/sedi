@@ -4531,3 +4531,16 @@ body[data-drop-kind="timely-shiftday"] .drag-ghost { scale: 0.45; opacity: 0.9; 
 .dn-pop .dn-hint { margin: 0; }
 .dn-pop .danger-text { justify-self: start; }
 .dn-pop .dn-actions { display: flex; justify-content: space-between; gap: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+
+/* ---------- Timely: Send to calendar ---------- */
+.send-popover { width: 340px; max-width: calc(100vw - 24px); }
+.send-pop { display: grid; gap: 10px; padding: 4px; }
+.send-pop .sp-h { font-size: var(--fs-md, 15px); }
+.send-pop .sp-range { justify-self: start; }
+.send-pop .sp-sum { margin: 0; font-size: var(--fs-sm, 13px); color: var(--ink); font-variant-numeric: tabular-nums; }
+.send-pop .sp-check { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.send-pop .cal-opt:disabled { opacity: .5; cursor: default; }
+.send-pop .sp-tip { margin: 2px 0 0; padding-top: 8px; border-top: 1px solid var(--line); }
+.cal-logo.cal-apple { background: #1d1d1f; }
+@media (max-width: 700px) { .send-cal-btn .send-label { display: none; } }
+.cal-head .send-cal-mini { grid-column: 3; grid-row: 2; justify-self: start; }

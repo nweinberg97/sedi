@@ -15,6 +15,7 @@ import { tick, checkSound } from './sound.js';
 import { celebrate } from './celebrate.js';
 import { dictate as listen, canListen } from './speech.js'; // card mics: instant browser dictation
 import { extractWhen } from './commands.js';
+import * as google from './google.js';
 
 export const SLOTS = ['morning', 'noon', 'afternoon', 'evening', 'night'];
 export const SLOT_LABELS = { morning: 'Morning', noon: 'Noon', afternoon: 'Afternoon', evening: 'Evening', night: 'Night' };
@@ -569,9 +570,14 @@ function navControl(label, step, { sub = '' } = {}) {
   const go = k => { zoom = null; dayScroll = null; setAnchor(k); };
   const archive = archiveButton();
   if (archive) tbRight.append(archive);
+  // Phones hide the toolbar, so the same button sits by the date there (icon only).
+  const sendMini = view() === 'day' || view() === 'week' ? h('button', { class: 'chip ghost send-cal-mini', type: 'button', hidden: true, 'aria-label': 'Send to calendar', title: 'Send to calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar')) : null;
+  if (sendMini) requestAnimationFrame(() => { sendMini.hidden = !tbRight.isConnected || getComputedStyle(tbRight).display !== 'none'; });
+  if (view() === 'day' || view() === 'week') tbRight.append(h('button', { class: 'chip ghost send-cal-btn', type: 'button', title: 'Put this schedule in Google or Apple Calendar', onclick: e => openSendToCalendar(e.currentTarget, a) }, icon('calendar'), h('span', { class: 'send-label' }, 'Send to calendar')));
   return h('div', { class: 'cal-head' },
     h('div', { class: 'cal-title' }, h('h2', {}, label), sub ? h('span', { class: 'cal-sub' }, sub) : null),
     h('div', { class: 'cal-nav' },
+      sendMini,
       view() === 'day' && pushTargets(a, 'left').length ? h('button', { class: 'chip ghost push-btn', type: 'button', title: 'Running late? Move the rest of the day later', onclick: e => openPushBack(e.currentTarget, a) }, icon('clock'), h('span', { class: 'push-label' }, 'Push back')) : null,
       // In the day view, dragging onto ‹ › or Today moves things to that day (keeping their times); hold there
       // and the view flips to that day, so you can drop at an exact time.
@@ -1982,6 +1988,95 @@ export function addToCalendar(anchor, id, { choose = false } = {}) {
       h('span', { class: `cal-logo cal-${k}` }, icon(k === 'google' ? 'calendar' : 'download')), h('span', { class: 'cal-opt-text' }, h('b', {}, t.label), h('small', {}, t.hint)))),
     h('label', { class: 'cal-remember small muted' }, h('input', { type: 'checkbox', checked: true, onchange: e => { remember = e.target.checked; } }), ' Remember, and do it in one click next time')));
 }
+// ---------- Send to calendar: the whole day (or week) in one go ----------
+// One button puts your Sedi schedule in your calendar. It's a send, not a sync: press it again whenever plans
+// change. Google gets it straight into a "Sedi" calendar (sending again updates the same events, never copies).
+// Apple Calendar gets one file with every event: iPhones and iPads show "Add All" right away; on a Mac it opens
+// in Calendar. Each event keeps a fixed id, so re-adding updates it instead of doubling it.
+const isAppleTouch = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const gcalId = (c, onDate) => `sedi${c.id.replace(/[^0-9a-f]/gi, '').toLowerCase()}${isRoutine(c) ? onDate.replace(/-/g, '') : ''}`; // Google wants a–v, 0–9
+/** What would go out for these days: [{ card, on, done }], timed (and, if asked, any-time) items. */
+function sendItems(days, withAnyTime) {
+  const out = [];
+  for (const key of days) {
+    out.push(...timedOnDay(key).map(o => ({ ...o, day: key })));
+    if (withAnyTime) out.push(...occurrencesOn(key).filter(o => o.card.meta.start == null && !o.card.meta.endDate).map(o => ({ ...o, on: key, day: key })));
+  }
+  return out;
+}
+function googleEvent(o) {
+  const c = o.card, m = calMeta({ ...c, meta: { ...c.meta, date: o.on } }), tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const desc = plainText(c.description);
+  let start, end;
+  if (m.start != null) {
+    const s = m.start, e = s + (m.dur || 60);
+    const at = (key, mins) => { const shift = Math.floor(mins / 1440), k = shift ? dateKey(addDays(parseKey(key), shift)) : key, mm = mins - shift * 1440; return `${k}T${pad(Math.floor(mm / 60))}:${pad(mm % 60)}:00`; };
+    start = { dateTime: at(o.on, s), timeZone: tz }; end = { dateTime: at(o.on, e), timeZone: tz };
+  } else { start = { date: o.on }; end = { date: dateKey(addDays(parseKey(o.on), 1)) }; }
+  return { id: gcalId(c, o.on), summary: `${o.done ? '✓ ' : ''}${c.title}`, description: [desc, 'From Sedi'].filter(Boolean).join('\n\n'), start, end, reminder: m.kind === 'reminder' };
+}
+function icsFor(list) {
+  return wrapCal(list.flatMap(o => {
+    const c = o.card, lines = vevent({ ...c, title: `${o.done ? '✓ ' : ''}${c.title}`, meta: { ...c.meta, recurrence: null, date: o.on } }, isRoutine(c) ? o.on : null);
+    // One stable id per item (per day for routines): adding the file again updates instead of doubling.
+    return lines.map(l => (l.startsWith('UID:') ? `UID:${c.id}${isRoutine(c) ? `-${o.on}` : ''}@sedi` : l));
+  }));
+}
+function openInAppleCalendar(list, label) {
+  const ics = icsFor(list);
+  if (isAppleTouch()) {
+    // iPhone and iPad: opening calendar data shows the system "Add All" sheet, no file to find.
+    const a = h('a', { href: `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}` });
+    document.body.append(a); a.click(); a.remove();
+    toast('Tap “Add All” to put them in Calendar.');
+  } else {
+    download(`Sedi ${label}.ics`, ics, 'text/calendar');
+    toast(`Downloaded. Open “Sedi ${label}.ics” and Calendar adds all ${list.length}.`, { duration: 6000 });
+  }
+}
+export function openSendToCalendar(anchorEl, key = anchor()) {
+  let range = store.pref('sendRange', 'day'), withAnyTime = !!store.pref('sendAnyTime', false), busy = false;
+  const box = h('div', { class: 'send-pop', role: 'dialog', 'aria-label': 'Send to calendar' });
+  const days = () => (range === 'week' ? Array.from({ length: 7 }, (_, i) => dateKey(addDays(parseKey(key), i))) : [key]);
+  const label = () => (range === 'week' ? `week of ${fmtShortDate(parseKey(key))}` : fmtShortDate(parseKey(key)));
+  const paint = () => {
+    const list = sendItems(days(), withAnyTime);
+    const timed = list.filter(o => o.card.meta.start != null);
+    const span = timed.length ? `${fmtMinutes(timed[0].card.meta.start)} – ${fmtMinutes((timed[timed.length - 1].card.meta.start + (timed[timed.length - 1].card.meta.dur || 60)) % 1440)}` : '';
+    const opt = (k, title, sub, logo, run) => h('button', { class: 'cal-opt', type: 'button', disabled: !list.length || busy, onclick: run },
+      h('span', { class: `cal-logo cal-${logo}` }, icon(logo === 'apple' && !isAppleTouch() ? 'download' : 'calendar')), h('span', { class: 'cal-opt-text' }, h('b', {}, title), h('small', {}, sub)));
+    box.replaceChildren(...[
+      h('strong', { class: 'sp-h' }, 'Send to calendar'),
+      h('div', { class: 'segmented sp-range', role: 'tablist' },
+        [['day', key === dayToday() ? 'Today' : 'This day'], ['week', 'Next 7 days']].map(([v, l]) => h('button', { class: range === v ? 'on' : '', type: 'button', onclick: () => { range = v; store.setPref('sendRange', v); paint(); } }, l))),
+      h('p', { class: 'sp-sum' }, list.length ? `${list.length} item${list.length === 1 ? '' : 's'}${range === 'day' && span ? ` · ${span}` : ''}` : 'Nothing scheduled to send.'),
+      h('label', { class: 'sp-check small' }, h('input', { type: 'checkbox', checked: withAnyTime, onchange: e => { withAnyTime = e.target.checked; store.setPref('sendAnyTime', withAnyTime); paint(); } }), ' Include “Any time” items (as all-day)'),
+      opt('google', 'Google Calendar', google.calConnected() ? 'Straight into your “Sedi” calendar. Sending again updates it.' : 'Connect once, then one tap. Only touches a “Sedi” calendar.', 'google', () => sendGoogle(list)),
+      opt('apple', 'Apple Calendar', isAppleTouch() ? 'Opens Calendar with “Add All”' : 'One file with everything. Open it and Calendar adds them all.', 'apple', () => { closePopovers(); openInAppleCalendar(list, label()); }),
+      h('p', { class: 'muted small sp-tip' }, 'Tip: if your Google account is in Apple Calendar (Settings → Calendar → Accounts), sending to Google shows up on your iPhone and Mac too.')].filter(Boolean));
+  };
+  const sendGoogle = async list => {
+    if (!google.isSetUp()) { closePopovers(); google.openGooglePanel({ purpose: 'calendar' }); return; }
+    busy = true; paint();
+    const btn = box.querySelector('.cal-opt small');
+    try {
+      const evs = list.map(googleEvent);
+      const byDate = Object.fromEntries(days().map(d => [d, []]));
+      list.forEach((o, i) => { (byDate[o.day] ||= []).push(evs[i].id); }); // by the Sedi day (5am–5am) it was sent from
+      const r = await google.sendToGoogleCalendar(evs, byDate, (n, total) => { if (btn) btn.textContent = `Sending ${n} of ${total}…`; });
+      closePopovers();
+      const d = parseKey(key);
+      toast(`${r.failed ? `Sent ${r.done}, ${r.failed} didn’t go through.` : `Sent ${r.done} to Google Calendar.`}${r.removed ? ` Took off ${r.removed} that changed.` : ''}`,
+        { action: 'Open', onAction: () => window.open(`https://calendar.google.com/calendar/r/day/${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`, '_blank', 'noopener'), duration: 6000 });
+    } catch (err) {
+      busy = false; paint();
+      toast(`Couldn’t send to Google: ${err.message}`, { code: 'GCAL_SEND' });
+    }
+  };
+  paint();
+  popover(anchorEl, box, { className: 'send-popover' });
+}
+
 // ---------- Apple Reminders via Shortcuts (SD-B2) ----------
 // Sedi hands each card to an Apple Shortcut, which adds it to Reminders. Web pages can't reach Reminders
 // directly, so the shortcut is the bridge.
