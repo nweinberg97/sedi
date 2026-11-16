@@ -4692,15 +4692,12 @@ body.is-dragging .timely .allday.empty { display: flex; }
 
 /* Each plan keeps its own color, and its tab matches it: Daily = Taskly's blue (it is Taskly's To do),
    Weekly = sage, Monthly = Timely's gold. */
-.period-plan.plan-weekplan { --col: #6f9e86; }
 .plan-tab.pp-today, .plan-sheet-page.pp-today { --tint: var(--taskly, #7584c4); }
 .plan-tab.pp-week, .plan-sheet-page.pp-week { --tint: #6f9e86; }
 .plan-tab.pp-month, .plan-sheet-page.pp-month { --tint: var(--timely, #c29a5b); }
 
 /* Plan tabs, take 3: the airy look of the Daily plan everywhere. One cool, soft family (periwinkle, sky, lilac),
    no dark accents; the open tab is simply the top of its page. */
-.period-plan.plan-weekplan { --col: #6f9fcb; }
-.period-plan.plan-monthplan { --col: #9a88cc; }
 .plan-tab.pp-today, .plan-sheet-page.pp-today { --tint: var(--taskly, #7584c4); }
 .plan-tab.pp-week, .plan-sheet-page.pp-week { --tint: #6f9fcb; }
 .plan-tab.pp-month, .plan-sheet-page.pp-month { --tint: #9a88cc; }

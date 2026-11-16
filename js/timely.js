@@ -1087,7 +1087,7 @@ function sidePlan(key, { onChange = render, scheduleOn = null, stack = false, si
         dataset: v === which ? {} : { drop: 'plan-spine', accept: 'card', plan: v, springClick: '' },
         onclick: () => { if (v !== which) { store.setPref(side, v); onChange(); } } }, h('span', { class: 'pt-label' }, label), n ? h('small', {}, n) : null);
     }));
-  if (!stack) return h('div', { class: 'side-plan plan-tabbed' }, tabs, h('div', { class: `plan-sheet-page pp-${which}` }, panel));
+  return h('div', { class: 'side-plan' }, seg, panel); // the original toggle above the plan (it reads best)
   // Computers: the three plans sit like sections of a notebook. The open one is in front; the other two peek out
   // behind it on the right, each with its name on the edge. Click one and it comes to the front.
   const behind = ['today', 'week', 'month'].filter(v => v !== which);
@@ -1454,7 +1454,7 @@ function renderWeek() {
   const host = h('div', { class: 'zoom-host week-main' }, head, grid);
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(standardAdds(today), [sendTool(anchor())]) : null,
-    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(today, { side: 'weekSide', first: 'week', stack: layout === 'desktop' }))].filter(Boolean));
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
   if (zoom?.view === 'week') host.append(zoomPanel());
 }
 export const weekPlanKey = d => dateKey(startOfWeek(d instanceof Date ? d : parseKey(d)));
@@ -1506,7 +1506,7 @@ function renderMonth() {
     ? { planLabel: 'Monthly plan', planCount: periodCards('monthplan').filter(c => !c.meta.done).length, openPlan: () => planSheet('Monthly plan', () => periodPlanPanel('monthplan', mk, `${MONTH_NAMES[a.getMonth()]} plan`, 'Goals and to-dos for the month', { scheduleOn: first0 })) } : {}));
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(adds(), [sendTool(anchor())]) : null,
-    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : sidePlan(dayToday(), { side: 'monthSide', first: 'month', stack: layout === 'desktop' }))].filter(Boolean));
+    h('div', { class: 'period-layout' }, host, layout === 'compact' ? null : makePlan())].filter(Boolean));
   if (layout !== 'desktop' && !listMode()) requestAnimationFrame(() => fitBottom(grid, 360));
   if (zoom?.view === 'month') host.append(zoomPanel());
 }
