@@ -286,7 +286,7 @@ function focusButton(key, { compact = false } = {}) {
 function openDayMore(anchorEl, key) {
   const item = (ic, label, run) => h('button', { class: 'menu-item', type: 'button', onclick: () => { closePopovers(); run(); } }, icon(ic), label);
   popover(anchorEl, h('div', { class: 'day-more' },
-    pushTargets(key, 'left').length ? item('clock', 'Push back…', () => openPushBack(anchorEl, key)) : null,
+    item('clock', 'Push back…', () => openPushBack(anchorEl, key)),
     item('calendar', 'Send to calendar…', () => openSendToCalendar(anchorEl, key)),
     item('sparkle', 'Add a daily reminder', () => document.querySelector('.day-notes')?._add?.()),
     item('check', 'Select items', () => { selectMode = true; paintDaySel(); })), { className: 'day-more-pop' });
@@ -399,13 +399,16 @@ function openNoteSettings(anchorEl, note, key) {
   popover(anchorEl, box, { className: 'dn-popover' });
 }
 
-// Running behind? The day notices for you: once something you haven't ticked started 10+ minutes ago (within
-// the last three hours), a quiet line offers to push the rest back. ✕ hides it for the rest of the day.
+// Running behind? The day notices for you: once something you haven't ticked started an hour ago or more (within
+// the last four hours), a quiet line offers to push the rest back. ✕ dismisses it for those items; it only comes
+// back if something else falls an hour behind. Push back is always in ⋯ too.
 function behindNudge(key) {
-  if (key !== dayToday() || store.pref('nudgeOff') === key) return null;
+  if (key !== dayToday()) return null;
   const n = new Date(), nowG = gridMin(n.getHours() * 60 + n.getMinutes());
-  const late = timedOnDay(key).filter(o => !o.done && o.g <= nowG - 10 && o.g >= nowG - 180);
-  if (!late.length) return null;
+  const off = store.pref('nudgeOff');
+  const seen = off && typeof off === 'object' && off.day === key ? off.ids : [];
+  const late = timedOnDay(key).filter(o => !o.done && o.g <= nowG - 60 && o.g >= nowG - 240);
+  if (!late.length || late.every(o => seen.includes(o.card.id))) return null;
   const list = pushTargets(key, 'left');
   const go = m => { store.setPref('pushAmount', m); pushBack(list, m); };
   return h('div', { class: 'behind-nudge', role: 'status' },
@@ -414,7 +417,7 @@ function behindNudge(key) {
     h('button', { class: 'chip', type: 'button', onclick: () => go(30) }, '30m'),
     h('button', { class: 'chip', type: 'button', onclick: () => go(60) }, '1h'),
     h('button', { class: 'chip ghost', type: 'button', onclick: e => openPushBack(e.currentTarget, key) }, 'More…'),
-    h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': 'Hide for today', title: 'Not today', onclick: () => { store.setPref('nudgeOff', key); render(); } }, icon('x')));
+    h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': 'Hide for today', title: 'Dismiss', onclick: () => { store.setPref('nudgeOff', { day: key, ids: [...new Set([...seen, ...late.map(o => o.card.id)])] }); render(); } }, icon('x')));
 }
 const PUSH_STEPS = [15, 30, 45, 60, 90, 120, 180];
 /** The Push back panel: how much, which things, a preview of what moves, and one button. */
