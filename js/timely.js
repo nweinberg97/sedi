@@ -101,7 +101,7 @@ function openCatNames(anchorEl, onChange) {
   paint();
   popover(anchorEl, box, { className: 'cat-names-pop' });
 }
-const TYPE_DEFAULTS = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Focus', icon: 'target' }, event: { label: 'Event', icon: 'sparkle' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
+const TYPE_DEFAULTS = { task: { label: 'Task', icon: 'checklist' }, meeting: { label: 'Meeting', icon: 'calendar' }, appointment: { label: 'Appointment', icon: 'clock' }, work: { label: 'Deep work', icon: 'target' }, event: { label: 'Event', icon: 'sparkle' }, trip: { label: 'Trip', icon: 'plane', span: true }, conference: { label: 'Conference', icon: 'people', span: true } };
 // Types can carry your own names too ("Class" instead of Appointment). The label is read fresh each time.
 export const ITEM_TYPES = Object.fromEntries(Object.entries(TYPE_DEFAULTS).map(([k, t]) => [k, {
   ...t, get label() { return (store.pref('typeNames', {})[k] || '').trim() || t.label; },
