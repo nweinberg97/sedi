@@ -777,6 +777,7 @@ function renderDay() {
   // Computers: one calm header across the top: the date on the left; Today, Focus, ⋯ and + Add on the right.
   // Everything else waits in ⋯ or shows up when it's useful (Push back when you're behind, the selection bar
   // when you select, Any time when something has no time).
+  if (layout === 'desktop') tbRight.append(focusSwitch(key)); // Focus sits top right, on the same line as Daily … Reminders
   const nudge = behindNudge(key);
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(standardAdds(key), dayTools(key)) : null,
@@ -1107,7 +1108,7 @@ function sidePlan(key, { onChange = render, scheduleOn = null, stack = false, si
 // ---------- Today's plan (SD-T10) = Taskly's To do column. One list, shown in both places. ----------
 function dayPlanPanel(key) {
   const list = todoCards();
-  const input = h('input', { class: 'field-input sm plan-add-line', placeholder: '+ Add to the plan', 'aria-label': 'Add to today’s plan', 'data-keep': `plan-${key}` });
+  const input = h('input', { class: 'field-input sm', placeholder: 'Add to the plan, then Enter', 'aria-label': 'Add to today’s plan', 'data-keep': `plan-${key}` });
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !input.value.trim()) return;
     if (todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full. Finish or move something first.', { code: 'TASKLY_COLUMN_FULL' }); return; }
@@ -1115,7 +1116,9 @@ function dayPlanPanel(key) {
     input.value = '';
   });
   return h('aside', { class: 'day-plan', dataset: { drop: 'day-plan', accept: 'card' }, 'data-list': '' },
-    // Calm by default: the tab already says which plan this is. Just the list, and a quiet line to add to it.
+    h('div', { class: 'day-plan-head' },
+      h('h3', {}, 'Daily plan'),
+      h('span', { class: 'sync-tag', title: 'This list is Taskly’s To do column. Changes show up in both places.' }, icon('sync'), 'Taskly To do')),
     h('div', { class: 'day-plan-list' }, list.map(c => {
       const el = h('div', { class: 'plan-item', dataset: { drag: 'card', id: c.id } },
         h('button', { class: 'plan-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); e.currentTarget.classList.add('on'); celebrate(e.currentTarget); setTimeout(() => completeTask(c.id), 520); } }, icon('check')),
@@ -1124,7 +1127,7 @@ function dayPlanPanel(key) {
       return el;
     })),
     withMic(input, { label: 'Dictate a plan item' }),
-    list.length ? null : h('p', { class: 'muted small plan-empty' }, 'What do you want to get done today? It shows up in Taskly’s To do too. Drag it onto the day to give it a time.'));
+    h('p', { class: 'muted small' }, list.length ? (matchMedia('(hover: none)').matches ? 'Tap the clock on a task to give it a time.' : 'Drag a task onto the day to give it a time.') : 'Nothing in To do. Add the day’s plan here; it shows up in Taskly too.'));
 }
 /** Put a plan task on the day at the next free half hour (moves it from Taskly into Timely). */
 function scheduleToday(id, key) {
@@ -1307,7 +1310,21 @@ function cellItems(list, key, { max = 2, showTime = true } = {}) {
 }
 /** One row, in the same place in every view: the add buttons on the left, that view's tools on the right. */
 function actionRow(buttons, tools = []) {
-  return h('div', { class: 'action-row' }, h('div', { class: 'action-adds' }, buttons), h('div', { class: 'action-tools' }, tools.filter(Boolean)));
+  return h('div', { class: 'action-row' }, h('div', { class: 'action-tools' }, tools.filter(Boolean)), addExpander(buttons));
+}
+/** One "+ Add". Hover it (or tab to it) and the kinds slide out beside it, one after another. It stays open while
+ *  you fill in the little form you opened from it. */
+function addExpander(buttons) {
+  const items = h('div', { class: 'ax-items' }, buttons.map((b, i) => { b.style.setProperty('--i', buttons.length - 1 - i); return b; }));
+  const el = h('div', { class: 'add-expander', role: 'group', 'aria-label': 'Add to your schedule' },
+    items, h('button', { class: 'ax-btn', type: 'button', 'aria-label': 'Add', onclick: () => el.classList.toggle('pinned') }, icon('plus'), h('span', {}, 'Add')));
+  const holdWhilePopover = () => {
+    el.classList.add('pinned');
+    const t = setInterval(() => { if (!document.querySelector('.popover')) { clearInterval(t); if (!el.matches(':hover')) el.classList.remove('pinned'); } }, 250);
+  };
+  items.addEventListener('click', () => setTimeout(holdWhilePopover, 0));
+  el.addEventListener('mouseleave', () => { if (!document.querySelector('.popover')) el.classList.remove('pinned'); });
+  return el;
 }
 const toolBtn = (ic, label, onclick, title = '') => h('button', { class: 'day-tool', type: 'button', title: title || label, onclick }, icon(ic), h('span', {}, label));
 const sendTool = key => toolBtn('calendar', 'Send to calendar', e => openSendToCalendar(e.currentTarget, key), 'Put this schedule in Google or Apple Calendar');
@@ -1317,8 +1334,7 @@ function dayTools(key) {
     toolBtn('clock', 'Push back', e => openPushBack(e.currentTarget, key), 'Running late? Move the rest of the day later (or earlier)'),
     toolBtn('sparkle', 'Daily reminder', () => document.querySelector('.day-notes')?._add?.(), 'A line on top of every day: a quote, an intention, something to remember'),
     sendTool(key),
-    h('span', { class: 'tool-sep', 'aria-hidden': 'true' }),
-    focusSwitch(key)];
+  ];
 }
 /** The same one-word add buttons in Daily and Weekly. */
 function standardAdds(date, slot = null) {
@@ -1596,14 +1612,13 @@ function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
   const label = kind === 'monthplan' ? 'Monthly plan' : 'Weekly plan';
   const list = periodCards(kind);
   const done = list.filter(c => c.meta.done).length;
-  const input = h('input', { class: 'field-input sm plan-add-line', placeholder: `+ Add to your ${label.toLowerCase()}`, 'aria-label': `Add to your ${label.toLowerCase()}`, 'data-keep': `pp-${kind}` });
+  const input = h('input', { class: 'field-input sm', placeholder: `Add to your ${label.toLowerCase()}, then Enter`, 'aria-label': `Add to your ${label.toLowerCase()}`, 'data-keep': `pp-${kind}` });
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !input.value.trim()) return;
     store.createCard({ type: 'task', tool: 'timely', title: input.value.trim(), meta: { board: kind, planKey: null, order: list.length, done: false } });
     input.value = '';
   });
   const items = list.map(c => {
-    if (c.meta.done) return null; // done ones fold away below
     const el = h('div', { class: `plan-item ${c.meta.done ? 'is-done' : ''}`, dataset: { drag: 'card', id: c.id } },
       h('button', { class: `plan-check ${c.meta.done ? 'on' : ''}`, 'aria-label': c.meta.done ? `Mark “${c.title}” not done` : `Complete “${c.title}”`, onclick: e => {
         e.stopPropagation();
@@ -1616,25 +1631,23 @@ function periodPlanPanel(kind, key, heading, sub, { scheduleOn = null } = {}) {
       // Phones can't drag from a sheet onto the day, so a tap gives it the next free time instead.
       scheduleOn && !c.meta.done ? h('button', { class: 'icon-btn xs', type: 'button', title: 'Give it a time that day', 'aria-label': `Schedule “${c.title}”`, onclick: e => { e.stopPropagation(); scheduleAt(c.id, scheduleOn); } }, icon('clock')) : null);
     return cardChrome(el, c, () => openEditor(c.id, { title: 'Plan item' }), { compact: true });
-  }).filter(Boolean);
+  });
   const clearDone = done ? h('button', { class: 'chip xs pp-clear', type: 'button', title: 'Remove the ticked items (you can Undo)', onclick: () => {
     const gone = list.filter(c => c.meta.done).map(c => store.deleteCard(c.id, { silent: true })).filter(Boolean);
     store.notify({ reason: 'delete' });
     toast(`Cleared ${gone.length} done`, { action: 'Undo', onAction: () => gone.forEach(c => store.restoreCard(c)) });
   } }, `Clear ${done} done`) : null;
-  // Done items fold into one quiet line ("2 done"); open it to see them, untick one, or clear them.
-  const doneList = list.filter(c => c.meta.done);
-  const doneFold = doneList.length ? h('details', { class: 'pp-done' },
-    h('summary', {}, icon('check'), `${doneList.length} done`),
-    doneList.map(c => h('div', { class: 'plan-item is-done' },
-      h('button', { class: 'plan-check on', type: 'button', 'aria-label': `Mark “${c.title}” not done`, onclick: () => store.updateCard(c.id, { meta: { done: false } }) }, icon('check')),
-      h('div', { class: 'plan-main' }, h('span', { class: 'plan-text' }, c.title)))), clearDone) : null;
   return h('aside', { class: `day-plan period-plan plan-catalog plan-${kind}`, dataset: { drop: 'period-plan', accept: 'card', kind, key: '' }, 'data-list': '' },
-    list.length ? h('div', { class: 'pp-progress', title: `${done} of ${list.length} done` }, h('span', { style: { width: `${Math.round((done / list.length) * 100)}%` } })) : null,
+    h('div', { class: 'day-plan-head' },
+      h('div', { class: 'pp-title' }, h('h3', {}, label), h('span', { class: 'pp-sub' }, kind === 'monthplan' ? 'Bigger things. The same list every month.' : 'This week’s kind of things. The same list every week.')),
+      list.length ? h('span', { class: 'pp-count', title: `${done} of ${list.length} done` }, `${done}/${list.length}`) : null),
+    list.length ? h('div', { class: 'pp-progress' }, h('span', { style: { width: `${Math.round((done / list.length) * 100)}%` } })) : null,
     h('div', { class: 'day-plan-list' }, items),
     withMic(input, { label: 'Dictate a plan item' }),
-    list.length ? null : h('p', { class: 'muted small plan-empty' }, kind === 'monthplan' ? 'The bigger things for this month. The list stays as you move between days and weeks, until you give something a day.' : 'This week’s kind of things. The list stays as you move between days, until you give something a day.'),
-    doneFold ? h('div', { class: 'pp-foot' }, doneFold) : null);
+    h('div', { class: 'pp-foot' },
+      h('p', { class: 'muted small' }, !list.length ? 'Add what you need to get done. It stays here as you move between days, weeks and months, until you give it a day.'
+        : scheduleOn ? 'Tap the clock on an item to give it a day and time.' : 'Drag an item onto any day or time to schedule it.'),
+      clearDone));
 }
 const PLAN_STRIP = ['date', 'start', 'dur', 'slot', 'kind', 'recurrence', 'archivedAt', 'containerId', 'doneDates', 'itemType', 'columnId', 'completedAt', 'reviewUntil'];
 registerDrop('period-plan', ({ id, index, data }) => {

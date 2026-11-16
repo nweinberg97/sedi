@@ -4589,37 +4589,6 @@ body.is-dragging .timely .allday.empty { display: flex; }
 .timely.focus-on .day-layout { grid-template-columns: minmax(0, 720px); }
 .timely.focus-on .day-head { max-width: 720px; }
 
-/* ---------- Plans beside the day, calmer: just the list, a quiet add line, done items folded away ---------- */
-.side-plan .day-plan { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 2px 0 0 !important; gap: 6px; }
-.side-plan .day-plan-list { gap: 6px; }
-.side-plan .plan-item { background: var(--paper, #fff); border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); box-shadow: none; }
-.side-plan .plan-item:hover { border-color: var(--line); }
-.side-plan .plan-item .card-snippet { display: none; }
-@media (hover: hover) {
-  .side-plan .plan-item > .icon-btn { opacity: 0; transition: opacity .15s; }
-  .side-plan .plan-item:hover > .icon-btn, .side-plan .plan-item > .icon-btn:focus-visible { opacity: 1; }
-}
-.side-plan .plan-add-line { border: 1px dashed transparent; background: transparent; color: var(--ink); }
-.side-plan .plan-add-line::placeholder { color: var(--muted); }
-.side-plan .plan-add-line:hover { border-color: var(--line); }
-.side-plan .plan-add-line:focus { border: 1px solid var(--line); background: var(--paper, #fff); }
-.side-plan .field-mic-inline { opacity: 0; transition: opacity .15s; }
-.side-plan :hover > .field-mic-inline, .side-plan :focus-within > .field-mic-inline { opacity: 1; }
-@media (hover: none) { .side-plan .field-mic-inline { opacity: 1; } }
-.side-plan .plan-empty { margin: 4px 2px; line-height: 1.45; }
-.side-plan .pp-progress { height: 3px; margin: 0 2px 4px; }
-.side-plan .pp-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.pp-done { flex: 1; }
-.pp-done summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs, 12px); color: var(--muted); padding: 4px 6px; border-radius: 8px; }
-.pp-done summary::-webkit-details-marker { display: none; }
-.pp-done summary:hover { color: var(--ink); background: var(--well); }
-.pp-done summary svg { width: 12px; height: 12px; }
-.pp-done[open] { display: grid; gap: 6px; }
-.pp-done .plan-item { opacity: .6; }
-.pp-done .pp-clear { justify-self: start; }
-.pp-done summary { width: fit-content; }
-.side-plan .day-plan > .mic-field, .side-plan .day-plan > .pp-foot, .side-plan .day-plan > .pp-progress, .side-plan .day-plan > .plan-empty { flex: none; }
-
 /* ---------- Plans as notebook sections: the open one in front, the others peeking out behind on the right ---------- */
 .day-layout:has(> .plan-stack) { grid-template-columns: minmax(0, 620px) minmax(300px, 384px); }
 .timely .day-head:has(+ .day-layout > .plan-stack) { max-width: 1020px; }
@@ -4688,3 +4657,42 @@ body.is-dragging .timely .allday.empty { display: flex; }
 .action-row .action-adds { flex: 0 1 auto; min-width: 0; }
 .day-tool, .day-tool span { white-space: nowrap; flex: none; }
 .focus-switch { flex: none; white-space: nowrap; }
+
+/* ---------- Action row v2: the day's tools on the left, one "+ Add" on the right that slides open ---------- */
+.action-row .action-tools { margin-left: 0; margin-right: auto; gap: 4px; }
+.action-row .action-tools .day-tool:first-child { margin-left: -10px; }
+.add-expander { display: flex; align-items: center; gap: 8px; flex: none; }
+.add-expander .ax-items { display: flex; align-items: center; gap: 6px; max-width: 0; overflow: hidden; padding: 4px 0; margin: -4px 0;
+  transition: max-width .38s cubic-bezier(.2,.8,.2,1); }
+.add-expander .ax-items > * { opacity: 0; translate: 16px 0; transition: opacity .22s ease, translate .3s cubic-bezier(.2,.8,.2,1); transition-delay: calc(var(--i, 0) * 35ms); flex: none; }
+.add-expander:hover .ax-items, .add-expander:focus-within .ax-items, .add-expander.pinned .ax-items { max-width: 820px; }
+.add-expander:hover .ax-items > *, .add-expander:focus-within .ax-items > *, .add-expander.pinned .ax-items > * { opacity: 1; translate: 0 0; }
+.add-expander .ax-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px 0 12px; border-radius: 999px; border: 0; background: var(--ink); color: #fff; font: inherit; font-size: var(--fs-sm, 13px); font-weight: 600; cursor: pointer; transition: background .2s, padding .3s; }
+.add-expander .ax-btn svg { width: 15px; height: 15px; transition: rotate .3s cubic-bezier(.2,.8,.2,1); }
+.add-expander:hover .ax-btn svg, .add-expander.pinned .ax-btn svg { rotate: 45deg; }
+.tb-right .focus-switch { padding-block: 2px; }
+@media (prefers-reduced-motion: reduce) { .add-expander .ax-items, .add-expander .ax-items > * { transition: none; } }
+
+/* Plan tabs: one family, Timely's own warm gold in three depths. Lighter = closer in time (today), deeper = further out. */
+.plan-tab.pp-today, .plan-sheet-page.pp-today { --tint: #d9a54a; }
+.plan-tab.pp-week, .plan-sheet-page.pp-week { --tint: #c07f45; }
+.plan-tab.pp-month, .plan-sheet-page.pp-month { --tint: #93613f; }
+.plan-tab { background: color-mix(in srgb, var(--tint) 9%, var(--paper, #fff)); color: color-mix(in srgb, var(--tint) 70%, var(--ink)); }
+.plan-tab:hover:not(.on), .plan-tab.drop-over { background: color-mix(in srgb, var(--tint) 17%, var(--paper, #fff)); }
+.plan-tab small { color: var(--tint); opacity: 1; }
+.plan-tab.on { color: var(--ink); border-color: color-mix(in srgb, var(--tint) 35%, var(--line)); box-shadow: inset 0 3px 0 var(--tint); }
+.plan-tab.on small { color: color-mix(in srgb, var(--tint) 80%, var(--ink)); }
+.plan-sheet-page { border-color: color-mix(in srgb, var(--tint) 35%, var(--line)); }
+.side-plan .plan-hint { margin: 2px 4px 0; font-size: var(--fs-xs, 12px); }
+
+/* The plan page under the tabs is the plan's own panel, exactly as before; the tabs just sit on top of it. */
+.plan-tabbed .plan-sheet-page { background: transparent !important; border: 0 !important; padding: 0 !important; border-radius: 0; overflow: visible; }
+.plan-tabbed .plan-sheet-page > .day-plan { flex: 1; min-height: 0; border-top-left-radius: 14px; border-top-right-radius: 14px; }
+.plan-tabs { padding: 0 12px; }
+
+/* Each plan keeps its own color, and its tab matches it: Daily = Taskly's blue (it is Taskly's To do),
+   Weekly = sage, Monthly = Timely's gold. */
+.period-plan.plan-weekplan { --col: #6f9e86; }
+.plan-tab.pp-today, .plan-sheet-page.pp-today { --tint: var(--taskly, #7584c4); }
+.plan-tab.pp-week, .plan-sheet-page.pp-week { --tint: #6f9e86; }
+.plan-tab.pp-month, .plan-sheet-page.pp-month { --tint: var(--timely, #c29a5b); }
