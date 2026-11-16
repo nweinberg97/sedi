@@ -783,7 +783,7 @@ function renderDay() {
     layout === 'desktop' ? head : null,
     h('div', { class: 'day-layout' },
       h('div', { class: 'day-col' }, layout === 'desktop' ? null : head, phoneActions, nudge, dayNotesStrip(key), allDay, scroll),
-      onPhone || (focusOn() && layout === 'desktop') ? null : sidePlan(key))].filter(Boolean));
+      onPhone || (focusOn() && layout === 'desktop') ? null : sidePlan(key, { stack: layout === 'desktop' }))].filter(Boolean));
 
   // Size hours so 6am–8pm fills the visible window exactly.
   requestAnimationFrame(() => {
@@ -1062,7 +1062,8 @@ function openRepeat(anchorEl, id) {
 // ---------- The day's side panel: Today's plan, or this week's or month's, to drag onto a time ----------
 // Weekly and monthly plans are for deciding what; the day is for deciding when. Switching the panel lets
 // you pull something from the week or the month straight onto an hour, without leaving the day.
-function sidePlan(key, { onChange = render, scheduleOn = null } = {}) {
+const PLAN_NAMES = { today: 'Daily plan', week: 'Weekly plan', month: 'Monthly plan' };
+function sidePlan(key, { onChange = render, scheduleOn = null, stack = false } = {}) {
   // Beside the day: the Daily plan (Taskly's To do), or the Weekly or Monthly plan, to drag onto a time.
   const pick = store.pref('daySide', 'today');
   const which = pick === 'week' || pick === 'month' ? pick : 'today'; // anything else (an older "Plan" choice) shows the Daily plan
@@ -1075,7 +1076,22 @@ function sidePlan(key, { onChange = render, scheduleOn = null } = {}) {
       return h('button', { class: v === which ? 'on' : '', role: 'tab', 'aria-selected': String(v === which), type: 'button', title: { today: 'Your Daily plan: the same list as Taskly’s To do', week: 'Your Weekly plan: stays the same week to week', month: 'Your Monthly plan: bigger things, the same every month' }[v], onclick: () => { store.setPref('daySide', v); onChange(); } },
         label, n ? h('small', {}, n) : null);
     }));
-  return h('div', { class: 'side-plan' }, seg, panel);
+  if (!stack) return h('div', { class: 'side-plan' }, seg, panel);
+  // Computers: the three plans sit like sections of a notebook. The open one is in front; the other two peek out
+  // behind it on the right, each with its name on the edge. Click one and it comes to the front.
+  const behind = ['today', 'week', 'month'].filter(v => v !== which);
+  const flip = v => {
+    const wrap = document.querySelector('.plan-stack');
+    wrap?.classList.add('flipping');
+    store.setPref('daySide', v);
+    setTimeout(onChange, wrap ? 140 : 0);
+  };
+  return h('div', { class: `side-plan plan-stack front-${which}` },
+    h('div', { class: `plan-page plan-page-front pp-${which}` },
+      h('div', { class: 'plan-page-head' }, h('span', { class: 'plan-page-name' }, PLAN_NAMES[which]), count(which) ? h('small', {}, `${count(which)} to do`) : null),
+      panel),
+    behind.map((v, i) => h('button', { class: `plan-page plan-spine pp-${v}`, type: 'button', style: { '--i': i }, title: `Open your ${PLAN_NAMES[v].toLowerCase()}`, 'aria-label': `Open ${PLAN_NAMES[v]}`, onclick: () => flip(v), dataset: { drop: 'plan-spine', accept: 'card', plan: v, springClick: '' } },
+      h('span', { class: 'spine-label' }, PLAN_NAMES[v].replace(' plan', '')), count(v) ? h('small', {}, count(v)) : null)));
 }
 
 // ---------- Today's plan (SD-T10) = Taskly's To do column. One list, shown in both places. ----------
@@ -1138,6 +1154,22 @@ registerDrop('day-plan', ({ id, index }) => {
   if (!(c.tool === 'taskly' && c.meta?.columnId === 'todo') && todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full.', { code: 'TASKLY_COLUMN_FULL' }); return false; }
   routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'todo', order: index ?? 0 }, log: 'Added to today’s plan' });
   reorder(todoCards(), id, index);
+});
+
+// Drop a card on a plan's edge to add it to that plan (hold there and that plan opens instead).
+registerDrop('plan-spine', ({ id, data }) => {
+  const c = store.getCard(id);
+  if (!c) return false;
+  if (data.plan === 'today') {
+    if (!(c.tool === 'taskly' && c.meta?.columnId === 'todo') && todoCards().length >= todoCapacity()) { toast('Taskly’s To do column is full.', { code: 'TASKLY_COLUMN_FULL' }); return false; }
+    routeCard(id, { tool: 'taskly', type: 'task', meta: { columnId: 'todo', order: todoCards().length }, log: 'Added to today’s plan' });
+  } else {
+    const kind = data.plan === 'month' ? 'monthplan' : 'weekplan';
+    const meta = { board: kind, planKey: null, order: periodCards(kind).length, done: false };
+    if (c.tool === 'timely') { const m = { ...c.meta }; PLAN_STRIP.forEach(k => delete m[k]); store.updateCard(id, { type: 'task', meta: { ...m, ...meta } }, { replaceMeta: true, log: true, logLabel: 'Added to plan' }); }
+    else routeCard(id, { tool: 'timely', type: 'task', meta, log: 'Added to plan' });
+  }
+  toast(`Added to your ${PLAN_NAMES[data.plan].toLowerCase()}`);
 });
 
 // ---------- Moving things on the day: see exactly where it will land ----------

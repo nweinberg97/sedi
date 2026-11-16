@@ -4619,3 +4619,32 @@ body.is-dragging .timely .allday.empty { display: flex; }
 .pp-done .pp-clear { justify-self: start; }
 .pp-done summary { width: fit-content; }
 .side-plan .day-plan > .mic-field, .side-plan .day-plan > .pp-foot, .side-plan .day-plan > .pp-progress, .side-plan .day-plan > .plan-empty { flex: none; }
+
+/* ---------- Plans as notebook sections: the open one in front, the others peeking out behind on the right ---------- */
+.day-layout:has(> .plan-stack) { grid-template-columns: minmax(0, 620px) minmax(300px, 384px); }
+.timely .day-head:has(+ .day-layout > .plan-stack) { max-width: 1020px; }
+.plan-stack { --spine: 40px; position: relative; display: block !important; padding-right: calc(var(--spine) * 2); min-height: 0; height: 100%; }
+.plan-page { --tint: var(--timely, #c29a5b); border-radius: 18px; border: 1px solid color-mix(in srgb, var(--tint) 22%, var(--line)); }
+.plan-page.pp-today { --tint: #c29a5b; }
+.plan-page.pp-week { --tint: #6f9e86; }
+.plan-page.pp-month { --tint: #8a7fc4; }
+.plan-page-front { position: relative; z-index: 3; height: 100%; display: flex; flex-direction: column; gap: 8px; padding: 14px 14px 12px; background: var(--paper, #fff);
+  box-shadow: 0 1px 2px rgba(20,30,60,.05), 8px 0 18px -14px rgba(20,30,60,.25); overflow: hidden; animation: pageIn .28s cubic-bezier(.2,.8,.2,1) both; }
+.plan-page-front::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--tint); opacity: .75; }
+.plan-page-front > .day-plan { flex: 1; min-height: 0; overflow-y: auto; }
+.plan-page-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px 2px 2px; }
+.plan-page-name { font-weight: 600; font-size: var(--fs-md, 15px); color: var(--ink); }
+.plan-page-head small { font-size: var(--fs-xs, 12px); color: var(--muted); }
+/* The two behind: each a page edge, a little lower and further right, with its name running down the edge. */
+.plan-spine { position: absolute; top: calc(14px + var(--i) * 14px); bottom: calc(14px + var(--i) * 14px); right: calc((1 - var(--i)) * var(--spine)); width: calc(var(--spine) + 24px);
+  z-index: calc(2 - var(--i)); display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 8px; padding: 16px 0 16px; cursor: pointer;
+  background: color-mix(in srgb, var(--tint) 12%, var(--paper, #fff)); color: color-mix(in srgb, var(--tint) 65%, var(--ink)); font: inherit;
+  transition: transform .2s cubic-bezier(.2,.8,.2,1), background .2s; }
+.plan-spine .spine-label, .plan-spine small { width: var(--spine); text-align: center; }
+.plan-spine .spine-label { writing-mode: vertical-rl; font-size: var(--fs-sm, 13px); font-weight: 600; letter-spacing: .02em; line-height: var(--spine); }
+.plan-spine small { font-size: 11px; font-weight: 600; opacity: .8; }
+.plan-spine:hover, .plan-spine.drop-over, .plan-spine:focus-visible { transform: translateX(6px); background: color-mix(in srgb, var(--tint) 20%, var(--paper, #fff)); }
+.plan-stack.flipping .plan-page-front { transition: transform .14s ease-in, opacity .14s ease-in; transform: translateX(-10px) scale(.985); opacity: .4; }
+@keyframes pageIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .plan-page-front, .plan-stack.flipping .plan-page-front { animation: none; transition: none; transform: none; } }
+.plan-page-front .pp-progress span { background: var(--tint) !important; }
