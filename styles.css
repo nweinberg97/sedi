@@ -4696,3 +4696,19 @@ body.is-dragging .timely .allday.empty { display: flex; }
 .plan-tab.pp-today, .plan-sheet-page.pp-today { --tint: var(--taskly, #7584c4); }
 .plan-tab.pp-week, .plan-sheet-page.pp-week { --tint: #6f9e86; }
 .plan-tab.pp-month, .plan-sheet-page.pp-month { --tint: var(--timely, #c29a5b); }
+
+/* Plan tabs, take 3: the airy look of the Daily plan everywhere. One cool, soft family (periwinkle, sky, lilac),
+   no dark accents; the open tab is simply the top of its page. */
+.period-plan.plan-weekplan { --col: #6f9fcb; }
+.period-plan.plan-monthplan { --col: #9a88cc; }
+.plan-tab.pp-today, .plan-sheet-page.pp-today { --tint: var(--taskly, #7584c4); }
+.plan-tab.pp-week, .plan-sheet-page.pp-week { --tint: #6f9fcb; }
+.plan-tab.pp-month, .plan-sheet-page.pp-month { --tint: #9a88cc; }
+.plan-tabs { gap: 2px; padding: 0 14px; }
+.plan-tab { height: 32px; background: transparent; border: 1px solid transparent; border-bottom: 0; box-shadow: none !important; color: var(--muted); font-weight: 500; }
+.plan-tab:hover:not(.on), .plan-tab.drop-over { background: color-mix(in srgb, var(--tint) 8%, transparent); color: color-mix(in srgb, var(--tint) 75%, var(--ink)); }
+.plan-tab small { font-size: 11px; font-weight: 600; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: inline-grid; place-items: center;
+  background: color-mix(in srgb, var(--tint) 12%, white); color: color-mix(in srgb, var(--tint) 85%, var(--ink)); }
+.plan-tab.on { color: color-mix(in srgb, var(--tint) 70%, var(--ink)); font-weight: 600;
+  background: color-mix(in srgb, var(--tint) 7%, white); border-color: color-mix(in srgb, var(--tint) 28%, var(--line)); }
+.plan-tab.on small { background: color-mix(in srgb, var(--tint) 16%, white); }
