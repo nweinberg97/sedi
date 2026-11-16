@@ -248,6 +248,93 @@ function pushBack(list, minutes) {
   } });
   return swapped;
 }
+// ---------- Daily reminders: a line that stays on top of the day ----------
+// A quote, an intention, something to remember. It isn't a task: nothing to tick, and it never moves or archives.
+// Each one shows every day by default; its ⋯ lets it show only on some weekdays, or only on one date.
+// Kept as a small list in prefs: { id, text, days: null | [0..6], date: null | 'YYYY-MM-DD' }.
+const dayNotes = () => store.pref('dayNotes', []);
+const saveNotes = list => { store.setPref('dayNotes', list); };
+const noteOn = (n, key) => (n.date ? n.date === key : !n.days?.length || n.days.includes(parseKey(key).getDay()));
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+function noteWhen(n) {
+  if (n.date) return `Only ${fmtShortDate(parseKey(n.date))}`;
+  const d = n.days || [];
+  if (!d.length || d.length === 7) return 'Every day';
+  if (d.length === 5 && [1, 2, 3, 4, 5].every(x => d.includes(x))) return 'Weekdays';
+  if (d.length === 2 && d.includes(0) && d.includes(6)) return 'Weekends';
+  return WEEKDAY_ORDER.filter(x => d.includes(x)).map(x => DOW[x]).join(', ');
+}
+function patchNote(id, patch) { saveNotes(dayNotes().map(n => (n.id === id ? { ...n, ...patch } : n))); render(); }
+function removeNote(id) {
+  const before = dayNotes();
+  saveNotes(before.filter(n => n.id !== id)); render();
+  toast('Reminder removed', { action: 'Undo', onAction: () => { saveNotes(before); render(); } });
+}
+/** The reminders strip above the day. Empty: one quiet "+ Daily reminder" line. */
+function dayNotesStrip(key) {
+  const list = dayNotes().filter(n => noteOn(n, key))
+    .sort((a, b) => (b.date ? 2 : b.days?.length ? 1 : 0) - (a.date ? 2 : a.days?.length ? 1 : 0)); // the most specific first
+  const wrap = h('div', { class: `day-notes ${list.length ? '' : 'empty'}` });
+  const startAdd = () => {
+    const input = h('input', { class: 'day-note-input', placeholder: 'A quote, an intention, something to remember…', 'aria-label': 'New daily reminder', maxlength: 240 });
+    let finished = false;
+    const done = save => {
+      if (finished) return; finished = true; // Enter re-renders, and the blur that follows must not add it twice
+      const text = input.value.trim();
+      if (save && text) { saveNotes([...dayNotes(), { id: uuid(), text, days: null, date: null }]); }
+      render();
+    };
+    input.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); });
+    input.addEventListener('blur', () => done(true));
+    wrap.querySelector('.day-note-add')?.remove();
+    wrap.append(h('div', { class: 'day-note adding' }, h('span', { class: 'dn-mark', 'aria-hidden': 'true' }, '✦'), input));
+    input.focus();
+  };
+  list.forEach(n => {
+    const text = h('span', { class: 'dn-text', title: 'Click to edit' }, n.text);
+    text.addEventListener('click', () => editInline(text, { selectAll: false, onCommit: v => patchNote(n.id, { text: v }) }));
+    wrap.append(h('div', { class: 'day-note', dataset: { id: n.id } },
+      h('span', { class: 'dn-mark', 'aria-hidden': 'true' }, '✦'),
+      text,
+      h('button', { class: 'dn-when', type: 'button', title: 'Choose which days it shows', onclick: e => openNoteSettings(e.currentTarget, n, key) }, noteWhen(n)),
+      h('button', { class: 'icon-btn xs dn-more', type: 'button', 'aria-label': 'Reminder settings', onclick: e => openNoteSettings(e.currentTarget, n, key) }, icon('more'))));
+  });
+  // With reminders showing, "Add another" lives in their ⋯ menu, so the strip is just the reminders.
+  if (!list.length) wrap.append(h('button', { class: 'day-note-add', type: 'button', onclick: startAdd }, icon('plus'), 'Daily reminder'));
+  wrap._add = startAdd;
+  return wrap;
+}
+/** ⋯ on a reminder: which days it shows, and delete. */
+function openNoteSettings(anchorEl, note, key) {
+  const box = h('div', { class: 'dn-pop' });
+  const paint = () => {
+    const n = dayNotes().find(x => x.id === note.id);
+    if (!n) return closePopovers();
+    const mode = n.date ? 'date' : n.days?.length && n.days.length < 7 ? 'days' : 'daily';
+    const set = patch => { saveNotes(dayNotes().map(x => (x.id === n.id ? { ...x, ...patch } : x))); paint(); render(); };
+    const opt = (v, label, patch) => h('button', { class: `chip ${mode === v ? 'on' : ''}`, type: 'button', onclick: () => set(patch) }, label);
+    box.replaceChildren(...[
+      h('strong', {}, 'Show this reminder'),
+      h('div', { class: 'dn-modes' },
+        opt('daily', 'Every day', { days: null, date: null }),
+        opt('days', 'Some days', { date: null, days: n.days?.length && n.days.length < 7 ? n.days : [parseKey(key).getDay()] }),
+        opt('date', `Only ${fmtShortDate(parseKey(key))}`, { date: key, days: null })),
+      mode === 'days' ? h('div', { class: 'dn-days' }, WEEKDAY_ORDER.map(d => {
+        const on = n.days.includes(d);
+        return h('button', { class: `dn-day ${on ? 'on' : ''}`, type: 'button', 'aria-pressed': String(on), onclick: () => {
+          const days = on ? n.days.filter(x => x !== d) : [...n.days, d];
+          set({ days: days.length ? days.sort() : null });
+        } }, DOW[d].slice(0, 2));
+      })) : null,
+      h('p', { class: 'muted small dn-hint' }, mode === 'daily' ? 'Shows at the top of every day.' : mode === 'days' ? 'Shows on the days you pick.' : 'Shows on this one day only.'),
+      h('div', { class: 'dn-actions' },
+        h('button', { class: 'chip', type: 'button', onclick: () => { closePopovers(); document.querySelector('.day-notes')?._add?.(); } }, icon('plus'), 'Add another'),
+        h('button', { class: 'chip danger-text', type: 'button', onclick: () => { closePopovers(); removeNote(n.id); } }, icon('trash'), 'Delete'))].filter(Boolean));
+  };
+  paint();
+  popover(anchorEl, box, { className: 'dn-popover' });
+}
+
 const PUSH_STEPS = [15, 30, 45, 60, 90, 120, 180];
 /** The Push back panel: how much, which things, a preview of what moves, and one button. */
 function openPushBack(anchorEl, key = anchor()) {
@@ -589,7 +676,7 @@ function renderDay() {
   body.replaceChildren(...[
     layout === 'desktop' ? actionRow(standardAdds(key), 'Hover the day to add at a time, or press + Now.') : null,
     h('div', { class: 'day-layout' },
-      h('div', { class: 'day-col' }, head, phoneActions, allDay, scroll),
+      h('div', { class: 'day-col' }, head, phoneActions, dayNotesStrip(key), allDay, scroll),
       onPhone ? null : sidePlan(key))].filter(Boolean));
 
   // Size hours so 6am–8pm fills the visible window exactly.
