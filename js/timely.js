@@ -626,6 +626,7 @@ export function mount(el) {
 
 export function render() {
   if (!root?.isConnected) return;
+  sizedFor = { layout: dayLayout(), w: innerWidth, h: innerHeight };
   const head = root.querySelector('.timely-head');
   const seg = (items, value, onPick, cls = '') => h('div', { class: `segmented ${cls}`, role: 'tablist' },
     items.map(([v, label]) => h('button', { class: v === value ? 'on' : '', role: 'tab', 'aria-selected': String(v === value), 'data-navoro-id': `timely.${v}`, onclick: () => onPick(v) }, label)));
@@ -727,11 +728,23 @@ function tickNow() {
 setInterval(tickNow, 5000);
 document.addEventListener('visibilitychange', tickNow);
 
+// Resizing the window (or moving it to another screen) redraws Timely for the new size once you stop: the right
+// layout (wide or narrow), hour heights that fit, and your place in the day kept.
+let sizedFor = null, resizeTimer = 0;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (!root?.isConnected || document.querySelector('.popover, .modal-backdrop') || document.body.classList.contains('is-dragging')) return;
+    const now = { layout: dayLayout(), w: innerWidth, h: innerHeight };
+    if (sizedFor && now.layout === sizedFor.layout && Math.abs(now.h - sizedFor.h) < 40 && Math.abs(now.w - sizedFor.w) < 60) return;
+    render();
+  }, 180);
+});
 /** Which day layout fits this screen: 'compact' (phones, portrait tablets), 'tablet' (landscape touch), or 'desktop'. */
 function dayLayout() {
   if (listMode()) return 'compact';
   const touch = matchMedia('(hover: none) and (pointer: coarse)').matches;
-  if (!touch) return innerWidth <= 820 ? 'compact' : 'desktop';
+  if (!touch) return innerWidth <= 900 ? 'compact' : 'desktop'; // matches the stylesheet's narrow layout (900px)
   return innerWidth < 1000 || innerHeight > innerWidth ? 'compact' : 'tablet';
 }
 function renderDay() {
