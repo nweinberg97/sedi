@@ -1200,7 +1200,8 @@ function dayPlanPanel(key) {
         h('button', { class: 'plan-check', 'aria-label': `Complete “${c.title}”`, onclick: e => { e.stopPropagation(); e.currentTarget.classList.add('on'); celebrate(e.currentTarget); setTimeout(() => completeTask(c.id), 520); } }, icon('check')),
         h('div', { class: 'plan-main' }, h('span', { class: 'plan-text', title: c.title, dataset: { fit: c.title } }, c.title), notesSnippet(c)),
         h('button', { class: 'icon-btn xs', title: 'Give it a time today', 'aria-label': 'Schedule it today', onclick: e => { e.stopPropagation(); scheduleToday(c.id, key); } }, icon('clock')));
-      return el;
+      // Same as the weekly and monthly plans: click to open its details (and notes), double-click to rename.
+      return cardChrome(el, c, () => openEditor(c.id, { title: 'Plan item' }), { compact: true });
     })),
     withMic(input, { label: 'Dictate a plan item' }),
     h('p', { class: 'muted small' }, list.length ? (matchMedia('(hover: none)').matches ? 'Tap the clock on a task to give it a time.' : 'Drag a task onto the day to give it a time.') : 'Nothing in To do. Add the day’s plan here; it shows up in Taskly too.'));
