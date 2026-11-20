@@ -248,7 +248,7 @@ function pushBack(list, minutes) {
   store.notify({ reason: 'move' });
   daySel.clear(); selectMode = false; paintDaySel();
   const n = list.length;
-  toast(`Pushed ${n} item${n === 1 ? '' : 's'} ${minutes > 0 ? 'back' : 'earlier'} ${fmtShift(minutes)}`, { action: 'Undo', onAction: () => {
+  toast(`Moved ${n} item${n === 1 ? '' : 's'} ${fmtShift(minutes)} ${minutes > 0 ? 'later' : 'earlier'}`, { action: 'Undo', onAction: () => {
     created.forEach(id => store.deleteCard(id, { silent: true }));
     prev.forEach(p => store.updateCard(p.id, { meta: p.meta }, { silent: true, replaceMeta: true }));
     store.notify({ reason: 'move' });
@@ -426,45 +426,110 @@ function behindNudge(key) {
     h('button', { class: 'chip ghost', type: 'button', onclick: e => openPushBack(e.currentTarget, key) }, 'More…'),
     h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': 'Hide for today', title: 'Dismiss', onclick: () => { store.setPref('nudgeOff', { day: key, ids: [...new Set([...seen, ...late.map(o => o.card.id)])] }); render(); } }, icon('x')));
 }
-const PUSH_STEPS = [15, 30, 45, 60, 90, 120, 180];
-/** The Push back panel: how much, which things, a preview of what moves, and one button. */
+// While you choose, the day shows the result: what would move slides to where it would land, faintly outlined.
+function previewPush(list, m) {
+  const grid = document.querySelector('.timely .day-grid');
+  if (!grid) return;
+  const hourH = parseFloat(getComputedStyle(grid).getPropertyValue('--hour')) || 48;
+  const byId = new Map(list.map(o => [o.card.id, o.card]));
+  grid.querySelectorAll('.event-block').forEach(b => {
+    const c = m ? byId.get(b.dataset.id) : null, range = b.querySelector('.ev-range');
+    b.classList.toggle('push-preview', !!c);
+    b.style.translate = c ? `0 ${(m / 60) * hourH}px` : '';
+    if (!range) return;
+    if (range.dataset.was == null) range.dataset.was = range.textContent;
+    // The times read where it would land, not where it is now.
+    range.textContent = c ? `${fmtMinutes(c.meta.start + m)}–${fmtMinutes(c.meta.start + m + (c.meta.dur || 60))}` : range.dataset.was;
+  });
+}
+const PUSH_QUICK = [-15, 15, 30, 60, 120];
+const PUSH_MAX = 240;
+const shiftWords = m => (m ? `${m > 0 ? '+' : '−'}${fmtShift(m)} ${m > 0 ? 'later' : 'earlier'}` : 'No change');
+/** The Push back panel: one slider (left is earlier, right is later), a few one-tap amounts, and the day previews it live. */
 function openPushBack(anchorEl, key = anchor()) {
   const isToday = key === dayToday();
-  let scope = daySel.size ? 'sel' : 'left', amount = store.pref('pushAmount', 60), dir = 1;
-  const box = h('div', { class: 'push-pop', role: 'dialog', 'aria-label': 'Push back' });
+  let scope = daySel.size ? 'sel' : 'left';
+  let m = clamp(Number(store.pref('pushAmount', 60)) || 60, -PUSH_MAX, PUSH_MAX);
+  const readout = h('strong', { class: 'pp-amount' });
+  const range = h('input', { class: 'pp-range', type: 'range', min: -PUSH_MAX, max: PUSH_MAX, step: 5, value: m, 'aria-label': 'How much to move: left is earlier, right is later' });
+  const quick = h('div', { class: 'pp-steps' });
+  const scopeRow = h('div', { class: 'pp-scope' });
+  const listBox = h('div', { class: 'pp-preview' });
+  const go = h('button', { class: 'btn primary pp-go', type: 'button' });
   const paint = () => {
-    const list = pushTargets(key, scope), m = amount * dir;
-    const scopes = [
-      daySel.size ? ['sel', `Selected (${daySel.size})`] : null,
-      ['left', 'Everything not done'],
-      isToday ? ['now', 'From now on'] : null].filter(Boolean);
-    const stepper = d => () => { amount = clamp(amount + d, 5, 12 * 60); paint(); };
-    const preview = list.slice(0, 4).map(o => {
-      const from = o.card.meta.start, to = ((from + m) % 1440 + 1440) % 1440;
-      return h('li', {}, h('span', { class: 'pp-t' }, truncate(o.card.title, 26)), h('span', { class: 'pp-times' }, h('s', {}, fmtMinutes(from)), ' → ', fmtMinutes(to)));
-    });
+    const list = pushTargets(key, scope);
+    readout.textContent = shiftWords(m);
+    readout.classList.toggle('earlier', m < 0);
+    range.value = m;
+    range.style.setProperty('--fill-from', `${(Math.min(0, m) + PUSH_MAX) / (2 * PUSH_MAX) * 100}%`);
+    range.style.setProperty('--fill-to', `${(Math.max(0, m) + PUSH_MAX) / (2 * PUSH_MAX) * 100}%`);
+    quick.replaceChildren(...PUSH_QUICK.map(s => h('button', { class: `chip ${s === m ? 'on' : ''}`, type: 'button', onclick: () => { m = s; paint(); } }, `${s > 0 ? '+' : '−'}${fmtShift(s)}`)));
+    const scopes = [daySel.size ? ['sel', `Selected (${daySel.size})`] : null, ['left', 'Everything not done'], isToday ? ['now', 'From now on'] : null].filter(Boolean);
+    scopeRow.replaceChildren(...scopes.map(([v, l]) => h('button', { class: `chip ${scope === v ? 'on' : ''}`, type: 'button', onclick: () => { scope = v; paint(); } }, l)));
     const last = list[list.length - 1], lastEnd = last ? last.g + (last.card.meta.dur || 60) + m : 0;
     const routines = list.filter(o => isRoutine(o.card)).length;
-    box.replaceChildren(...[
-      h('strong', { class: 'pp-h' }, 'Push back'),
-      h('div', { class: 'segmented pp-dir', role: 'tablist' },
-        [[1, 'Later'], [-1, 'Earlier']].map(([v, l]) => h('button', { class: dir === v ? 'on' : '', type: 'button', onclick: () => { dir = v; paint(); } }, l))),
-      h('div', { class: 'pp-steps' }, PUSH_STEPS.map(s => h('button', { class: `chip ${s === amount ? 'on' : ''}`, type: 'button', onclick: () => { amount = s; paint(); } }, fmtShift(s)))),
-      h('div', { class: 'pp-custom' },
-        h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': '5 minutes less', onclick: stepper(-5) }, '−'),
-        h('span', { class: 'pp-amount' }, `${dir > 0 ? '+' : '−'}${fmtShift(amount)}`),
-        h('button', { class: 'icon-btn xs', type: 'button', 'aria-label': '5 minutes more', onclick: stepper(5) }, icon('plus'))),
-      h('div', { class: 'pp-scope' }, scopes.map(([v, l]) => h('button', { class: `chip ${scope === v ? 'on' : ''}`, type: 'button', onclick: () => { scope = v; paint(); } }, l))),
-      list.length ? h('ul', { class: 'pp-list' }, preview, list.length > 4 ? h('li', { class: 'muted small' }, `and ${list.length - 4} more`) : null)
+    listBox.replaceChildren(...[
+      list.length ? h('ul', { class: 'pp-list' },
+        list.slice(0, 4).map(o => {
+          const from = o.card.meta.start, to = ((from + m) % 1440 + 1440) % 1440;
+          return h('li', {}, h('span', { class: 'pp-t' }, truncate(o.card.title, 26)), h('span', { class: 'pp-times' }, m ? [h('s', {}, fmtMinutes(from)), ' → '] : null, fmtMinutes(to)));
+        }),
+        list.length > 4 ? h('li', { class: 'muted small' }, `and ${list.length - 4} more`) : null)
         : h('p', { class: 'muted small' }, 'Nothing to move here.'),
       lastEnd > 1440 ? h('p', { class: 'pp-note' }, `The last one would end ${fmtMinutes((lastEnd + DAY0) % 1440)}, past the end of the day.`) : null,
-      routines ? h('p', { class: 'pp-note muted' }, `Routines move just for this day.`) : null,
-      h('button', { class: 'btn primary pp-go', type: 'button', disabled: !list.length, onclick: () => {
-        store.setPref('pushAmount', amount); closePopovers(); pushBack(list, m);
-      } }, list.length ? `Move ${list.length} ${dir > 0 ? 'later' : 'earlier'} by ${fmtShift(amount)}` : 'Move')].filter(Boolean));
+      routines ? h('p', { class: 'pp-note muted' }, 'Routines move just for this day.') : null].filter(Boolean));
+    go.disabled = !list.length || !m;
+    go.textContent = !list.length ? 'Nothing to move' : !m ? 'Drag the slider to choose' : `Move ${list.length} ${m > 0 ? 'later' : 'earlier'} by ${fmtShift(m)}`;
+    previewPush(list, m);
   };
+  range.addEventListener('input', () => { m = Number(range.value); paint(); });
+  range.addEventListener('keydown', e => e.stopPropagation()); // arrows move the slider, not the day
+  go.addEventListener('click', () => { const list = pushTargets(key, scope); store.setPref('pushAmount', m); closePopovers(); pushBack(list, m); });
+  const box = h('div', { class: 'push-pop', role: 'dialog', 'aria-label': 'Push back' },
+    h('div', { class: 'pp-head' }, h('span', { class: 'pp-h' }, 'Push back'), readout),
+    h('div', { class: 'pp-slider' }, range,
+      h('div', { class: 'pp-ends', 'aria-hidden': 'true' }, h('span', {}, '← Earlier'), h('span', {}, 'Later →'))),
+    quick, scopeRow, listBox, go);
   paint();
-  popover(anchorEl, box, { className: 'push-popover' });
+  const pop = popover(anchorEl, box, { className: 'push-popover' });
+  const clean = pop._cleanup;
+  pop._cleanup = () => { clean?.(); previewPush([], 0); };
+}
+/** On today's now line: grab "Push back" and drag down (later) or up (earlier). The day moves under your hand;
+ *  let go to apply. A plain click opens the panel instead. */
+function nowPushHandle(key) {
+  const btn = h('button', { class: 'now-push', type: 'button', title: 'Drag down to push the rest of today later (up for earlier), or click for options' },
+    icon('clock'), h('span', { class: 'np-label' }, 'Push back'), h('span', { class: 'np-grip', 'aria-hidden': 'true' }, '⇅'));
+  btn.addEventListener('click', e => { e.stopPropagation(); if (e.detail === 0) openPushBack(btn, key); }); // keyboard
+  btn.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.stopPropagation(); e.preventDefault();
+    const grid = btn.closest('.day-grid'), hourH = parseFloat(getComputedStyle(grid).getPropertyValue('--hour')) || 48;
+    const label = btn.querySelector('.np-label'), y0 = e.clientY, list = pushTargets(key, 'now');
+    let m = 0, moved = false;
+    btn.setPointerCapture?.(e.pointerId);
+    const mv = ev => {
+      const dy = ev.clientY - y0;
+      if (!moved && Math.abs(dy) < 5) return;
+      moved = true;
+      document.body.classList.add('push-dragging'); btn.classList.add('dragging');
+      m = clamp(Math.round(((dy / hourH) * 60) / 5) * 5, -PUSH_MAX, 12 * 60);
+      btn.style.translate = `0 calc(-50% + ${(m / 60) * hourH}px)`;
+      label.textContent = m ? `${shiftWords(m)} · ${list.length} item${list.length === 1 ? '' : 's'}` : 'Push back';
+      previewPush(list, m);
+    };
+    const up = () => {
+      btn.removeEventListener('pointermove', mv); btn.removeEventListener('pointerup', up); btn.removeEventListener('pointercancel', up);
+      document.body.classList.remove('push-dragging'); btn.classList.remove('dragging');
+      btn.style.translate = ''; label.textContent = 'Push back';
+      lastMoveEnd = Date.now();
+      if (!moved) return openPushBack(btn, key);
+      previewPush([], 0);
+      if (m && list.length) { store.setPref('pushAmount', m); pushBack(list, m); }
+    };
+    btn.addEventListener('pointermove', mv); btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up);
+  });
+  return btn;
 }
 document.addEventListener('keydown', e => {
   if (!root?.isConnected || view() !== 'day' || mode() !== 'schedule' || document.querySelector('.modal-backdrop')) return;
@@ -853,7 +918,7 @@ function renderDay() {
         h('button', { class: 'now-add', type: 'button', 'aria-label': 'Add something right now', title: 'Add something now', onclick: e => { e.stopPropagation(); const n = new Date(), at = Math.floor((n.getHours() * 60 + n.getMinutes()) / 5) * 5; if (phone) openItemForm(e.currentTarget, { type: 'task', date: todayKey(), start: at, pickDate: false }); else addAt(gridMin(at), 30); } },
           h('span', { class: 'now-time' }, fmtMinutes(nowMins))),
         // Where you look when you're late: hover the time and Push back is right there.
-        h('button', { class: 'now-push', type: 'button', title: 'Running late? Push the rest of the day back', onclick: e => { e.stopPropagation(); openPushBack(e.currentTarget, key); } }, icon('clock'), 'Push back')));
+        nowPushHandle(key)));
     }
     // Start where you are in the day: right now for today (a little context above), 7am otherwise. Keep your place on updates.
     const startTop = key === dayToday() ? Math.max(0, (nowG / 60 - 1.25) * hourH) : 2 * hourH; // today: right now; other days: 7am

@@ -4739,3 +4739,38 @@ body.is-dragging .timely .allday.empty { display: flex; }
 .day-layout:has(> .plan-stack) { grid-template-columns: minmax(0, 620px) minmax(300px, 368px); }
 .period-layout:has(> .plan-stack) { grid-template-columns: minmax(0, 1fr) 330px; }
 .timely .day-head:has(+ .day-layout > .plan-stack) { max-width: none; }
+
+/* ---------- Push back v2: one slider, a live preview, and a now line you can drag (Nov 20) ---------- */
+.push-popover { width: 340px; }
+.push-pop { gap: 14px; }
+.push-pop .pp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.push-pop .pp-h { font-weight: 600; font-size: var(--fs-md, 15px); }
+.push-pop .pp-amount { min-width: 0; text-align: right; font-size: 18px; font-weight: 650; color: var(--timely, #c29a5b); font-variant-numeric: tabular-nums; }
+.push-pop .pp-amount.earlier { color: #5f8fbf; }
+.pp-slider { display: grid; gap: 4px; }
+.pp-range { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: grab; margin: 0; touch-action: pan-y; }
+.pp-range:active { cursor: grabbing; }
+.pp-range::-webkit-slider-runnable-track { height: 6px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--well-2, #e8e4dc) var(--fill-from), color-mix(in srgb, var(--timely, #c29a5b) 70%, white) var(--fill-from) var(--fill-to), var(--well-2, #e8e4dc) var(--fill-to)),
+              linear-gradient(var(--ink, #222), var(--ink, #222)) center / 2px 12px no-repeat; }
+.pp-range::-moz-range-track { height: 6px; border-radius: 999px; background: var(--well-2, #e8e4dc); }
+.pp-range::-moz-range-progress { height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--timely, #c29a5b) 70%, white); }
+.pp-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--paper, #fff);
+  border: 2px solid var(--timely, #c29a5b); box-shadow: 0 2px 6px -2px rgba(0,0,0,.35); transition: scale .12s; }
+.pp-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--paper, #fff); border: 2px solid var(--timely, #c29a5b); }
+.pp-range:active::-webkit-slider-thumb { scale: 1.12; }
+.pp-range:focus-visible { outline: none; }
+.pp-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in srgb, var(--timely, #c29a5b) 30%, transparent); }
+.pp-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.pp-preview { display: grid; gap: 8px; }
+.pp-preview:empty { display: none; }
+.push-pop .pp-go:disabled { opacity: .55; }
+/* The day, previewing a push: blocks slide to where they'd land, outlined, with a soft motion. */
+.timely .event-block { transition: translate .14s var(--ease, ease); }
+.timely .event-block.push-preview { outline: 1.5px dashed color-mix(in srgb, var(--timely, #c29a5b) 80%, transparent); outline-offset: 1px; z-index: 4; box-shadow: 0 8px 18px -10px rgba(0,0,0,.35); }
+body.push-dragging, body.push-dragging * { cursor: ns-resize !important; user-select: none; }
+/* The now line's Push back: a handle you can grab. */
+.now-line .now-push { touch-action: none; cursor: ns-resize; }
+.now-line .now-push .np-grip { font-size: 11px; opacity: .55; margin-left: 1px; }
+.now-line .now-push.dragging { opacity: 1; pointer-events: auto; background: var(--danger, #e5484d); color: #fff; border-color: transparent; box-shadow: 0 6px 16px -6px rgba(200,40,30,.55); transition: none; }
+.now-line .now-push.dragging .np-grip { opacity: .85; }
