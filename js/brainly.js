@@ -279,8 +279,9 @@ function openLinkFolder(fid, fromEl) {
         const n = links(x.id).length + lfChildren(x.id).length;
         const t = h('div', { class: 'glass-item glass-sub', tabindex: 0, title: `${x.name}: ${lfCount(x)}`, dataset: { drag: 'lfolder', id: x.id, drop: 'lf-into', accept: 'card lfolder', into: x.id } },
           h('span', { class: 'folder-shape', style: { '--fc': folderTint(x) } }, h('span', { class: 'folder-emoji' }, lfEmoji(x)), n ? h('span', { class: 'folder-badge' }, n) : null),
-          h('span', { class: 'glass-label' }, x.name));
-        t.addEventListener('click', () => { glass.fid = x.id; paint(); });
+          h('span', { class: 'glass-label' }, x.name),
+          h('button', { class: 'glass-del', type: 'button', 'aria-label': `Delete folder ${x.name}`, title: 'Delete folder (what’s inside moves up a level)', onclick: e => { e.stopPropagation(); deleteLinkFolder(x); } }, icon('x')));
+        t.addEventListener('click', e => { if (e.target.closest('.glass-del')) return; glass.fid = x.id; paint(); });
         t.addEventListener('keydown', e => { if (e.key === 'Enter') { glass.fid = x.id; paint(); } });
         return t;
       }))) : null;
@@ -299,8 +300,9 @@ function openLinkFolder(fid, fromEl) {
       tile('folder', 'New folder', () => addLinkFolder(f.id)),
       items.map(c => {
         const t = h('div', { class: 'glass-item', tabindex: 0, dataset: { drag: 'card', id: c.id }, title: c.meta?.url || c.title },
-          h('span', { class: 'glass-icon' }, favicon(c)), h('span', { class: 'glass-label' }, c.title));
-        t.addEventListener('click', () => previewItem(t, c.id));
+          h('span', { class: 'glass-icon' }, favicon(c)), h('span', { class: 'glass-label' }, c.title),
+          h('button', { class: 'glass-del', type: 'button', 'aria-label': `Delete ${c.title}`, title: 'Delete (you can Undo)', onclick: e => { e.stopPropagation(); trashCard(c.id); } }, icon('x')));
+        t.addEventListener('click', e => { if (e.target.closest('.glass-del')) return; previewItem(t, c.id); });
         hoverPreview(t, c);
         t.addEventListener('keydown', e => { if (e.key === 'Enter') previewItem(t, c.id); });
         return t;
@@ -319,6 +321,12 @@ function openLinkFolder(fid, fromEl) {
               item('trash', 'Delete folder…', async () => {
                 const ok = await confirmModal(`Delete “${f.name}”?`, 'What’s inside moves up a level, so nothing is lost. You can Undo right after.', 'Delete', true);
                 if (ok) { const ff = lfById(glass?.fid); closeGlass(); if (ff) deleteLinkFolder(ff); }
+              }, 'danger'),
+              item('trash', 'Delete folder and everything in it…', async () => {
+                const n = lfAllItems(f.id).length, k = lfDescendants(f.id).length;
+                const what = [n ? `${n} item${n === 1 ? '' : 's'}` : '', k ? `${k} folder${k === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
+                const ok = await confirmModal(`Delete “${f.name}” and what’s inside?`, what ? `This deletes ${what} too. You can Undo right after.` : 'It’s empty. You can Undo right after.', 'Delete all', true);
+                if (ok) { const ff = lfById(glass?.fid); closeGlass(); if (ff) deleteLinkFolderAll(ff); }
               }, 'danger')), { className: 'card-menu-pop glass-menu-pop' });
           } }, icon('more')),
           h('button', { class: 'glass-close', type: 'button', 'aria-label': 'Close folder', onclick: () => closeGlass() }, icon('x')))),
@@ -477,6 +485,17 @@ export function deleteLinkFolder(f) {
     action: 'Undo', onAction: () => { store.set('linkFolders', prev); moved.forEach(c => store.updateCard(c.id, { meta: { linkFolderId: f.id } }, { silent: true })); store.notify(); },
   });
 }
+const lfAllItems = fid => [fid, ...lfDescendants(fid)].flatMap(id => links(id));
+/** Delete a folder, its folders, and every link and file in them. One Undo brings it all back. */
+function deleteLinkFolderAll(f) {
+  const prev = linkFolders(), gone = new Set([f.id, ...lfDescendants(f.id)]);
+  const removed = lfAllItems(f.id).map(c => store.deleteCard(c.id, { silent: true })).filter(Boolean);
+  store.set('linkFolders', prev.filter(x => !gone.has(x.id)));
+  store.notify();
+  toast(`Deleted ${f.name}${removed.length ? ` and ${removed.length} item${removed.length === 1 ? '' : 's'}` : ''}`, {
+    action: 'Undo', onAction: () => { store.set('linkFolders', prev); removed.forEach(c => store.restoreCard(c)); store.notify(); },
+  });
+}
 export function trashLinkFolder(id) { const f = linkFolders().find(x => x.id === id); if (f) deleteLinkFolder(f); }
 
 /** SD-F4 / SD-L3 / SD-A3: preview one link, PDF or text file. */
@@ -533,6 +552,7 @@ function previewItem(anchor, id) {
   rows.push(h('div', { class: 'peek-task' },
     h('button', { class: 'chip task-chip', title: `Adds “${taskName}” to To do in Taskly`, onclick: () => { closePopovers(); makeTaskFrom(c); } }, icon('checklist'), 'Make a task'),
     h('span', { class: 'muted small' }, `“${taskName}”`)));
+  rows.push(h('div', { class: 'peek-delete' }, h('button', { class: 'chip danger-text', type: 'button', onclick: () => { closePopovers(); trashCard(id); } }, icon('trash'), kind === 'link' ? 'Delete link' : 'Delete file')));
   popover(anchor, h('div', { class: 'item-peek' }, h('div', { class: 'item-peek-head' }, favicon(c), title), ...rows), { className: 'item-peek-pop' });
 }
 /** A task named for the thing: PDFs and files get reviewed, links get read. */

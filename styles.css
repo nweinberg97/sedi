@@ -4774,3 +4774,15 @@ body.push-dragging, body.push-dragging * { cursor: ns-resize !important; user-se
 .now-line .now-push .np-grip { font-size: 11px; opacity: .55; margin-left: 1px; }
 .now-line .now-push.dragging { opacity: 1; pointer-events: auto; background: var(--danger, #e5484d); color: #fff; border-color: transparent; box-shadow: 0 6px 16px -6px rgba(200,40,30,.55); transition: none; }
 .now-line .now-push.dragging .np-grip { opacity: .85; }
+
+/* Link folders: delete what's inside (Nov 20). An × on each item and folder, shown on hover (always on touch). */
+.glass-item { position: relative; }
+.glass-del { position: absolute; top: 0; right: 6px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--paper, #fff); border: 1px solid var(--line, #e5e5e5); color: var(--muted); box-shadow: 0 2px 6px -3px rgba(0,0,0,.3);
+  opacity: 0; transition: opacity .15s, color .15s; z-index: 2; }
+.glass-del svg { width: 12px; height: 12px; }
+.glass-item:hover .glass-del, .glass-item:focus-within .glass-del, .glass-del:focus-visible { opacity: 1; }
+.glass-del:hover { color: var(--danger, #e5484d); border-color: color-mix(in srgb, var(--danger, #e5484d) 40%, white); }
+@media (hover: none) { .glass-del { opacity: .9; } }
+.peek-delete { display: flex; justify-content: flex-end; border-top: 1px solid var(--line, #eee); padding-top: 8px; }
+.glass-sub .glass-del { right: auto; left: 6px; }
